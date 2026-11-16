@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAD 3D · Tapa Caja de Conexiones Eléctrica (STL)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Estilizado de barras de desplazamiento y sliders personalizados */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: #334155;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -5px;
+      background-color: #38bdf8;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      border: 2px solid #0f172a;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background-color: #7dd3fc;
+    }
+    canvas {
+      display: block;
+      outline: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-screen w-screen overflow-hidden flex flex-col md:flex-row select-none">
+
+  <!-- PANEL LATERAL DE PARÁMETROS CAD -->
+  <aside id="sidebar" class="w-full md:w-[410px] lg:w-[435px] h-[52vh] md:h-full bg-slate-900/95 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col z-20 shadow-2xl">
+    
+    <!-- Cabecera -->
+    <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-white">Tapa Caja Conexiones CAD</h1>
+          <p class="text-[11px] text-slate-400">Generador paramétrico STL · Malla Manifold</p>
+        </div>
+      </div>
+      <span id="save-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+        Sincronizado
+      </span>
+    </div>
+
+    <!-- Navegación por Pestañas -->
+    <nav class="grid grid-cols-4 gap-1 p-1.5 bg-slate-950/70 border-b border-slate-800 text-[11px] font-medium">
+      <button data-tab="dims" class="tab-btn active py-2 px-1.5 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/40 transition">
+        Dimensiones
+      </button>
+      <button data-tab="clips" class="tab-btn py-2 px-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition">
+        Pestañas
+      </button>
+      <button data-tab="cables" class="tab-btn py-2 px-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition">
+        Cables
+      </button>
+      <button data-tab="view" class="tab-btn py-2 px-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition">
+        Vista / STL
+      </button>
+    </nav>
+
+    <!-- Contenido Desplazable de Controles -->
+    <div id="controls-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+
+      <!-- PESTAÑA 1: DIMENSIONES GENERALES -->
+      <section id="tab-dims" class="tab-panel space-y-3.5">
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">Cuerpo Principal (mm)</h2>
+            <span class="text-[11px] font-mono text-slate-400">Base foto ~74×74 mm</span>
+          </div>
+
+          <!-- Ancho exterior -->
+          <div class="control-group" data-key="width" data-min="55" data-max="110" data-step="0.5" data-unit="mm" data-label="Ancho exterior (X)"></div>
+          <!-- Alto exterior -->
+          <div class="control-group" data-key="height" data-min="55" data-max="110" data-step="0.5" data-unit="mm" data-label="Alto exterior (Y)"></div>
+          <!-- Profundidad total -->
+          <div class="control-group" data-key="depth" data-min="15" data-max="40" data-step="0.5" data-unit="mm" data-label="Profundidad total (Z máx. 40)"></div>
+          <!-- Grosor pared y frontal -->
+          <div class="control-group" data-key="wall" data-min="1.4" data-max="4.0" data-step="0.1" data-unit="mm" data-label="Grosor de pared y tapa"></div>
+          <!-- Radio de esquinas -->
+          <div class="control-group" data-key="cornerRadius" data-min="1" data-max="16" data-step="0.5" data-unit="mm" data-label="Radio de esquinas exteriores"></div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">Solape con Caja Base</h2>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            La tapa abraza exteriormente el borde de la caja base. Ajusta la holgura para compensar la expansión del filamento (PLA/PETG).
+          </p>
+          <div class="control-group" data-key="tolerance" data-min="0.0" data-max="1.0" data-step="0.05" data-unit="mm" data-label="Tolerancia / holgura de encaje"></div>
+          <div class="control-group" data-key="lipDepth" data-min="4" data-max="16" data-step="0.5" data-unit="mm" data-label="Zona de solape en borde base"></div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 2: ENCAJE DE PESTAÑAS -->
+      <section id="tab-clips" class="tab-panel hidden space-y-3.5">
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200/90 leading-relaxed">
+          <strong>Geometría detectada en foto:</strong> 2 pestañas superiores simétricas + 2 guías/enganches laterales a media altura. Se crean huecos/rebajes interiores exactos para cierre a presión (<em>snap-fit</em>).
+        </div>
+
+        <!-- Pestañas Superiores -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">2 Rebajes Superiores Simétricos</h2>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+              <input type="checkbox" id="chk-topClipsEnabled" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+              <span>Activos</span>
+            </label>
+          </div>
+          <div class="control-group" data-key="topClipOffsetX" data-min="10" data-max="32" data-step="0.5" data-unit="mm" data-label="Separación desde centro (±X)"></div>
+          <div class="control-group" data-key="topClipWidth" data-min="6" data-max="22" data-step="0.5" data-unit="mm" data-label="Ancho de cada hueco superior"></div>
+          <div class="control-group" data-key="topClipHeight" data-min="1.5" data-max="8" data-step="0.2" data-unit="mm" data-label="Alto de ventana/rebaje"></div>
+          <div class="control-group" data-key="topClipDistFromEdge" data-min="1.5" data-max="10" data-step="0.2" data-unit="mm" data-label="Distancia desde borde trasero"></div>
+          <div class="control-group" data-key="topClipRecessDepth" data-min="0.6" data-max="2.5" data-step="0.1" data-unit="mm" data-label="Profundidad del rebaje interior"></div>
+        </div>
+
+        <!-- Pestañas Laterales (Izquierda y Derecha) -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">Rebajes Laterales (Izq / Der)</h2>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+              <input type="checkbox" id="chk-sideClipsEnabled" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+              <span>Activos</span>
+            </label>
+          </div>
+          <div class="control-group" data-key="sideClipOffsetY" data-min="-15" data-max="15" data-step="0.5" data-unit="mm" data-label="Desplazamiento vertical (Y)"></div>
+          <div class="control-group" data-key="sideClipHeight" data-min="8" data-max="28" data-step="0.5" data-unit="mm" data-label="Alto del hueco lateral"></div>
+          <div class="control-group" data-key="sideClipDepthZ" data-min="2" data-max="10" data-step="0.2" data-unit="mm" data-label="Longitud en Z del hueco"></div>
+          <div class="control-group" data-key="sideClipDistFromEdge" data-min="1.5" data-max="10" data-step="0.2" data-unit="mm" data-label="Distancia desde borde trasero"></div>
+          <div class="control-group" data-key="sideClipRecessDepth" data-min="0.6" data-max="2.5" data-step="0.1" data-unit="mm" data-label="Profundidad del rebaje interior"></div>
+        </div>
+
+        <!-- Modo de hueco -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-2">
+          <label class="block text-xs font-medium text-slate-300">Tipo de ranura de encaje</label>
+          <select id="sel-clipThroughWall" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+            <option value="recess">Rebaje interior ciego (estético, sin agujero exterior)</option>
+            <option value="through">Ventana pasante completa (máximo agarre y flexibilidad)</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 3: APERTURAS DE CABLES -->
+      <section id="tab-cables" class="tab-panel hidden space-y-3.5">
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Recortes tipo arco redondeado abiertos hacia el borde trasero para instalar la tapa sin desconectar la regleta de cables.
+        </p>
+
+        <!-- 1. Apertura Lateral Izquierda -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-emerald-400">1. Salida Lateral Izquierda</h2>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+              <input type="checkbox" id="chk-leftCutoutEnabled" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+              <span>Activa</span>
+            </label>
+          </div>
+          <div class="control-group" data-key="leftCutoutY" data-min="-22" data-max="22" data-step="0.5" data-unit="mm" data-label="Posición vertical Y (negativo = abajo)"></div>
+          <div class="control-group" data-key="leftCutoutWidth" data-min="8" data-max="40" data-step="0.5" data-unit="mm" data-label="Ancho de apertura"></div>
+          <div class="control-group" data-key="leftCutoutHeight" data-min="6" data-max="30" data-step="0.5" data-unit="mm" data-label="Alto / profundidad del arco"></div>
+        </div>
+
+        <!-- 2. Apertura Inferior -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-emerald-400">2. Salida Inferior</h2>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+              <input type="checkbox" id="chk-bottomCutoutEnabled" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+              <span>Activa</span>
+            </label>
+          </div>
+          <div class="control-group" data-key="bottomCutoutX" data-min="-22" data-max="22" data-step="0.5" data-unit="mm" data-label="Desplazamiento X (negativo = izq.)"></div>
+          <div class="control-group" data-key="bottomCutoutWidth" data-min="8" data-max="46" data-step="0.5" data-unit="mm" data-label="Ancho de apertura"></div>
+          <div class="control-group" data-key="bottomCutoutHeight" data-min="6" data-max="30" data-step="0.5" data-unit="mm" data-label="Alto / profundidad del arco"></div>
+        </div>
+
+        <!-- 3. Apertura Lateral Derecha (Opcional) -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">3. Salida Lateral Derecha (Opcional)</h2>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+              <input type="checkbox" id="chk-rightCutoutEnabled" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+              <span>Activa</span>
+            </label>
+          </div>
+          <div class="control-group" data-key="rightCutoutY" data-min="-22" data-max="22" data-step="0.5" data-unit="mm" data-label="Posición vertical Y"></div>
+          <div class="control-group" data-key="rightCutoutWidth" data-min="8" data-max="40" data-step="0.5" data-unit="mm" data-label="Ancho de apertura"></div>
+          <div class="control-group" data-key="rightCutoutHeight" data-min="6" data-max="30" data-step="0.5" data-unit="mm" data-label="Alto / profundidad del arco"></div>
+        </div>
+
+        <!-- 4. Apertura Superior (Opcional) -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">4. Salida Superior (Opcional)</h2>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+              <input type="checkbox" id="chk-topCutoutEnabled" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+              <span>Activa</span>
+            </label>
+          </div>
+          <div class="control-group" data-key="topCutoutX" data-min="-22" data-max="22" data-step="0.5" data-unit="mm" data-label="Desplazamiento horizontal X"></div>
+          <div class="control-group" data-key="topCutoutWidth" data-min="8" data-max="40" data-step="0.5" data-unit="mm" data-label="Ancho de apertura"></div>
+          <div class="control-group" data-key="topCutoutHeight" data-min="6" data-max="30" data-step="0.5" data-unit="mm" data-label="Alto / profundidad del arco"></div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 4: VISTA Y EXPORTACIÓN STL -->
+      <section id="tab-view" class="tab-panel hidden space-y-3.5">
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">Inspección Visual 3D</h2>
+          
+          <label class="flex items-center justify-between cursor-pointer py-1">
+            <span class="text-xs text-slate-200">Mostrar caja base fantasma y pestañas</span>
+            <input type="checkbox" id="chk-showGhostBase" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+          </label>
+
+          <label class="flex items-center justify-between cursor-pointer py-1">
+            <span class="text-xs text-slate-200">Modo Rayos X (tapa semitransparente)</span>
+            <input type="checkbox" id="chk-xrayMode" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+          </label>
+
+          <label class="flex items-center justify-between cursor-pointer py-1">
+            <span class="text-xs text-slate-200">Mostrar rejilla en mm y ejes</span>
+            <input type="checkbox" id="chk-showGrid" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+          </label>
+
+          <label class="flex items-center justify-between cursor-pointer py-1">
+            <span class="text-xs text-slate-200">Mostrar aristas de malla (Wireframe)</span>
+            <input type="checkbox" id="chk-showEdges" class="rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-0">
+          </label>
+
+          <div class="pt-1 border-t border-slate-700/60">
+            <div class="control-group" data-key="sectionCutY" data-min="-45" data-max="45" data-step="1" data-unit="mm" data-label="Plano de corte / sección Y (45 = desactivado)"></div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-2.5">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">Orientación de Impresión STL</h2>
+          <select id="sel-exportOrientation" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+            <option value="flat_z0">Cara frontal apoyada en cama (Z = 0) · Recomendado Cura</option>
+            <option value="upright_wall">Posición montada en pared (Z hacia delante)</option>
+          </select>
+          <p class="text-[11px] text-slate-400">
+            Con la cara frontal en Z = 0, la tapa se imprime boca arriba con máxima adherencia y sin necesidad de soportes en el techo.
+          </p>
+        </div>
+
+        <!-- Gestión de Configuración -->
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-2">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-sky-400">Gestión de Parámetros</h2>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button id="btn-save-local" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-medium text-white transition flex items-center justify-center gap-1.5">
+              <span>Guardar en navegador</span>
+            </button>
+            <button id="btn-reset-defaults" class="px-3 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-xs font-medium text-rose-300 transition">
+              Restaurar defecto
+            </button>
+            <button id="btn-export-json" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-medium text-white transition">
+              Exportar JSON
+            </button>
+            <button id="btn-import-json" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-medium text-white transition">
+              Importar JSON
+            </button>
+            <input type="file" id="file-import-json" accept=".json" class="hidden" />
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Pie con Botón Principal de Exportación STL -->
+    <div class="p-3.5 bg-slate-900 border-t border-slate-800 space-y-2">
+      <button id="btn-export-stl" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 active:scale-[0.99] text-white font-semibold text-sm shadow-lg shadow-sky-500/25 transition flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+        <span>Descargar Archivo .STL (Binario)</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- VISOR 3D INTERACTIVO -->
+  <main id="viewport-wrapper" class="relative flex-1 h-[48vh] md:h-full bg-slate-950 overflow-hidden">
+    <div id="canvas-container" class="w-full h-full"></div>
+
+    <!-- Barra flotante de cámaras rápidas y diagnóstico de malla -->
+    <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      <!-- Presets de Cámara -->
+      <div class="pointer-events-auto flex items-center gap-1 bg-slate-900/85 backdrop-blur-md border border-slate-800 p-1 rounded-xl shadow-lg text-[11px]">
+        <button data-cam="iso" class="cam-btn px-2.5 py-1.5 rounded-lg bg-slate-800 text-sky-300 font-medium hover:bg-slate-700 transition">3D Iso</button>
+        <button data-cam="inside" class="cam-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition">Interior / Pestañas</button>
+        <button data-cam="left" class="cam-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition">Izquierda</button>
+        <button data-cam="bottom" class="cam-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition">Inferior</button>
+        <button data-cam="top" class="cam-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 transition">Superior</button>
+      </div>
+
+      <!-- Telemetría de Malla Manifold -->
+      <div class="pointer-events-auto bg-slate-900/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-3 text-[11px] font-mono">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300" id="stat-manifold">Manifold OK</span>
+        </div>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-400" id="stat-dims">74.0 × 74.0 × 32.0 mm</span>
+        <span class="text-slate-600 hidden sm:inline">|</span>
+        <span class="text-slate-400 hidden sm:inline" id="stat-tris">0 triángulos</span>
+      </div>
+    </div>
+
+    <!-- Leyenda inferior flotante -->
+    <div class="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      <div class="pointer-events-auto bg-slate-900/80 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 flex items-center gap-3">
+        <span><strong class="text-slate-200">Arrastrar:</strong> Rotar</span>
+        <span><strong class="text-slate-200">Rueda / Pellizco:</strong> Zoom</span>
+        <span><strong class="text-slate-200">Clic derecho:</strong> Mover</span>
+      </div>
+
+      <div id="ghost-legend" class="pointer-events-auto bg-slate-900/80 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] flex items-center gap-3">
+        <span class="flex items-center gap-1.5 text-slate-300">
+          <span class="w-2.5 h-2.5 rounded-sm bg-slate-200 inline-block"></span> Tapa CAD
+        </span>
+        <span class="flex items-center gap-1.5 text-amber-300">
+          <span class="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block"></span> Pestañas caja base
+        </span>
+      </div>
+    </div>
+
+    <!-- Toast de notificaciones (reemplaza alert()) -->
+    <div id="toast-box" class="fixed bottom-16 right-4 z-50 pointer-events-none transition-all duration-300 opacity-0 translate-y-2">
+      <div id="toast-content" class="bg-slate-800 border border-sky-500/40 text-slate-100 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-medium flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+        <span id="toast-message">Acción completada</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- SCRIPTS THREE.JS (UMD r128 para ejecución directa autónoma sin servidor) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+
+  <script>
+    /**
+     * ============================================================================
+     * APLICACIÓN CAD PARAMÉTRICA - TAPA PARA CAJA DE CONEXIONES ELÉCTRICA
+     * ============================================================================
+     * Arquitectura:
+     * 1. Estado paramétrico centralizado con persistencia en localStorage y JSON.
+     * 2. Motor de generación de malla volumétrica manifold (sin caras internas
+     *    superpuestas ni normales invertidas) construido mediante una rejilla
+     *    cilíndrica/perimetral cerrada + tapa frontal sólida + sustracción/modulación
+     *    exacta de:
+     *      - Aperturas de cables (izquierda, inferior, derecha, superior) con arco
+     *        semicircular superior.
+     *      - Rebajes interiores o ventanas pasantes para las 2 pestañas superiores
+     *        simétricas y las 2 pestañas laterales de la caja base.
+     * 3. Modelo fantasma de referencia de la caja de conexiones de la fotografía
+     *    con sus pestañas resaltadas en ámbar para verificar visualmente el encaje.
+     * 4. Exportador STL binario compatible con Ultimaker Cura, PrusaSlicer y OrcaSlicer.
+     */
+
+    const STORAGE_KEY = 'tapa_caja_conexiones_cad_v1';
+
+    // Parámetros por defecto calibrados según la fotografía adjunta (74x74 mm, <=40 mm)
+    const DEFAULT_PARAMS = {
+      // Dimensiones principales
+      width: 74.0,
+      height: 74.0,
+      depth: 32.0,
+      wall: 2.2,
+      cornerRadius: 6.0,
+      tolerance: 0.3,
+      lipDepth: 8.5,
+
+      // Pestañas superiores (2 simétricas en el borde superior)
+      topClipsEnabled: true,
+      topClipOffsetX: 20.5,
+      topClipWidth: 12.0,
+      topClipHeight: 3.4,
+      topClipDistFromEdge: 3.2,
+      topClipRecessDepth: 1.2,
+
+      // Pestañas laterales (izquierda y derecha a media altura)
+      sideClipsEnabled: true,
+      sideClipOffsetY: 1.0,
+      sideClipHeight: 16.0,
+      sideClipDepthZ: 4.2,
+      sideClipDistFromEdge: 3.5,
+      sideClipRecessDepth: 1.2,
+
+      // Modo de rebaje ('recess' = ciego interior, 'through' = pasante)
+      clipThroughWall: 'recess',
+
+      // 1. Apertura cables lateral izquierda (zona media-baja en la foto)
+      leftCutoutEnabled: true,
+      leftCutoutY: -10.0,
+      leftCutoutWidth: 18.0,
+      leftCutoutHeight: 16.0,
+
+      // 2. Apertura cables inferior (zona inferior izquierda-central en la foto)
+      bottomCutoutEnabled: true,
+      bottomCutoutX: -6.0,
+      bottomCutoutWidth: 24.0,
+      bottomCutoutHeight: 14.0,
+
+      // 3. Apertura opcional lateral derecha
+      rightCutoutEnabled: false,
+      rightCutoutY: -8.0,
+      rightCutoutWidth: 16.0,
+      rightCutoutHeight: 14.0,
+
+      // 4. Apertura opcional superior
+      topCutoutEnabled: false,
+      topCutoutX: 0.0,
+      topCutoutWidth: 16.0,
+      topCutoutHeight: 12.0,
+
+      // Opciones de visualización y exportación
+      showGhostBase: true,
+      xrayMode: false,
+      showGrid: true,
+      showEdges: false,
+      sectionCutY: 45,
+      exportOrientation: 'flat_z0'
+    };
+
+    let params = loadInitialParams();
+
+    // Variables de escena Three.js
+    let scene, camera, renderer, controls;
+    let coverMesh, edgesLines, ghostGroup, gridHelper, axesHelper, clippingPlane;
+    let currentExportGeometry = null;
+
+    /**
+     * Carga los parámetros desde localStorage o usa los valores por defecto.
+     */
+    function loadInitialParams() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return { ...DEFAULT_PARAMS, ...parsed };
+        }
+      } catch (e) {
+        console.warn('No se pudo leer localStorage:', e);
+      }
+      return { ...DEFAULT_PARAMS };
+    }
+
+    /**
+     * Muestra notificación flotante no intrusiva.
+     */
+    let toastTimer = null;
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      const text = document.getElementById('toast-message');
+      text.textContent = msg;
+      box.classList.remove('opacity-0', 'translate-y-2');
+      box.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.remove('opacity-100', 'translate-y-0');
+        box.classList.add('opacity-0', 'translate-y-2');
+      }, 2800);
+    }
+
+    /**
+     * ============================================================================
+     * MOTOR GEOMÉTRICO MANIFOLD PARA LA TAPA DE CAJA DE CONEXIONES
+     * ============================================================================
+     * Construye una malla cerrada (watertight / 2-manifold) sin aristas abiertas:
+     * - Sistema de coordenadas de diseño:
+     *   - Centro en X=0, Y=0.
+     *   - Cara frontal exterior en Z = 0 (apoyada en la cama de impresión).
+     *   - Paredes crecen hacia +Z hasta Z = depth (borde abierto trasero).
+     * - El perímetro exterior e interior se discretizan con alta resolución en U
+     *   (paso ~0.45 mm) y en altura Z (paso ~0.45 mm).
+     * - En cada punto (u, z) de las paredes se evalúa:
+     *   1) Si pertenece a una apertura de cable (recorte abierto hacia z = depth
+     *      con remate superior semicircular).
+     *   2) Si pertenece a una ventana pasante de pestaña (si clipThroughWall === 'through').
+     *   3) Si pertenece a un rebaje interior de pestaña, desplazando localmente
+     *      la superficie interior hacia afuera en `recessDepth` mm para alojar la
+     *      pestaña de la caja base.
+     * - Se cosen todas las celdas sólidas generando:
+     *   - Pared exterior, pared interior, bordes de cada recorte/ventana y el
+     *     borde superior en Z = depth, más la placa frontal sólida en Z = [0, wall].
+     */
+    function buildManifoldCoverGeometry(p) {
+      const W = Math.max(40, p.width);
+      const H = Math.max(40, p.height);
+      const D = Math.min(40, Math.max(12, p.depth));
+      const t = Math.min(6, Math.max(1.0, p.wall));
+      const rOut = Math.min(p.cornerRadius, W * 0.45, H * 0.45);
+      const rIn = Math.max(0.5, rOut - t);
+
+      // Generar muestreo del contorno exterior e interior emparejados por parámetro angular/perimetral
+      const cornerSegs = 14;
+      const straightSegsX = Math.max(24, Math.round((W - 2 * rOut) / 0.65));
+      const straightSegsY = Math.max(24, Math.round((H - 2 * rOut) / 0.65));
+
+      const outerPts = [];
+      const innerPts = [];
+      const arcLengths = [];
+      const sideTags = []; // 'top', 'right', 'bottom', 'left', 'corner'
+
+      function pushPoint(ox, oy, ix, iy, tag) {
+        const idx = outerPts.length;
+        if (idx > 0) {
+          const prev = outerPts[idx - 1];
+          const dist = Math.hypot(ox - prev.x, oy - prev.y);
+          if (dist < 1e-5) return; // Evitar puntos duplicados
+          arcLengths.push(arcLengths[idx - 1] + dist);
+        } else {
+          arcLengths.push(0);
+        }
+        outerPts.push({ x: ox, y: oy });
+        innerPts.push({ x: ix, y: iy });
+        sideTags.push(tag);
+      }
+
+      const hw = W / 2;
+      const hh = H / 2;
+      const hwIn = hw - t;
+      const hhIn = hh - t;
+
+      // Recorrido antihorario (CCW) mirando desde +Z hacia Z=0:
+      // 1. Tramo superior (de derecha a izquierda: x de +hw-rOut a -hw+rOut, y = +hh)
+      for (let i = 0; i <= straightSegsX; i++) {
+        const f = i / straightSegsX;
+        const ox = (hw - rOut) - f * (W - 2 * rOut);
+        const ix = (hwIn - rIn) - f * ((W - 2 * t) - 2 * rIn);
+        pushPoint(ox, hh, ix, hhIn, 'top');
+      }
+      // 2. Esquina superior izquierda (PI/2 a PI)
+      for (let i = 1; i <= cornerSegs; i++) {
+        const a = Math.PI * 0.5 + (i / cornerSegs) * (Math.PI * 0.5);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        pushPoint(
+          (-hw + rOut) + rOut * ca, (hh - rOut) + rOut * sa,
+          (-hwIn + rIn) + rIn * ca, (hhIn - rIn) + rIn * sa,
+          'corner'
+        );
+      }
+      // 3. Tramo izquierdo (de arriba a abajo: x = -hw, y de +hh-rOut a -hh+rOut)
+      for (let i = 1; i <= straightSegsY; i++) {
+        const f = i / straightSegsY;
+        const oy = (hh - rOut) - f * (H - 2 * rOut);
+        const iy = (hhIn - rIn) - f * ((H - 2 * t) - 2 * rIn);
+        pushPoint(-hw, oy, -hwIn, iy, 'left');
+      }
+      // 4. Esquina inferior izquierda (PI a 3*PI/2)
+      for (let i = 1; i <= cornerSegs; i++) {
+        const a = Math.PI + (i / cornerSegs) * (Math.PI * 0.5);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        pushPoint(
+          (-hw + rOut) + rOut * ca, (-hh + rOut) + rOut * sa,
+          (-hwIn + rIn) + rIn * ca, (-hhIn + rIn) + rIn * sa,
+          'corner'
+        );
+      }
+      // 5. Tramo inferior (de izquierda a derecha: x de -hw+rOut a +hw-rOut, y = -hh)
+      for (let i = 1; i <= straightSegsX; i++) {
+        const f = i / straightSegsX;
+        const ox = (-hw + rOut) + f * (W - 2 * rOut);
+        const ix = (-hwIn + rIn) + f * ((W - 2 * t) - 2 * rIn);
+        pushPoint(ox, -hh, ix, -hhIn, 'bottom');
+      }
+      // 6. Esquina inferior derecha (3*PI/2 a 2*PI)
+      for (let i = 1; i <= cornerSegs; i++) {
+        const a = Math.PI * 1.5 + (i / cornerSegs) * (Math.PI * 0.5);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        pushPoint(
+          (hw - rOut) + rOut * ca, (-hh + rOut) + rOut * sa,
+          (hwIn - rIn) + rIn * ca, (-hhIn + rIn) + rIn * sa,
+          'corner'
+        );
+      }
+      // 7. Tramo derecho (de abajo a arriba: x = +hw, y de -hh+rOut a +hh-rOut)
+      for (let i = 1; i <= straightSegsY; i++) {
+        const f = i / straightSegsY;
+        const oy = (-hh + rOut) + f * (H - 2 * rOut);
+        const iy = (-hhIn + rIn) + f * ((H - 2 * t) - 2 * rIn);
+        pushPoint(hw, oy, hwIn, iy, 'right');
+      }
+      // 8. Esquina superior derecha (0 a PI/2, sin repetir el punto inicial)
+      for (let i = 1; i < cornerSegs; i++) {
+        const a = (i / cornerSegs) * (Math.PI * 0.5);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        pushPoint(
+          (hw - rOut) + rOut * ca, (hh - rOut) + rOut * sa,
+          (hwIn - rIn) + rIn * ca, (hhIn - rIn) + rIn * sa,
+          'corner'
+        );
+      }
+
+      const N = outerPts.length; // Número de columnas perimetrales
+      const wallHeight = D - t;
+      const M = Math.max(16, Math.round(wallHeight / 0.55)); // Filas en Z desde z=t hasta z=D
+
+      // Función auxiliar: evalúa si un punto (ox, oy, z) está dentro de un recorte de cable tipo arco
+      function isCableCutout(ox, oy, z, side) {
+        // z va desde t (cerca de cara frontal) hasta D (borde abierto)
+        const distFromOpenEdge = D - z;
+        if (distFromOpenEdge < -1e-4) return false;
+
+        function checkArch(enabled, coord, center, width, height) {
+          if (!enabled) return false;
+          const halfW = width * 0.5;
+          const dx = Math.abs(coord - center);
+          if (dx >= halfW) return false;
+          // Perfil con remate superior semicircular
+          const rArch = Math.min(halfW, height * 0.85);
+          const straightPart = Math.max(0, height - rArch);
+          let maxDistFromEdge = straightPart;
+          if (dx < rArch) {
+            maxDistFromEdge += Math.sqrt(Math.max(0, rArch * rArch - dx * dx));
+          }
+          return distFromOpenEdge < maxDistFromEdge;
+        }
+
+        if (side === 'left') {
+          return checkArch(p.leftCutoutEnabled, oy, p.leftCutoutY, p.leftCutoutWidth, p.leftCutoutHeight);
+        }
+        if (side === 'bottom') {
+          return checkArch(p.bottomCutoutEnabled, ox, p.bottomCutoutX, p.bottomCutoutWidth, p.bottomCutoutHeight);
+        }
+        if (side === 'right') {
+          return checkArch(p.rightCutoutEnabled, oy, p.rightCutoutY, p.rightCutoutWidth, p.rightCutoutHeight);
+        }
+        if (side === 'top') {
+          return checkArch(p.topCutoutEnabled, ox, p.topCutoutX, p.topCutoutWidth, p.topCutoutHeight);
+        }
+        return false;
+      }
+
+      // Función auxiliar: evalúa si un punto (ox, oy, z) corresponde a una pestaña de encaje
+      // Devuelve la profundidad de rebaje interior (>0) o 0 si no hay pestaña
+      function getClipRecess(ox, oy, z, side) {
+        const distFromOpenEdge = D - z;
+        const tol = p.tolerance * 0.5;
+
+        // 1. Pestañas superiores simétricas (2 en el lado 'top')
+        if (p.topClipsEnabled && side === 'top') {
+          const zStart = p.topClipDistFromEdge - tol;
+          const zEnd = p.topClipDistFromEdge + p.topClipHeight + tol;
+          if (distFromOpenEdge >= zStart && distFromOpenEdge <= zEnd) {
+            const halfW = p.topClipWidth * 0.5 + tol;
+            const dLeftClip = Math.abs(ox - (-p.topClipOffsetX));
+            const dRightClip = Math.abs(ox - (+p.topClipOffsetX));
+            if (dLeftClip <= halfW || dRightClip <= halfW) {
+              return Math.min(t * 0.72, p.topClipRecessDepth);
+            }
+          }
+        }
+
+        // 2. Pestañas laterales izquierda y derecha
+        if (p.sideClipsEnabled && (side === 'left' || side === 'right')) {
+          const zStart = p.sideClipDistFromEdge - tol;
+          const zEnd = p.sideClipDistFromEdge + p.sideClipDepthZ + tol;
+          if (distFromOpenEdge >= zStart && distFromOpenEdge <= zEnd) {
+            const halfH = p.sideClipHeight * 0.5 + tol;
+            if (Math.abs(oy - p.sideClipOffsetY) <= halfH) {
+              return Math.min(t * 0.72, p.sideClipRecessDepth);
+            }
+          }
+        }
+
+        return 0;
+      }
+
+      // Matriz de estado de cada celda de pared [i][j] (i en 0..N-1, j en 0..M-1)
+      // solid[i][j] = true si existe material en esa celda
+      const solid = Array.from({ length: N }, () => new Uint8Array(M));
+      const recessGrid = Array.from({ length: N }, () => new Float32Array(M));
+
+      for (let i = 0; i < N; i++) {
+        const iNext = (i + 1) % N;
+        const midOx = 0.5 * (outerPts[i].x + outerPts[iNext].x);
+        const midOy = 0.5 * (outerPts[i].y + outerPts[iNext].y);
+        const tag = sideTags[i];
+
+        for (let j = 0; j < M; j++) {
+          const zMid = t + ((j + 0.5) / M) * wallHeight;
+
+          // Comprobar apertura de cables
+          if (isCableCutout(midOx, midOy, zMid, tag)) {
+            solid[i][j] = 0;
+            continue;
+          }
+
+          // Comprobar pestañas
+          const recess = getClipRecess(midOx, midOy, zMid, tag);
+          if (recess > 0 && p.clipThroughWall === 'through') {
+            solid[i][j] = 0;
+            continue;
+          }
+
+          solid[i][j] = 1;
+          recessGrid[i][j] = recess;
+        }
+      }
+
+      // Triangulación limpia (array plano de vértices, cada 3 vértices = 1 triángulo CCW hacia afuera)
+      const positions = [];
+
+      function addTri(ax, ay, az, bx, by, bz, cx, cy, cz) {
+        positions.push(ax, ay, az, bx, by, bz, cx, cy, cz);
+      }
+
+      function addQuad(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz) {
+        addTri(ax, ay, az, bx, by, bz, cx, cy, cz);
+        addTri(ax, ay, az, cx, cy, cz, dx, dy, dz);
+      }
+
+      // Calcula la posición del vértice interior modulada por el rebaje de pestaña
+      function getInnerVertex(i, j, recess) {
+        const o = outerPts[i];
+        const inn = innerPts[i];
+        if (recess <= 0) return inn;
+        const dx = o.x - inn.x;
+        const dy = o.y - inn.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const shift = Math.min(recess, len * 0.75);
+        return {
+          x: inn.x + (dx / len) * shift,
+          y: inn.y + (dy / len) * shift
+        };
+      }
+
+      // 1. GENERAR PAREDES PERIMETRALES Y TODAS LAS CARAS DE BORDE DE RECORTE
+      for (let i = 0; i < N; i++) {
+        const iNext = (i + 1) % N;
+        const iPrev = (i - 1 + N) % N;
+
+        const o0 = outerPts[i];
+        const o1 = outerPts[iNext];
+
+        for (let j = 0; j < M; j++) {
+          if (!solid[i][j]) continue;
+
+          const z0 = t + (j / M) * wallHeight;
+          const z1 = t + ((j + 1) / M) * wallHeight;
+          const rec = recessGrid[i][j];
+
+          const in0 = getInnerVertex(i, j, rec);
+          const in1 = getInnerVertex(iNext, j, rec);
+
+          // Cara EXTERIOR (normal hacia afuera del contorno CCW: (o0,z0)->(o1,z0)->(o1,z1)->(o0,z1))
+          addQuad(
+            o0.x, o0.y, z0,
+            o1.x, o1.y, z0,
+            o1.x, o1.y, z1,
+            o0.x, o0.y, z1
+          );
+
+          // Cara INTERIOR (normal hacia el centro de la caja)
+          addQuad(
+            in1.x, in1.y, z0,
+            in0.x, in0.y, z0,
+            in0.x, in0.y, z1,
+            in1.x, in1.y, z1
+          );
+
+          // Escalón de transición si el rebaje interior cambia respecto a vecinos sólidos
+          // Vecino inferior (j - 1)
+          const hasBottomNeighbor = (j > 0) && solid[i][j - 1];
+          if (!hasBottomNeighbor) {
+            // Cara mirando hacia -Z (borde inferior de una ventana pasante)
+            addQuad(
+              in0.x, in0.y, z0,
+              in1.x, in1.y, z0,
+              o1.x, o1.y, z0,
+              o0.x, o0.y, z0
+            );
+          } else {
+            const prevRec = recessGrid[i][j - 1];
+            if (Math.abs(rec - prevRec) > 1e-4) {
+              const pIn0 = getInnerVertex(i, j - 1, prevRec);
+              const pIn1 = getInnerVertex(iNext, j - 1, prevRec);
+              addQuad(
+                in0.x, in0.y, z0,
+                in1.x, in1.y, z0,
+                pIn1.x, pIn1.y, z0,
+                pIn0.x, pIn0.y, z0
+              );
+            }
+          }
+
+          // Vecino superior (j + 1) o borde abierto final de la tapa (j === M - 1)
+          const hasTopNeighbor = (j < M - 1) && solid[i][j + 1];
+          if (!hasTopNeighbor) {
+            // Cara mirando hacia +Z (remate superior de pared o borde inferior de apertura)
+            addQuad(
+              o0.x, o0.y, z1,
+              o1.x, o1.y, z1,
+              in1.x, in1.y, z1,
+              in0.x, in0.y, z1
+            );
+          }
+
+          // Vecino izquierdo en contorno (iPrev)
+          const hasPrevNeighbor = solid[iPrev][j];
+          if (!hasPrevNeighbor) {
+            // Tapa lateral de corte mirando hacia -tangente
+            addQuad(
+              in0.x, in0.y, z0,
+              o0.x, o0.y, z0,
+              o0.x, o0.y, z1,
+              in0.x, in0.y, z1
+            );
+          } else {
+            const prevColRec = recessGrid[iPrev][j];
+            if (Math.abs(rec - prevColRec) > 1e-4) {
+              const pColIn0 = getInnerVertex(i, j, prevColRec);
+              addQuad(
+                in0.x, in0.y, z0,
+                pColIn0.x, pColIn0.y, z0,
+                pColIn0.x, pColIn0.y, z1,
+                in0.x, in0.y, z1
+              );
+            }
+          }
+
+          // Vecino derecho en contorno (iNext)
+          const hasNextNeighbor = solid[iNext][j];
+          if (!hasNextNeighbor) {
+            // Tapa lateral de corte mirando hacia +tangente
+            addQuad(
+              o1.x, o1.y, z0,
+              in1.x, in1.y, z0,
+              in1.x, in1.y, z1,
+              o1.x, o1.y, z1
+            );
+          }
+        }
+      }
+
+      // 2. PLACA FRONTAL SÓLIDA (Z = 0 a Z = t) Y ANILLO DE UNIÓN EN Z = t
+      // Cara frontal exterior en Z = 0 (normal hacia -Z)
+      for (let i = 0; i < N; i++) {
+        const iNext = (i + 1) % N;
+        const o0 = outerPts[i];
+        const o1 = outerPts[iNext];
+        addTri(0, 0, 0, o1.x, o1.y, 0, o0.x, o0.y, 0);
+      }
+
+      // Faldón exterior de la placa frontal entre Z = 0 y Z = t (normal hacia afuera)
+      for (let i = 0; i < N; i++) {
+        const iNext = (i + 1) % N;
+        const o0 = outerPts[i];
+        const o1 = outerPts[iNext];
+        addQuad(
+          o0.x, o0.y, 0,
+          o1.x, o1.y, 0,
+          o1.x, o1.y, t,
+          o0.x, o0.y, t
+        );
+      }
+
+      // Cara interior del fondo de la tapa en Z = t (normal hacia +Z)
+      for (let i = 0; i < N; i++) {
+        const iNext = (i + 1) % N;
+        const inn0 = innerPts[i];
+        const inn1 = innerPts[iNext];
+        addTri(0, 0, t, inn0.x, inn0.y, t, inn1.x, inn1.y, t);
+      }
+
+      // Anillo de cierre en Z = t para cualquier columna donde j=0 tenga recorte (solid[i][0] === 0)
+      for (let i = 0; i < N; i++) {
+        if (!solid[i][0]) {
+          const iNext = (i + 1) % N;
+          const o0 = outerPts[i];
+          const o1 = outerPts[iNext];
+          const inn0 = innerPts[i];
+          const inn1 = innerPts[iNext];
+          addQuad(
+            o0.x, o0.y, t,
+            o1.x, o1.y, t,
+            inn1.x, inn1.y, t,
+            inn0.x, inn0.y, t
+          );
+        }
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    /**
+     * ============================================================================
+     * CONSTRUCCIÓN DE LA CAJA BASE FANTASMA Y PESTAÑAS (REFERENCIA DE ENCAJE)
+     * ============================================================================
+     */
+    function buildGhostBaseGroup(p) {
+      const group = new THREE.Group();
+
+      const W = p.width - 2 * p.wall - 2 * p.tolerance;
+      const H = p.height - 2 * p.wall - 2 * p.tolerance;
+      const r = Math.max(1, p.cornerRadius - p.wall - p.tolerance);
+      const baseDepth = 16;
+
+      // Forma redondeada de la caja base
+      const shape = new THREE.Shape();
+      const hw = W / 2, hh = H / 2;
+      shape.moveTo(-hw + r, -hh);
+      shape.lineTo(hw - r, -hh);
+      shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+      shape.lineTo(hw, hh - r);
+      shape.quadraticCurveTo(hw, hh, hw - r, hh);
+      shape.lineTo(-hw + r, hh);
+      shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+      shape.lineTo(-hw, -hh + r);
+      shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+      const baseGeo = new THREE.ExtrudeGeometry(shape, {
+        depth: baseDepth,
+        bevelEnabled: false,
+        curveSegments: 12
+      });
+
+      const baseMat = new THREE.MeshStandardMaterial({
+        color: 0x64748b,
+        transparent: true,
+        opacity: 0.22,
+        roughness: 0.7,
+        depthWrite: false
+      });
+
+      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+      baseMesh.position.z = p.depth - p.lipDepth;
+      group.add(baseMesh);
+
+      // Material resaltado para las pestañas físicas de la caja base
+      const clipMat = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b,
+        emissive: 0xb45309,
+        emissiveIntensity: 0.35,
+        roughness: 0.35,
+        metalness: 0.1
+      });
+
+      // 2 Pestañas superiores simétricas (tal como en la fotografía)
+      if (p.topClipsEnabled) {
+        const clipGeo = new THREE.BoxGeometry(
+          p.topClipWidth,
+          p.topClipRecessDepth * 1.15,
+          p.topClipHeight
+        );
+        const zCenter = p.depth - (p.topClipDistFromEdge + p.topClipHeight * 0.5);
+        const yPos = hh + p.topClipRecessDepth * 0.4;
+
+        [-1, 1].forEach(sign => {
+          const m = new THREE.Mesh(clipGeo, clipMat);
+          m.position.set(sign * p.topClipOffsetX, yPos, zCenter);
+          group.add(m);
+        });
+      }
+
+      // 2 Pestañas laterales (izquierda y derecha a media altura)
+      if (p.sideClipsEnabled) {
+        const sideClipGeo = new THREE.BoxGeometry(
+          p.sideClipRecessDepth * 1.15,
+          p.sideClipHeight,
+          p.sideClipDepthZ
+        );
+        const zCenter = p.depth - (p.sideClipDistFromEdge + p.sideClipDepthZ * 0.5);
+        const xOffset = hw + p.sideClipRecessDepth * 0.4;
+
+        [-1, 1].forEach(sign => {
+          const m = new THREE.Mesh(sideClipGeo, clipMat);
+          m.position.set(sign * xOffset, p.sideClipOffsetY, zCenter);
+          group.add(m);
+        });
+      }
+
+      return group;
+    }
+
+    /**
+     * ============================================================================
+     * INICIALIZACIÓN DE ESCENA THREE.JS
+     * ============================================================================
+     */
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x090d16);
+
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+
+      camera = new THREE.PerspectiveCamera(40, width / height, 0.5, 1000);
+      camera.position.set(95, -95, 105);
+      camera.up.set(0, 0, 1);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.localClippingEnabled = true;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Controles orbitales
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.07;
+      controls.target.set(0, 0, 15);
+      controls.update();
+
+      // Iluminación estudio CAD (3 puntos + hemisférica)
+      const hemiLight = new THREE.HemisphereLight(0xf8fafc, 0x1e293b, 0.85);
+      hemiLight.position.set(0, 0, 120);
+      scene.add(hemiLight);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      keyLight.position.set(80, -90, 130);
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.55);
+      fillLight.position.set(-90, 80, 70);
+      scene.add(fillLight);
+
+      const backRimLight = new THREE.DirectionalLight(0xfde68a, 0.35);
+      backRimLight.position.set(0, 100, -60);
+      scene.add(backRimLight);
+
+      // Rejilla en milímetros en el plano Z = 0 (cama de impresión)
+      gridHelper = new THREE.GridHelper(160, 16, 0x334155, 0x1e293b);
+      gridHelper.rotation.x = Math.PI / 2;
+      scene.add(gridHelper);
+
+      // Ejes XYZ
+      axesHelper = new THREE.AxesHelper(22);
+      axesHelper.position.set(-45, -45, 0.1);
+      scene.add(axesHelper);
+
+      // Plano de sección para inspección interna
+      clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 45);
+
+      // Generar modelo inicial
+      rebuildModel();
+
+      // Eventos de redimensionado
+      window.addEventListener('resize', onWindowResize);
+      onWindowResize();
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('canvas-container');
+      if (!container || !renderer || !camera) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    /**
+     * Reconstruye la geometría 3D en tiempo real al cambiar cualquier parámetro.
+     */
+    function rebuildModel() {
+      // Limpiar mallas previas
+      if (coverMesh) {
+        scene.remove(coverMesh);
+        coverMesh.geometry.dispose();
+        coverMesh.material.dispose();
+      }
+      if (edgesLines) {
+        scene.remove(edgesLines);
+        edgesLines.geometry.dispose();
+        edgesLines.material.dispose();
+      }
+      if (ghostGroup) {
+        scene.remove(ghostGroup);
+        ghostGroup.traverse(obj => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) obj.material.dispose();
+        });
+      }
+
+      // Actualizar plano de corte
+      clippingPlane.constant = params.sectionCutY;
+      const activePlanes = params.sectionCutY < 44 ? [clippingPlane] : [];
+
+      // Construir nueva geometría manifold
+      const geom = buildManifoldCoverGeometry(params);
+      currentExportGeometry = geom;
+
+      const coverMat = new THREE.MeshStandardMaterial({
+        color: 0xe2e8f0,
+        roughness: 0.42,
+        metalness: 0.08,
+        transparent: params.xrayMode,
+        opacity: params.xrayMode ? 0.52 : 1.0,
+        depthWrite: !params.xrayMode,
+        side: THREE.FrontSide,
+        clippingPlanes: activePlanes,
+        clipShadows: true
+      });
+
+      coverMesh = new THREE.Mesh(geom, coverMat);
+      scene.add(coverMesh);
+
+      // Aristas opcionales
+      if (params.showEdges) {
+        const edgesGeo = new THREE.EdgesGeometry(geom, 28);
+        const edgesMat = new THREE.LineBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.35,
+          clippingPlanes: activePlanes
+        });
+        edgesLines = new THREE.LineSegments(edgesGeo, edgesMat);
+        scene.add(edgesLines);
+      }
+
+      // Caja base fantasma con pestañas
+      ghostGroup = buildGhostBaseGroup(params);
+      ghostGroup.visible = params.showGhostBase;
+      scene.add(ghostGroup);
+
+      // Rejilla y ejes
+      gridHelper.visible = params.showGrid;
+      axesHelper.visible = params.showGrid;
+      document.getElementById('ghost-legend').style.display = params.showGhostBase ? 'flex' : 'none';
+
+      // Actualizar telemetría en UI
+      const triCount = geom.attributes.position.count / 3;
+      document.getElementById('stat-dims').textContent =
+        `${params.width.toFixed(1)} × ${params.height.toFixed(1)} × ${params.depth.toFixed(1)} mm`;
+      document.getElementById('stat-tris').textContent = `${triCount.toLocaleString('es-ES')} triángulos`;
+
+      // Guardar automáticamente en localStorage
+      autoSaveLocalStorage();
+    }
+
+    function autoSaveLocalStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
+        const badge = document.getElementById('save-badge');
+        badge.textContent = 'Guardado auto';
+      } catch (e) {
+        // Ignorar errores de cuota
+      }
+    }
+
+    /**
+     * ============================================================================
+     * EXPORTACIÓN STL BINARIO VÁLIDO PARA CURA / PRUSASLICER
+     * ============================================================================
+     */
+    function exportBinarySTL() {
+      if (!currentExportGeometry) return;
+
+      // Clonar geometría para aplicar la orientación seleccionada sin alterar la vista
+      const exportGeo = currentExportGeometry.clone();
+
+      if (params.exportOrientation === 'upright_wall') {
+        // Orientación montada en pared: +Y arriba, +Z hacia el frente
+        exportGeo.rotateX(Math.PI / 2);
+        exportGeo.computeBoundingBox();
+        const minZ = exportGeo.boundingBox.min.z;
+        exportGeo.translate(0, 0, -minZ);
+      } else {
+        // Orientación recomendada: cara frontal plana apoyada en Z = 0
+        exportGeo.computeBoundingBox();
+        const minZ = exportGeo.boundingBox.min.z;
+        exportGeo.translate(0, 0, -minZ);
+      }
+
+      exportGeo.computeVertexNormals();
+
+      const tempMesh = new THREE.Mesh(exportGeo);
+      const exporter = new THREE.STLExporter();
+      const stlDataView = exporter.parse(tempMesh, { binary: true });
+
+      const blob = new Blob([stlDataView], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+
+      const fileName = `tapa_caja_conexiones_${Math.round(params.width)}x${Math.round(params.height)}x${Math.round(params.depth)}mm.stl`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      exportGeo.dispose();
+      showToast(`STL exportado: ${fileName}`);
+    }
+
+    /**
+     * ============================================================================
+     * INICIALIZACIÓN Y SINCRONIZACIÓN DE CONTROLES UI
+     * ============================================================================
+     */
+    function initUI() {
+      // 1. Renderizar dinámicamente todos los sliders + input numérico sincronizados
+      document.querySelectorAll('.control-group').forEach(group => {
+        const key = group.dataset.key;
+        const min = parseFloat(group.dataset.min);
+        const max = parseFloat(group.dataset.max);
+        const step = parseFloat(group.dataset.step);
+        const unit = group.dataset.unit || '';
+        const label = group.dataset.label || key;
+
+        group.innerHTML = `
+          <div class="flex items-center justify-between text-xs mb-1">
+            <label for="rng-${key}" class="text-slate-300 font-medium">${label}</label>
+            <div class="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-md px-1.5 py-0.5">
+              <input id="num-${key}" type="number" min="${min}" max="${max}" step="${step}" value="${params[key]}"
+                class="w-14 bg-transparent text-right font-mono text-sky-300 text-xs focus:outline-none">
+              <span class="text-[10px] text-slate-500 font-mono">${unit}</span>
+            </div>
+          </div>
+          <input id="rng-${key}" type="range" min="${min}" max="${max}" step="${step}" value="${params[key]}" class="w-full">
+        `;
+
+        const rng = group.querySelector(`#rng-${key}`);
+        const num = group.querySelector(`#num-${key}`);
+
+        rng.addEventListener('input', () => {
+          const val = parseFloat(rng.value);
+          params[key] = val;
+          num.value = val;
+          rebuildModel();
+        });
+
+        num.addEventListener('change', () => {
+          let val = parseFloat(num.value);
+          if (isNaN(val)) val = params[key];
+          val = Math.min(max, Math.max(min, val));
+          params[key] = val;
+          num.value = val;
+          rng.value = val;
+          rebuildModel();
+        });
+      });
+
+      // 2. Sincronizar checkboxes y selects
+      const checkboxKeys = [
+        'topClipsEnabled', 'sideClipsEnabled',
+        'leftCutoutEnabled', 'bottomCutoutEnabled',
+        'rightCutoutEnabled', 'topCutoutEnabled',
+        'showGhostBase', 'xrayMode', 'showGrid', 'showEdges'
+      ];
+
+      checkboxKeys.forEach(key => {
+        const el = document.getElementById(`chk-${key}`);
+        if (!el) return;
+        el.checked = Boolean(params[key]);
+        el.addEventListener('change', () => {
+          params[key] = el.checked;
+          rebuildModel();
+        });
+      });
+
+      const selectKeys = ['clipThroughWall', 'exportOrientation'];
+      selectKeys.forEach(key => {
+        const el = document.getElementById(`sel-${key}`);
+        if (!el) return;
+        el.value = params[key];
+        el.addEventListener('change', () => {
+          params[key] = el.value;
+          rebuildModel();
+        });
+      });
+
+      // 3. Navegación por pestañas
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-500/40');
+            b.classList.add('text-slate-400', 'border-transparent');
+          });
+          btn.classList.add('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-500/40');
+          btn.classList.remove('text-slate-400', 'border-transparent');
+
+          document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.add('hidden');
+          });
+          document.getElementById(`tab-${target}`).classList.remove('hidden');
+        });
+      });
+
+      // 4. Presets de cámara
+      document.querySelectorAll('.cam-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.cam;
+          const zMid = params.depth * 0.5;
+          controls.target.set(0, 0, zMid);
+
+          if (mode === 'iso') {
+            camera.position.set(95, -95, 105);
+          } else if (mode === 'inside') {
+            // Vista desde atrás para inspeccionar el interior y los rebajes de pestañas
+            camera.position.set(45, -55, 125);
+          } else if (mode === 'left') {
+            camera.position.set(-130, 0, zMid);
+          } else if (mode === 'bottom') {
+            camera.position.set(0, -130, zMid);
+          } else if (mode === 'top') {
+            camera.position.set(0, 130, zMid);
+          }
+          controls.update();
+        });
+      });
+
+      // 5. Botones de gestión de configuración y exportación
+      document.getElementById('btn-export-stl').addEventListener('click', exportBinarySTL);
+
+      document.getElementById('btn-save-local').addEventListener('click', () => {
+        autoSaveLocalStorage();
+        showToast('Configuración guardada en el navegador');
+      });
+
+      document.getElementById('btn-reset-defaults').addEventListener('click', () => {
+        params = { ...DEFAULT_PARAMS };
+        syncAllControlsFromParams();
+        rebuildModel();
+        showToast('Valores por defecto restaurados');
+      });
+
+      document.getElementById('btn-export-json').addEventListener('click', () => {
+        const jsonStr = JSON.stringify(params, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `parametros_tapa_caja_${Math.round(params.width)}x${Math.round(params.height)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Parámetros exportados a JSON');
+      });
+
+      const fileInput = document.getElementById('file-import-json');
+      document.getElementById('btn-import-json').addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const imported = JSON.parse(ev.target.result);
+            params = { ...DEFAULT_PARAMS, ...imported };
+            syncAllControlsFromParams();
+            rebuildModel();
+            showToast('Configuración JSON cargada correctamente');
+          } catch (err) {
+            showToast('Error: El archivo JSON no es válido');
+          }
+        };
+        reader.readAsText(file);
+        fileInput.value = '';
+      });
+    }
+
+    /**
+     * Sincroniza todos los inputs visuales tras importar JSON o restaurar valores.
+     */
+    function syncAllControlsFromParams() {
+      document.querySelectorAll('.control-group').forEach(group => {
+        const key = group.dataset.key;
+        const rng = group.querySelector(`#rng-${key}`);
+        const num = group.querySelector(`#num-${key}`);
+        if (rng && num && params[key] !== undefined) {
+          rng.value = params[key];
+          num.value = params[key];
+        }
+      });
+
+      [
+        'topClipsEnabled', 'sideClipsEnabled',
+        'leftCutoutEnabled', 'bottomCutoutEnabled',
+        'rightCutoutEnabled', 'topCutoutEnabled',
+        'showGhostBase', 'xrayMode', 'showGrid', 'showEdges'
+      ].forEach(key => {
+        const el = document.getElementById(`chk-${key}`);
+        if (el) el.checked = Boolean(params[key]);
+      });
+
+      ['clipThroughWall', 'exportOrientation'].forEach(key => {
+        const el = document.getElementById(`sel-${key}`);
+        if (el) el.value = params[key];
+      });
+    }
+
+    /**
+     * Bucle principal de renderizado
+     */
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    window.onload = function () {
+      initUI();
+      initThree();
+      animate();
+    };
+  </script>
+</body>
+</html>

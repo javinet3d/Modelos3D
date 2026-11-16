@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diseñador CAD 3D - Carcasa Mando y Pulsadores</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cad-grid {
+      background-color: #090d16;
+      background-image:
+        linear-gradient(to right, rgba(56, 189, 248, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.07) 1px, transparent 1px),
+        linear-gradient(to right, rgba(56, 189, 248, 0.16) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.16) 1px, transparent 1px);
+      background-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
+    }
+    input[type="range"] {
+      accent-color: #38bdf8;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+
+  <!-- PANEL LATERAL DE PARÁMETROS -->
+  <aside class="w-full lg:w-[420px] bg-slate-900/95 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col lg:h-screen lg:sticky lg:top-0 z-10 shadow-2xl">
+    <!-- Cabecera + Gestión de Ajustes -->
+    <div class="p-4 border-b border-slate-800 bg-slate-950/60 space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+            <h1 class="text-base font-bold tracking-tight text-white">CAD Parametric 3D v2</h1>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Mando Curvo + Pulsadores a Ras (Escala 1:1 mm)</p>
+        </div>
+        <span id="saveStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/50 hidden">
+          ✓ Guardado
+        </span>
+      </div>
+
+      <!-- Barra de Guardar / Cargar / Resetear Ajustes -->
+      <div class="grid grid-cols-4 gap-1.5 pt-1">
+        <button id="btnSaveLocal" class="px-2 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold transition flex items-center justify-center gap-1" title="Guardar medidas en el navegador">
+          💾 Guardar
+        </button>
+        <button id="btnExportJSON" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-medium transition flex items-center justify-center gap-1" title="Descargar archivo de configuración JSON">
+          ⬇ JSON
+        </button>
+        <label class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-medium transition flex items-center justify-center gap-1 cursor-pointer" title="Cargar archivo de configuración JSON">
+          ⬆ Cargar
+          <input type="file" id="inputImportJSON" accept=".json" class="hidden">
+        </label>
+        <button id="btnReset" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-700/50 text-[11px] font-medium transition flex items-center justify-center gap-1" title="Restaurar valores de fábrica">
+          ↺ Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Controles Deslizables -->
+    <div class="p-4 overflow-y-auto flex-1 space-y-4">
+
+      <!-- SECCIÓN 1: Mando a distancia con Curvatura -->
+      <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3.5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-sky-400">1. Mando con Curvatura</span>
+          <span class="text-[11px] text-slate-400 mono">Arco Trasero</span>
+        </div>
+
+        <!-- Ancho Mando -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="remW" class="text-slate-300">Largo total del mando</label>
+            <span class="mono text-sky-300 font-semibold"><span id="val-remW">132</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="remW-range" min="60" max="220" step="0.5" value="132" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="remW" min="60" max="220" step="0.5" value="132" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Grosor Central Mando (Panzeado/Curva máxima) -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="remD" class="text-slate-300" title="Grosor en la parte central más ancha del mando">Grosor en el CENTRO (máx)</label>
+            <span class="mono text-sky-300 font-semibold"><span id="val-remD">22</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="remD-range" min="10" max="50" step="0.5" value="22" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="remD" min="10" max="50" step="0.5" value="22" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Grosor Extremos Mando (Curvatura hacia las puntas) -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="remEndD" class="text-slate-300" title="Grosor en los extremos izquierdo y derecho para adaptarse a la curva del mando">Grosor en EXTREMOS (puntas)</label>
+            <span class="mono text-sky-300 font-semibold"><span id="val-remEndD">14.5</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="remEndD-range" min="6" max="50" step="0.5" value="14.5" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="remEndD" min="6" max="50" step="0.5" value="14.5" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Radio esquinas mando -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="remR" class="text-slate-300">Redondeo puntas mando</label>
+            <span class="mono text-sky-300 font-semibold"><span id="val-remR">4.5</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="remR-range" min="0" max="15" step="0.5" value="4.5" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="remR" min="0" max="15" step="0.5" value="4.5" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: Pulsadores Domóticos -->
+      <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3.5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">2. Pulsadores Domóticos (×2)</span>
+          <span class="text-[11px] text-slate-400 mono">Pegados al Mando</span>
+        </div>
+
+        <!-- Ancho Pulsador -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="botW" class="text-slate-300">Ancho cuerpo pulsador</label>
+            <span class="mono text-emerald-300 font-semibold"><span id="val-botW">34.5</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="botW-range" min="20" max="55" step="0.5" value="34.5" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="botW" min="20" max="55" step="0.5" value="34.5" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Fondo Pulsador -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="botD" class="text-slate-300">Fondo cuerpo pulsador</label>
+            <span class="mono text-emerald-300 font-semibold"><span id="val-botD">34.5</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="botD-range" min="20" max="55" step="0.5" value="34.5" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="botD" min="20" max="55" step="0.5" value="34.5" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Radio Pulsador -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="botR" class="text-slate-300">Radio esquinas traseras</label>
+            <span class="mono text-emerald-300 font-semibold"><span id="val-botR">5</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="botR-range" min="0" max="15" step="0.5" value="5" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="botR" min="0" max="15" step="0.5" value="5" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3: Posición de Accionamiento y Contacto a Ras -->
+      <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3.5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">3. Émbolo y Posición a Ras</span>
+          <span class="text-[11px] text-slate-400 mono">Sin Separación</span>
+        </div>
+
+        <!-- Distancia entre botones < y > -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="btnSpan" class="text-slate-300">Distancia entre centros &lt; y &gt;</label>
+            <span class="mono text-rose-300 font-semibold"><span id="val-btnSpan">32</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="btnSpan-range" min="16" max="80" step="0.5" value="32" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="btnSpan" min="16" max="80" step="0.5" value="32" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Posición lateral de los botones en el mando -->
+        <div class="space-y-1 pt-1 border-t border-slate-800/70">
+          <div class="flex justify-between text-xs">
+            <label for="btnOffsetX" class="text-slate-300" title="0 mm = Botones centrados en el mando. Negativo = hacia la izquierda, Positivo = hacia la derecha">Posición botones (Desfase centro)</label>
+            <span class="mono text-rose-300 font-semibold"><span id="val-btnOffsetX">0</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="btnOffsetX-range" min="-55" max="55" step="0.5" value="0" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="btnOffsetX" min="-55" max="55" step="0.5" value="0" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400 mono pt-0.5">
+            <span>Desde extremo izq. al centro ⏹: <strong id="lbl-fromLeftEdge" class="text-slate-200">66.0 mm</strong></span>
+            <button type="button" id="btnCenterButtons" class="text-sky-400 hover:text-sky-300 underline">Centrar (0)</button>
+          </div>
+        </div>
+
+        <!-- Desfase brazo lateral -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="armOffset" class="text-slate-300" title="Distancia desde el costado interior del pulsador hasta el centro del émbolo que pulsa el botón">Salida lateral del brazo/rótula</label>
+            <span class="mono text-rose-300 font-semibold"><span id="val-armOffset">6.5</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="armOffset-range" min="2" max="18" step="0.5" value="6.5" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="armOffset" min="2" max="18" step="0.5" value="6.5" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Espacio libre para la bola/rótula del brazo -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="armSlotD" class="text-slate-300" title="Espacio libre desde el frente del mando hacia atrás para alojar la bola de la rótula sin rozar">Hueco libre para rótula/brazo</label>
+            <span class="mono text-rose-300 font-semibold"><span id="val-armSlotD">16</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="armSlotD-range" min="8" max="30" step="0.5" value="16" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="armSlotD" min="8" max="30" step="0.5" value="16" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Separación frontal (0 mm por defecto para pegarlos al mando) -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="gapY" class="text-slate-300" title="0 mm = Pulsador apoyado directamente contra el mando sin tabique intermedio">Separación mando-pulsador</label>
+            <span class="mono text-rose-300 font-semibold"><span id="val-gapY">0</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="gapY-range" min="0" max="15" step="0.5" value="0" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="gapY" min="0" max="15" step="0.5" value="0" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 4: Estructura Carcasa -->
+      <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-3.5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">4. Impresión 3D y Ajuste</span>
+          <span class="text-[11px] text-slate-400 mono">Tolerancias</span>
+        </div>
+
+        <!-- Grosor de pared -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="wall" class="text-slate-300">Grosor de paredes</label>
+            <span class="mono text-amber-300 font-semibold"><span id="val-wall">3.2</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="wall-range" min="1.6" max="6" step="0.2" value="3.2" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="wall" min="1.6" max="6" step="0.2" value="3.2" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Tolerancia -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="tol" class="text-slate-300">Holgura / Tolerancia encaje</label>
+            <span class="mono text-amber-300 font-semibold"><span id="val-tol">0.35</span> mm</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" id="tol-range" min="0" max="1.5" step="0.05" value="0.35" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <input type="number" id="tol" min="0" max="1.5" step="0.05" value="0.35" class="w-16 px-2 py-1 text-xs mono text-right bg-slate-900 border border-slate-700 rounded-md text-white focus:border-sky-400 focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Botones de Exportación SVG -->
+    <div class="p-4 border-t border-slate-800 bg-slate-950/90 space-y-2.5">
+      <button id="btnDownloadWalls" class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-400 active:scale-[0.99] text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-sky-500/20 transition flex items-center justify-center gap-2">
+        <span>⬇ Descargar SVG Paredes (Para Extruir 18-20mm)</span>
+      </button>
+      <button id="btnDownloadBase" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+        <span>⬇ Descargar SVG Placa Base (Para Extruir 2-3mm)</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- LIENZO PRINCIPAL DE PREVISUALIZACIÓN CAD -->
+  <main class="flex-1 flex flex-col min-h-screen">
+    <!-- Barra de Herramientas del Visor -->
+    <header class="p-4 border-b border-slate-800 bg-slate-900/70 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <button data-mode="guides" class="view-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition">
+          Paredes + Guías
+        </button>
+        <button data-mode="walls" class="view-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+          Solo Paredes SVG
+        </button>
+        <button data-mode="base" class="view-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+          Placa Base SVG
+        </button>
+      </div>
+
+      <!-- Leyenda y Dimensiones Totales -->
+      <div class="flex flex-wrap items-center gap-4 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-sm bg-sky-400 inline-block"></span>
+          <span class="text-slate-300">Carcasa 3D</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-sm bg-emerald-400/30 border border-emerald-400 inline-block"></span>
+          <span class="text-slate-300">Pulsadores a Ras</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-sm bg-rose-500 inline-block"></span>
+          <span class="text-slate-300">Émbolos (&lt; / &gt;)</span>
+        </div>
+        <div class="px-3 py-1 rounded-full bg-sky-950/80 border border-sky-500/40 text-sky-300 mono font-semibold" id="badge-dims">
+          -- × -- mm
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenedor del Lienzo SVG -->
+    <div class="flex-1 cad-grid flex items-center justify-center p-6 overflow-auto relative">
+      <div id="canvas-holder" class="bg-slate-950/75 backdrop-blur-sm border border-slate-800/90 rounded-2xl p-6 shadow-2xl flex items-center justify-center max-w-full overflow-auto">
+        <!-- SVG renderizado dinámicamente -->
+      </div>
+    </div>
+
+    <!-- Pie de ayuda para Impresión 3D -->
+    <footer class="px-6 py-3 bg-slate-900/90 border-t border-slate-800 text-xs text-slate-400 flex flex-wrap justify-between gap-2">
+      <span>💡 <strong class="text-slate-200">Contacto directo:</strong> Los pulsadores apoyan a ras del frontal plano del mando (separación <code class="text-sky-300">0 mm</code>) para aprovechar todo el recorrido corto del émbolo.</span>
+      <span class="mono text-slate-400">SVG real 1:1 en milímetros (fill-rule: evenodd)</span>
+    </footer>
+  </main>
+
+  <script>
+    // Estado global de la vista actual ('guides', 'walls', 'base')
+    let currentViewMode = 'guides';
+    const STORAGE_KEY = 'cad_carcasa_mando_pulsadores_v2';
+
+    const defaultValues = {
+      remW: 132,
+      remD: 22,
+      remEndD: 14.5,
+      remR: 4.5,
+      botW: 34.5,
+      botD: 34.5,
+      botR: 5,
+      btnSpan: 32,
+      btnOffsetX: 0,
+      armOffset: 6.5,
+      armSlotD: 16,
+      gapY: 0,
+      wall: 3.2,
+      tol: 0.35
+    };
+
+    const paramKeys = Object.keys(defaultValues);
+
+    function showSaveBadge(text = '✓ Ajustes guardados') {
+      const badge = document.getElementById('saveStatusBadge');
+      if (!badge) return;
+      badge.textContent = text;
+      badge.classList.remove('hidden');
+      clearTimeout(window._saveBadgeTimer);
+      window._saveBadgeTimer = setTimeout(() => {
+        badge.classList.add('hidden');
+      }, 2200);
+    }
+
+    function applyParamsToUI(paramsObj) {
+      paramKeys.forEach(key => {
+        const val = paramsObj[key] !== undefined ? paramsObj[key] : defaultValues[key];
+        const numInput = document.getElementById(key);
+        const rangeInput = document.getElementById(`${key}-range`);
+        const valLabel = document.getElementById(`val-${key}`);
+        if (numInput) numInput.value = val;
+        if (rangeInput) rangeInput.value = val;
+        if (valLabel) valLabel.textContent = val;
+      });
+    }
+
+    function saveSettingsToLocal(silent = false) {
+      try {
+        const current = getParams();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+        if (!silent) showSaveBadge('✓ Guardado en navegador');
+      } catch (e) {
+        console.warn('No se pudo guardar en localStorage:', e);
+      }
+    }
+
+    function loadSettingsFromLocal() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          applyParamsToUI(parsed);
+          showSaveBadge('✓ Ajustes recuperados');
+        }
+      } catch (e) {
+        console.warn('Error al leer ajustes guardados:', e);
+      }
+    }
+
+    // Sincronizar cada input numérico con su slider de rango y autoguardar
+    paramKeys.forEach(key => {
+      const numInput = document.getElementById(key);
+      const rangeInput = document.getElementById(`${key}-range`);
+      const valLabel = document.getElementById(`val-${key}`);
+
+      const sync = (sourceVal) => {
+        const v = parseFloat(sourceVal);
+        if (!isNaN(v)) {
+          if (numInput) numInput.value = v;
+          if (rangeInput) rangeInput.value = v;
+          if (valLabel) valLabel.textContent = v;
+          saveSettingsToLocal(true);
+          updatePreview();
+        }
+      };
+
+      if (numInput) numInput.addEventListener('input', e => sync(e.target.value));
+      if (rangeInput) rangeInput.addEventListener('input', e => sync(e.target.value));
+    });
+
+    // Botón Guardar explícito
+    document.getElementById('btnSaveLocal').addEventListener('click', () => {
+      saveSettingsToLocal(false);
+    });
+
+    // Exportar ajustes a archivo JSON
+    document.getElementById('btnExportJSON').addEventListener('click', () => {
+      const p = getParams();
+      const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ajustes_carcasa_mando.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSaveBadge('✓ JSON exportado');
+    });
+
+    // Importar ajustes desde archivo JSON
+    document.getElementById('inputImportJSON').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          applyParamsToUI(data);
+          saveSettingsToLocal(true);
+          updatePreview();
+          showSaveBadge('✓ JSON cargado');
+        } catch (err) {
+          showSaveBadge('⚠ Archivo inválido');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // Botón de reinicio
+    document.getElementById('btnReset').addEventListener('click', () => {
+      applyParamsToUI(defaultValues);
+      saveSettingsToLocal(true);
+      updatePreview();
+      showSaveBadge('↺ Valores por defecto');
+    });
+
+    // Botón rápido para centrar la botonera (0 mm)
+    const btnCenterButtons = document.getElementById('btnCenterButtons');
+    if (btnCenterButtons) {
+      btnCenterButtons.addEventListener('click', () => {
+        const numInput = document.getElementById('btnOffsetX');
+        const rangeInput = document.getElementById('btnOffsetX-range');
+        const valLabel = document.getElementById('val-btnOffsetX');
+        if (numInput) numInput.value = 0;
+        if (rangeInput) rangeInput.value = 0;
+        if (valLabel) valLabel.textContent = 0;
+        saveSettingsToLocal(true);
+        updatePreview();
+      });
+    }
+
+    // Botones de cambio de modo de vista
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentViewMode = btn.dataset.mode;
+        document.querySelectorAll('.view-btn').forEach(b => {
+          b.classList.remove('bg-sky-500', 'text-slate-950');
+          b.classList.add('text-slate-400');
+        });
+        btn.classList.add('bg-sky-500', 'text-slate-950');
+        btn.classList.remove('text-slate-400');
+        updatePreview();
+      });
+    });
+
+    function getParams() {
+      const p = {};
+      paramKeys.forEach(k => {
+        const el = document.getElementById(k);
+        const parsed = el ? parseFloat(el.value) : NaN;
+        p[k] = !isNaN(parsed) ? parsed : defaultValues[k];
+      });
+      return p;
+    }
+
+    /**
+     * Genera la cavidad interior unificada (Mando con respaldo curvo + 2 Pulsadores pegados a ras + Hueco central para las rótulas).
+     */
+    function buildUnifiedInnerCavityPath(g, p) {
+      const f = n => Number(n).toFixed(3);
+
+      const xRemL = g.remInnerX;
+      const xRemR = g.remInnerX + g.rW;
+      const yFront = g.remFrontY;
+      const yEndTop = yFront - g.rEndD;
+      const yApexTop = yFront - g.rD;
+
+      const rCorner = Math.min(p.remR, g.rEndD * 0.45);
+      const xCurveL = xRemL + rCorner;
+      const xCurveR = xRemR - rCorner;
+      const yCurveStart = yEndTop;
+      const ctrlY = 2 * yApexTop - yCurveStart;
+
+      const rB = Math.min(p.botR, g.bW * 0.4, g.bD * 0.4);
+
+      const xBotL_L = g.leftBotX;
+      const xBotL_R = g.leftBotX + g.bW;
+      const xBotR_L = g.rightBotX;
+      const xBotR_R = g.rightBotX + g.bW;
+      const yBotTop = g.botsTopY;
+      const yBotBot = g.botsBotY;
+
+      const yArmSlotBottom = yBotTop + Math.min(g.bD - 4, Math.max(8, p.armSlotD));
+
+      if (p.gapY <= 0.05) {
+        return [
+          `M ${f(xCurveL)} ${f(yCurveStart)}`,
+          `Q ${f(g.remCenterX)} ${f(ctrlY)} ${f(xCurveR)} ${f(yCurveStart)}`,
+          `A ${f(rCorner)} ${f(rCorner)} 0 0 1 ${f(xRemR)} ${f(yCurveStart + rCorner)}`,
+          `V ${f(yFront)}`,
+          `H ${f(xBotR_R)}`,
+          `V ${f(yBotBot - rB)}`,
+          `A ${f(rB)} ${f(rB)} 0 0 1 ${f(xBotR_R - rB)} ${f(yBotBot)}`,
+          `H ${f(xBotR_L + rB)}`,
+          `A ${f(rB)} ${f(rB)} 0 0 1 ${f(xBotR_L)} ${f(yBotBot - rB)}`,
+          `V ${f(yArmSlotBottom)}`,
+          `H ${f(xBotL_R)}`,
+          `V ${f(yBotBot - rB)}`,
+          `A ${f(rB)} ${f(rB)} 0 0 1 ${f(xBotL_R - rB)} ${f(yBotBot)}`,
+          `H ${f(xBotL_L + rB)}`,
+          `A ${f(rB)} ${f(rB)} 0 0 1 ${f(xBotL_L)} ${f(yBotBot - rB)}`,
+          `V ${f(yFront)}`,
+          `H ${f(xRemL)}`,
+          `V ${f(yCurveStart + rCorner)}`,
+          `A ${f(rCorner)} ${f(rCorner)} 0 0 1 ${f(xCurveL)} ${f(yCurveStart)}`,
+          `Z`
+        ].join(' ');
+      } else {
+        const remCavity = [
+          `M ${f(xCurveL)} ${f(yCurveStart)}`,
+          `Q ${f(g.remCenterX)} ${f(ctrlY)} ${f(xCurveR)} ${f(yCurveStart)}`,
+          `A ${f(rCorner)} ${f(rCorner)} 0 0 1 ${f(xRemR)} ${f(yCurveStart + rCorner)}`,
+          `V ${f(yFront)}`,
+          `H ${f(xBotR_L)}`,
+          `V ${f(yArmSlotBottom)}`,
+          `H ${f(xBotL_R)}`,
+          `V ${f(yFront)}`,
+          `H ${f(xRemL)}`,
+          `V ${f(yCurveStart + rCorner)}`,
+          `A ${f(rCorner)} ${f(rCorner)} 0 0 1 ${f(xCurveL)} ${f(yCurveStart)}`,
+          `Z`
+        ].join(' ');
+
+        const rectBot = (x, y, w, h, r) => [
+          `M ${f(x + r)} ${f(y)}`,
+          `H ${f(x + w - r)}`,
+          `A ${f(r)} ${f(r)} 0 0 1 ${f(x + w)} ${f(y + r)}`,
+          `V ${f(y + h - r)}`,
+          `A ${f(r)} ${f(r)} 0 0 1 ${f(x + w - r)} ${f(y + h)}`,
+          `H ${f(x + r)}`,
+          `A ${f(r)} ${f(r)} 0 0 1 ${f(x)} ${f(y + h - r)}`,
+          `V ${f(y + r)}`,
+          `A ${f(r)} ${f(r)} 0 0 1 ${f(x + r)} ${f(y)}`,
+          `Z`
+        ].join(' ');
+
+        return [
+          remCavity,
+          rectBot(xBotL_L, yBotTop, g.bW, g.bD, rB),
+          rectBot(xBotR_L, yBotTop, g.bW, g.bD, rB)
+        ].join(' ');
+      }
+    }
+
+    /**
+     * Genera el perímetro exterior envolvente acompañando la curvatura trasera del mando.
+     */
+    function buildOuterContourPath(g, p) {
+      const f = n => Number(n).toFixed(3);
+      const w = g.w;
+
+      const xL = g.remOuterX;
+      const xR = g.remOuterX + g.remOuterW;
+
+      const yFrontOuter = g.remFrontY + w;
+      const yEndTopOuter = (g.remFrontY - g.rEndD) - w;
+      const yApexTopOuter = 0;
+
+      const rCornerOuter = Math.min(p.remR + w, (g.rEndD + w * 2) * 0.45);
+      const xCurveL = xL + rCornerOuter;
+      const xCurveR = xR - rCornerOuter;
+      const ctrlYOuter = 2 * yApexTopOuter - yEndTopOuter;
+
+      const xBotL_Out = g.lBotOuterX;
+      const xBotL_In = g.lBotOuterX + g.botOuterW;
+      const xBotR_In = g.rBotOuterX;
+      const xBotR_Out = g.rBotOuterX + g.botOuterW;
+      const yBotBottom = g.totalH;
+
+      const rBOuter = Math.min(p.botR + w, g.botOuterW * 0.45);
+
+      const yArmSlotBottom = g.botsTopY + Math.min(g.bD - 4, Math.max(8, p.armSlotD));
+      const bridgeBotY = Math.min(yBotBottom - 3, yArmSlotBottom + w * 1.6);
+
+      return [
+        `M ${f(xCurveL)} ${f(yEndTopOuter)}`,
+        `Q ${f(g.remCenterX)} ${f(ctrlYOuter)} ${f(xCurveR)} ${f(yEndTopOuter)}`,
+        `A ${f(rCornerOuter)} ${f(rCornerOuter)} 0 0 1 ${f(xR)} ${f(yEndTopOuter + rCornerOuter)}`,
+        `V ${f(yFrontOuter)}`,
+        `H ${f(xBotR_Out)}`,
+        `V ${f(yBotBottom - rBOuter)}`,
+        `A ${f(rBOuter)} ${f(rBOuter)} 0 0 1 ${f(xBotR_Out - rBOuter)} ${f(yBotBottom)}`,
+        `H ${f(xBotR_In + rBOuter)}`,
+        `A ${f(rBOuter)} ${f(rBOuter)} 0 0 1 ${f(xBotR_In)} ${f(yBotBottom - rBOuter)}`,
+        `V ${f(bridgeBotY)}`,
+        `H ${f(xBotL_In)}`,
+        `V ${f(yBotBottom - rBOuter)}`,
+        `A ${f(rBOuter)} ${f(rBOuter)} 0 0 1 ${f(xBotL_In - rBOuter)} ${f(yBotBottom)}`,
+        `H ${f(xBotL_Out + rBOuter)}`,
+        `A ${f(rBOuter)} ${f(rBOuter)} 0 0 1 ${f(xBotL_Out)} ${f(yBotBottom - rBOuter)}`,
+        `V ${f(yFrontOuter)}`,
+        `H ${f(xL)}`,
+        `V ${f(yEndTopOuter + rCornerOuter)}`,
+        `A ${f(rCornerOuter)} ${f(rCornerOuter)} 0 0 1 ${f(xCurveL)} ${f(yEndTopOuter)}`,
+        `Z`
+      ].join(' ');
+    }
+
+    function calculateGeometry(p) {
+      const rW = p.remW + p.tol * 2;
+      const rD = p.remD + p.tol * 2;
+      const clampedEndD = Math.min(p.remD, p.remEndD);
+      const rEndD = clampedEndD + p.tol * 2;
+
+      const bW = p.botW + p.tol * 2;
+      const bD = p.botD + p.tol * 2;
+      const w = p.wall;
+
+      // En coordenadas locales donde X=0 es el centro del mando:
+      const btnCenterRelX = p.btnOffsetX || 0;
+      const leftActionRelX = btnCenterRelX - p.btnSpan / 2;
+      const rightActionRelX = btnCenterRelX + p.btnSpan / 2;
+
+      const leftBotRightEdge = leftActionRelX - p.armOffset;
+      const leftBotRelX = leftBotRightEdge - bW;
+
+      const rightBotLeftEdge = rightActionRelX + p.armOffset;
+      const rightBotRelX = rightBotLeftEdge;
+
+      // Límites exteriores considerando que los pulsadores pueden sobresalir si los botones están muy cerca de un extremo
+      const minX = Math.min(-rW / 2 - w, leftBotRelX - w);
+      const maxX = Math.max(rW / 2 + w, rightBotRelX + bW + w);
+      const totalW = maxX - minX;
+
+      // Desplazamiento del origen para que toda la pieza quede en coordenadas positivas [0 .. totalW]
+      const originX = -minX;
+      const remCenterX = originX;
+      const btnCenterX = originX + btnCenterRelX;
+
+      const remTopApexY = w;
+      const remFrontY = remTopApexY + rD;
+      const botsTopY = remFrontY + p.gapY;
+      const botsBotY = botsTopY + bD;
+      const totalH = botsBotY + w;
+
+      const cx = totalW / 2;
+
+      // Asegurar que la envolvente superior del mando cubra siempre el anclaje de ambos pulsadores
+      const remOuterLeftX = Math.min(remCenterX - rW / 2 - w, originX + leftBotRelX - w);
+      const remOuterRightX = Math.max(remCenterX + rW / 2 + w, originX + rightBotRelX + bW + w);
+      const remOuterX = remOuterLeftX;
+      const remOuterW = remOuterRightX - remOuterLeftX;
+      const remOuterH = rD + w * 2;
+
+      const remInnerX = remCenterX - rW / 2;
+
+      const lBotOuterX = originX + leftBotRelX - w;
+      const rBotOuterX = originX + rightBotRelX - w;
+      const botOuterW = bW + w * 2;
+      const botOuterH = bD + w * 2;
+
+      return {
+        totalW, totalH, cx,
+        remCenterX, btnCenterX,
+        rW, rD, rEndD, clampedEndD,
+        bW, bD, w,
+        remOuterX, remOuterW, remOuterH,
+        remInnerX, remTopApexY, remFrontY,
+        botsTopY, botsBotY,
+        lBotOuterX, rBotOuterX, botOuterW, botOuterH,
+        leftBotX: originX + leftBotRelX,
+        rightBotX: originX + rightBotRelX,
+        leftActionX: originX + leftActionRelX,
+        rightActionX: originX + rightActionRelX
+      };
+    }
+
+    function generateSVG(p, mode = 'guides', forExport = false) {
+      const g = calculateGeometry(p);
+      const outerPath = buildOuterContourPath(g, p);
+      const innerCavityPath = buildUnifiedInnerCavityPath(g, p);
+      const compoundWallsPath = `${outerPath} ${innerCavityPath}`;
+
+      if (forExport) {
+        const finalPath = mode === 'base' ? outerPath : compoundWallsPath;
+        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${g.totalW.toFixed(3)}mm" height="${g.totalH.toFixed(3)}mm" viewBox="0 0 ${g.totalW.toFixed(3)} ${g.totalH.toFixed(3)}">
+  <path d="${finalPath}" fill="#000000" fill-rule="evenodd" stroke="none" />
+</svg>`;
+      }
+
+      const pad = 22;
+      const vbW = g.totalW + pad * 2;
+      const vbH = g.totalH + pad * 2;
+      const scalePx = 4.2;
+
+      const activePath = mode === 'base' ? outerPath : compoundWallsPath;
+      const fillColor = mode === 'base' ? '#0284c7' : '#38bdf8';
+
+      let guidesMarkup = '';
+      if (mode === 'guides') {
+        const f = n => Number(n).toFixed(2);
+        const btnY = g.remFrontY;
+        const armBallY = g.botsTopY + 6.2;
+
+        const xRemRealL = g.remInnerX + p.tol;
+        const xRemRealR = xRemRealL + p.remW;
+        const yFrontReal = g.remFrontY - p.tol * 0.2;
+        const yEndReal = yFrontReal - g.clampedEndD;
+        const yApexReal = yFrontReal - p.remD;
+        const rReal = Math.min(p.remR, g.clampedEndD * 0.45);
+        const ctrlYReal = 2 * yApexReal - yEndReal;
+
+        const remoteGuidePath = [
+          `M ${f(xRemRealL + rReal)} ${f(yEndReal)}`,
+          `Q ${f(g.remCenterX)} ${f(ctrlYReal)} ${f(xRemRealR - rReal)} ${f(yEndReal)}`,
+          `A ${f(rReal)} ${f(rReal)} 0 0 1 ${f(xRemRealR)} ${f(yEndReal + rReal)}`,
+          `V ${f(yFrontReal)}`,
+          `H ${f(xRemRealL)}`,
+          `V ${f(yEndReal + rReal)}`,
+          `A ${f(rReal)} ${f(rReal)} 0 0 1 ${f(xRemRealL + rReal)} ${f(yEndReal)}`,
+          `Z`
+        ].join(' ');
+
+        const distFromLeftEdge = (p.remW / 2 + (p.btnOffsetX || 0)).toFixed(1);
+
+        guidesMarkup = `
+          <!-- Silueta Curvada del Mando a Distancia -->
+          <path d="${remoteGuidePath}"
+                fill="rgba(241, 245, 249, 0.10)" stroke="#94a3b8" stroke-width="0.45" stroke-dasharray="2,1.5" />
+          <text x="${g.remCenterX.toFixed(2)}" y="${(yFrontReal - p.remD * 0.52).toFixed(2)}"
+                fill="#e2e8f0" font-size="3.1" font-family="Inter, sans-serif" text-anchor="middle" font-weight="600">
+            MANDO CURVO (Centro: ${p.remD} mm | Puntas: ${g.clampedEndD} mm)
+          </text>
+
+          <!-- Eje central del mando vs Eje del grupo de botones -->
+          <line x1="${g.remCenterX.toFixed(2)}" y1="${(yApexReal - 2).toFixed(2)}" x2="${g.remCenterX.toFixed(2)}" y2="${(btnY + 2).toFixed(2)}"
+                stroke="#64748b" stroke-width="0.35" stroke-dasharray="1.5,1.5" />
+          <line x1="${g.btnCenterX.toFixed(2)}" y1="${(btnY - 12).toFixed(2)}" x2="${g.btnCenterX.toFixed(2)}" y2="${(g.botsBotY + 2).toFixed(2)}"
+                stroke="#fb7185" stroke-width="0.4" stroke-dasharray="2,1.5" />
+
+          <!-- Cota desde el extremo izquierdo del mando hasta el centro de la botonera -->
+          <g stroke="#38bdf8" stroke-width="0.4" opacity="0.9">
+            <line x1="${xRemRealL.toFixed(2)}" y1="${(btnY - 10.5).toFixed(2)}" x2="${g.btnCenterX.toFixed(2)}" y2="${(btnY - 10.5).toFixed(2)}" stroke-dasharray="1.5,1" />
+            <line x1="${xRemRealL.toFixed(2)}" y1="${(btnY - 12.2).toFixed(2)}" x2="${xRemRealL.toFixed(2)}" y2="${(btnY - 8.8).toFixed(2)}" />
+            <line x1="${g.btnCenterX.toFixed(2)}" y1="${(btnY - 12.2).toFixed(2)}" x2="${g.btnCenterX.toFixed(2)}" y2="${(btnY - 8.8).toFixed(2)}" />
+          </g>
+          <text x="${((xRemRealL + g.btnCenterX) / 2).toFixed(2)}" y="${(btnY - 11.8).toFixed(2)}"
+                fill="#7dd3fc" font-size="2.7" font-family="JetBrains Mono, monospace" text-anchor="middle" font-weight="bold">
+            Desde izq: ${distFromLeftEdge} mm
+          </text>
+
+          <!-- Botones del mando en su cara plana: (<) (Stop) (>) -->
+          <g fill="#1e293b" stroke="#cbd5e1" stroke-width="0.45">
+            <rect x="${(g.leftActionX - 5.5).toFixed(2)}" y="${(btnY - 2.8).toFixed(2)}" width="11" height="2.8" rx="0.5" />
+            <rect x="${(g.btnCenterX - 4.8).toFixed(2)}" y="${(btnY - 2.8).toFixed(2)}" width="9.6" height="2.8" rx="0.5" />
+            <rect x="${(g.rightActionX - 5.5).toFixed(2)}" y="${(btnY - 2.8).toFixed(2)}" width="11" height="2.8" rx="0.5" />
+          </g>
+          <text x="${g.leftActionX.toFixed(2)}" y="${(btnY - 0.7).toFixed(2)}" fill="#f8fafc" font-size="2.4" text-anchor="middle" font-weight="bold">&lt;</text>
+          <rect x="${(g.btnCenterX - 0.9).toFixed(2)}" y="${(btnY - 2.1).toFixed(2)}" width="1.8" height="1.4" fill="none" stroke="#f8fafc" stroke-width="0.35" />
+          <text x="${g.rightActionX.toFixed(2)}" y="${(btnY - 0.7).toFixed(2)}" fill="#f8fafc" font-size="2.4" text-anchor="middle" font-weight="bold">&gt;</text>
+
+          <!-- Siluetas de los dos Pulsadores Domóticos pegados a ras del mando -->
+          <rect x="${(g.leftBotX + p.tol).toFixed(2)}" y="${g.botsTopY.toFixed(2)}"
+                width="${p.botW.toFixed(2)}" height="${p.botD.toFixed(2)}" rx="${(p.botR * 0.5).toFixed(2)}"
+                fill="rgba(16, 185, 129, 0.14)" stroke="#34d399" stroke-width="0.45" stroke-dasharray="2,1.5" />
+          <text x="${(g.leftBotX + g.bW / 2).toFixed(2)}" y="${(g.botsTopY + g.bD / 2 + 1).toFixed(2)}"
+                fill="#6ee7b7" font-size="2.9" font-family="Inter, sans-serif" text-anchor="middle" font-weight="600">
+            PULSADOR IZQ (A RAS)
+          </text>
+
+          <rect x="${(g.rightBotX + p.tol).toFixed(2)}" y="${g.botsTopY.toFixed(2)}"
+                width="${p.botW.toFixed(2)}" height="${p.botD.toFixed(2)}" rx="${(p.botR * 0.5).toFixed(2)}"
+                fill="rgba(16, 185, 129, 0.14)" stroke="#34d399" stroke-width="0.45" stroke-dasharray="2,1.5" />
+          <text x="${(g.rightBotX + g.bW / 2).toFixed(2)}" y="${(g.botsTopY + g.bD / 2 + 1).toFixed(2)}"
+                fill="#6ee7b7" font-size="2.9" font-family="Inter, sans-serif" text-anchor="middle" font-weight="600">
+            PULSADOR DER (A RAS)
+          </text>
+
+          <!-- Brazo Extensor Izquierdo con Rótula Esférica y Émbolo de Recorrido Corto -->
+          <g>
+            <rect x="${(g.leftBotX + g.bW - 0.5).toFixed(2)}" y="${(armBallY - 1.8).toFixed(2)}"
+                  width="${(g.leftActionX - (g.leftBotX + g.bW) + 0.5).toFixed(2)}" height="3.6" fill="#e2e8f0" />
+            <circle cx="${g.leftActionX.toFixed(2)}" cy="${armBallY.toFixed(2)}" r="3.8" fill="#f8fafc" stroke="#64748b" stroke-width="0.4" />
+            <rect x="${(g.leftActionX - 1.2).toFixed(2)}" y="${(btnY + 0.2).toFixed(2)}"
+                  width="2.4" height="${(armBallY - btnY - 1.5).toFixed(2)}" fill="#f1f5f9" stroke="#64748b" stroke-width="0.3" />
+            <rect x="${(g.leftActionX - 3.4).toFixed(2)}" y="${(btnY).toFixed(2)}"
+                  width="6.8" height="1.7" rx="0.5" fill="#f43f5e" />
+          </g>
+
+          <!-- Brazo Extensor Derecho con Rótula Esférica y Émbolo de Recorrido Corto -->
+          <g>
+            <rect x="${g.rightActionX.toFixed(2)}" y="${(armBallY - 1.8).toFixed(2)}"
+                  width="${(g.rightBotX - g.rightActionX + 0.5).toFixed(2)}" height="3.6" fill="#e2e8f0" />
+            <circle cx="${g.rightActionX.toFixed(2)}" cy="${armBallY.toFixed(2)}" r="3.8" fill="#f8fafc" stroke="#64748b" stroke-width="0.4" />
+            <rect x="${(g.rightActionX - 1.2).toFixed(2)}" y="${(btnY + 0.2).toFixed(2)}"
+                  width="2.4" height="${(armBallY - btnY - 1.5).toFixed(2)}" fill="#f1f5f9" stroke="#64748b" stroke-width="0.3" />
+            <rect x="${(g.rightActionX - 3.4).toFixed(2)}" y="${(btnY).toFixed(2)}"
+                  width="6.8" height="1.7" rx="0.5" fill="#f43f5e" />
+          </g>
+
+          <!-- Cota de distancia entre botones < y > -->
+          <g stroke="#f43f5e" stroke-width="0.45">
+            <line x1="${g.leftActionX.toFixed(2)}" y1="${(btnY - 5.5).toFixed(2)}" x2="${g.rightActionX.toFixed(2)}" y2="${(btnY - 5.5).toFixed(2)}" stroke-dasharray="1.2,1.2" />
+            <line x1="${g.leftActionX.toFixed(2)}" y1="${(btnY - 7.2).toFixed(2)}" x2="${g.leftActionX.toFixed(2)}" y2="${(btnY - 3.8).toFixed(2)}" />
+            <line x1="${g.rightActionX.toFixed(2)}" y1="${(btnY - 7.2).toFixed(2)}" x2="${g.rightActionX.toFixed(2)}" y2="${(btnY - 3.8).toFixed(2)}" />
+          </g>
+          <text x="${g.btnCenterX.toFixed(2)}" y="${(btnY - 6.8).toFixed(2)}" fill="#fda4af" font-size="2.9" font-family="JetBrains Mono, monospace" text-anchor="middle" font-weight="bold">
+            ↔ ${p.btnSpan} mm
+          </text>
+        `;
+      }
+
+      const cadDimensionsMarkup = `
+        <!-- Cota Superior Ancho Exterior -->
+        <g stroke="#38bdf8" stroke-width="0.4" opacity="0.85">
+          <line x1="0" y1="-8" x2="${g.totalW.toFixed(2)}" y2="-8" />
+          <line x1="0" y1="-11" x2="0" y2="-4" />
+          <line x1="${g.totalW.toFixed(2)}" y1="-11" x2="${g.totalW.toFixed(2)}" y2="-4" />
+        </g>
+        <text x="${g.cx.toFixed(2)}" y="-10.5" fill="#38bdf8" font-size="3.6" font-family="JetBrains Mono, monospace" text-anchor="middle" font-weight="600">
+          ${g.totalW.toFixed(1)} mm
+        </text>
+
+        <!-- Cota Derecha Alto Exterior -->
+        <g stroke="#38bdf8" stroke-width="0.4" opacity="0.85">
+          <line x1="${(g.totalW + 8).toFixed(2)}" y1="0" x2="${(g.totalW + 8).toFixed(2)}" y2="${g.totalH.toFixed(2)}" />
+          <line x1="${(g.totalW + 4).toFixed(2)}" y1="0" x2="${(g.totalW + 11).toFixed(2)}" y2="0" />
+          <line x1="${(g.totalW + 4).toFixed(2)}" y1="${g.totalH.toFixed(2)}" x2="${(g.totalW + 11).toFixed(2)}" y2="${g.totalH.toFixed(2)}" />
+        </g>
+        <text x="${(g.totalW + 13).toFixed(2)}" y="${(g.totalH / 2).toFixed(2)}" fill="#38bdf8" font-size="3.6" font-family="JetBrains Mono, monospace" text-anchor="middle" font-weight="600" transform="rotate(90, ${(g.totalW + 13).toFixed(2)}, ${(g.totalH / 2).toFixed(2)})">
+          ${g.totalH.toFixed(1)} mm
+        </text>
+      `;
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="${(vbW * scalePx).toFixed(0)}"
+             height="${(vbH * scalePx).toFixed(0)}"
+             viewBox="${-pad} ${-pad} ${vbW.toFixed(2)} ${vbH.toFixed(2)}"
+             class="max-w-full h-auto select-none">
+          <path d="${activePath}"
+                fill="${fillColor}"
+                fill-opacity="${mode === 'guides' ? '0.88' : '1'}"
+                fill-rule="evenodd"
+                stroke="#bae6fd"
+                stroke-width="0.35" />
+          ${guidesMarkup}
+          ${cadDimensionsMarkup}
+        </svg>
+      `;
+    }
+
+    function updatePreview() {
+      const p = getParams();
+      const g = calculateGeometry(p);
+      const holder = document.getElementById('canvas-holder');
+      const badgeDims = document.getElementById('badge-dims');
+      const lblFromLeft = document.getElementById('lbl-fromLeftEdge');
+      if (lblFromLeft) {
+        const distLeft = (p.remW / 2) + (p.btnOffsetX || 0);
+        lblFromLeft.textContent = `${distLeft.toFixed(1)} mm`;
+      }
+      if (holder) {
+        holder.innerHTML = generateSVG(p, currentViewMode, false);
+      }
+      if (badgeDims) {
+        badgeDims.textContent = `${g.totalW.toFixed(1)} × ${g.totalH.toFixed(1)} mm`;
+      }
+    }
+
+    function downloadSVGFile(mode, filename) {
+      const p = getParams();
+      const svgContent = generateSVG(p, mode, true);
+      const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('btnDownloadWalls').addEventListener('click', () => {
+      downloadSVGFile('walls', 'carcasa_mando_curvo_paredes.svg');
+    });
+
+    document.getElementById('btnDownloadBase').addEventListener('click', () => {
+      downloadSVGFile('base', 'carcasa_mando_curvo_base.svg');
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSettingsFromLocal();
+      updatePreview();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diseñador 3D Paramétrico - Caja Módulo USB y Linterna LED</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body { margin: 0; overflow: hidden; background-color: #0f172a; color: #f1f5f9; }
+    /* Scrollbar estilizada para panel lateral */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #334155;
+      height: 5px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      border: 2px solid #0f172a;
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #7dd3fc;
+    }
+    .tab-btn.active {
+      background-color: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+    }
+  </style>
+  <!-- Import Map para Three.js y Addons -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row overflow-hidden select-none">
+
+  <!-- PANEL LATERAL IZQUIERDO DE CONTROLES -->
+  <aside id="sidebar" class="w-full md:w-[410px] lg:w-[440px] h-[48vh] md:h-full bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col z-20 shadow-2xl">
+    
+    <!-- Cabecera -->
+    <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+          <h1 class="text-sm font-bold tracking-wide text-slate-100 uppercase">Carcasa 3D Módulo USB + LED</h1>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-0.5">Paramétrico CAD · Exportación STL lista para Cura / Neptune 3 Pro</p>
+      </div>
+      <span id="dimBadge" class="text-[11px] font-mono bg-slate-800 text-sky-300 px-2 py-1 rounded border border-slate-700">69.8×32.8×14.0mm</span>
+    </div>
+
+    <!-- Pestañas de Categorías -->
+    <div class="grid grid-cols-5 gap-1 p-2 bg-slate-900/90 border-b border-slate-800 text-[11px] font-medium">
+      <button class="tab-btn active py-1.5 px-1 rounded border border-slate-700 transition text-center" data-tab="general">Caja/PCB</button>
+      <button class="tab-btn py-1.5 px-1 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-center" data-tab="leds">LEDs 3×3</button>
+      <button class="tab-btn py-1.5 px-1 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-center" data-tab="ports">Puertos</button>
+      <button class="tab-btn py-1.5 px-1 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-center" data-tab="terminals">B+ / B-</button>
+      <button class="tab-btn py-1.5 px-1 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-center" data-tab="lid">Tapa/Snap</button>
+    </div>
+
+    <!-- Contenedor Scrollable de Sliders -->
+    <div id="controlsContainer" class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
+      <!-- Se rellena dinámicamente mediante JS -->
+    </div>
+
+    <!-- Barra Inferior de Gestión Config y Exportación STL -->
+    <div class="p-3 bg-slate-950 border-t border-slate-800 space-y-2">
+      <!-- Gestión de Configuración -->
+      <div class="grid grid-cols-4 gap-1.5 text-[11px]">
+        <button id="btnSaveLocal" title="Guardar en navegador" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 px-2 rounded border border-slate-700 transition flex items-center justify-center gap-1">
+          <span>💾</span> Guardar
+        </button>
+        <button id="btnExportJson" title="Descargar archivo de parámetros JSON" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 px-2 rounded border border-slate-700 transition flex items-center justify-center gap-1">
+          <span>📤</span> JSON
+        </button>
+        <label title="Cargar archivo JSON" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 px-2 rounded border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer">
+          <span>📥</span> Cargar
+          <input type="file" id="inputImportJson" accept=".json" class="hidden" />
+        </label>
+        <button id="btnReset" title="Restaurar valores iniciales" class="bg-slate-800 hover:bg-rose-950 hover:text-rose-200 hover:border-rose-800 text-slate-300 py-1.5 px-2 rounded border border-slate-700 transition flex items-center justify-center gap-1">
+          <span>↺</span> Reset
+        </button>
+      </div>
+
+      <!-- Botones Principales de Exportación STL -->
+      <div class="grid grid-cols-3 gap-1.5 pt-0.5">
+        <button id="btnStlBase" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-2 rounded shadow-lg shadow-sky-950/50 transition text-[11px] flex flex-col items-center justify-center">
+          <span>⬇ Base (.STL)</span>
+        </button>
+        <button id="btnStlLid" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-2 rounded shadow-lg shadow-indigo-950/50 transition text-[11px] flex flex-col items-center justify-center">
+          <span>⬇ Tapa (.STL)</span>
+        </button>
+        <button id="btnStlBoth" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-2 rounded shadow-lg shadow-emerald-950/50 transition text-[11px] flex flex-col items-center justify-center">
+          <span>⬇ Ambas (.STL)</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ÁREA DE VISUALIZACIÓN 3D -->
+  <main class="relative flex-1 h-[52vh] md:h-full bg-slate-950 overflow-hidden">
+    <div id="canvasContainer" class="w-full h-full"></div>
+
+    <!-- Barra Superior Flotante de Modos de Vista -->
+    <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-lg border border-slate-800 shadow-xl pointer-events-auto">
+        <button data-view="assembled" class="view-btn active px-2.5 py-1 rounded text-xs font-medium bg-sky-600 text-white transition">Ensamblado</button>
+        <button data-view="exploded" class="view-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Explosionado</button>
+        <button data-view="base" class="view-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Solo Base</button>
+        <button data-view="lid" class="view-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Solo Tapa</button>
+        <button data-view="bed" class="view-btn px-2.5 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Cama Impresión</button>
+      </div>
+
+      <div class="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 shadow-xl pointer-events-auto text-xs">
+        <label class="flex items-center gap-1.5 cursor-pointer text-slate-200">
+          <input type="checkbox" id="chkShowPcb" checked class="accent-sky-500 rounded" />
+          <span>PCB Virtual</span>
+        </label>
+        <span class="text-slate-700">|</span>
+        <label class="flex items-center gap-1.5 cursor-pointer text-slate-200">
+          <input type="checkbox" id="chkXray" class="accent-sky-500 rounded" />
+          <span>Rayos X</span>
+        </label>
+        <span class="text-slate-700">|</span>
+        <button id="btnCamBottom" title="Ver fondo de LEDs" class="text-amber-300 hover:text-amber-200 font-medium">Vista LEDs ↓</button>
+      </div>
+    </div>
+
+    <!-- Control Deslizante Flotante para Vista Explosionada -->
+    <div id="explodeBar" class="hidden absolute bottom-12 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700 shadow-xl flex items-center gap-3 text-xs">
+      <span class="text-slate-300 font-medium">Separación vertical:</span>
+      <input type="range" id="sliderExplode" min="5" max="45" step="1" value="22" class="w-36" />
+      <span id="valExplode" class="font-mono text-sky-400 w-10">22 mm</span>
+    </div>
+
+    <!-- Leyenda / Ayuda inferior -->
+    <div class="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between text-[11px] text-slate-400 pointer-events-none">
+      <div class="bg-slate-900/80 px-2.5 py-1 rounded border border-slate-800/80">
+        🖱️ Izquierdo: Rotar · Derecho: Mover · Rueda: Zoom · <span class="text-emerald-400 font-medium">Sólidos Manifold 100% cerrados (listos para Cura)</span>
+      </div>
+      <div id="toastMsg" class="opacity-0 transition-opacity duration-300 bg-sky-600 text-white font-medium px-3 py-1 rounded shadow-lg">
+        Mensaje
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+    import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+    // =========================================================================
+    // 1. PARÁMETROS POR DEFECTO CALIBRADOS SEGÚN LAS FOTOGRAFÍAS DE LA PLACA
+    // =========================================================================
+    // Orientación de referencia (Vista superior desde componentes):
+    // - Eje X: Largo de la placa (65 mm). Izquierda = extremo B- (-X), Derecha = extremo B+ (+X) con pulsador.
+    // - Eje Y: Ancho/fondo de la placa (28 mm). Parte trasera = -Y, Parte frontal con conectores USB-A y Micro-USB = +Y.
+    // - Eje Z: Altura (0 = base apoyada en la cama de impresión).
+    const DEFAULT_PARAMS = {
+      // General / Caja y PCB
+      pcbLength: 65.0,        // Largo X de la PCB
+      pcbWidth: 28.0,         // Ancho Y de la PCB
+      pcbHeight: 10.0,        // Altura total componentes + PCB
+      pcbThickness: 1.6,      // Grosor del sustrato FR4
+      pcbCornerChamfer: 4.5,  // Chaflán/radio en las 4 esquinas de la PCB
+      clearance: 0.4,         // Holgura por lado entre PCB y pared interna
+      wallThickness: 2.0,     // Grosor paredes laterales
+      bottomThickness: 2.0,   // Grosor suelo (zona LEDs)
+      standoffHeight: 1.8,    // Altura topes internos para proteger los LEDs SMD del roce
+      outerFillet: 2.5,       // Redondeo exterior de esquinas de la caja
+
+      // Matriz LED 3x3 en la base (cara inferior de la PCB)
+      ledOffsetX: -2.0,       // Desplazamiento X del centro de la matriz 3x3 (ligeramente a la izq. según foto 2)
+      ledOffsetY: -0.5,       // Desplazamiento Y del centro de la matriz 3x3
+      ledPitchX: 8.5,         // Separación entre centros de columnas X
+      ledPitchY: 6.5,         // Separación entre centros de filas Y
+      ledHoleSize: 4.2,       // Tamaño de cada ventana cuadrada (mm)
+      ledHoleRadius: 0.8,     // Redondeo de esquinas de cada ventana LED
+      ledBevel: 0.6,          // Chaflán inferior en los agujeros de LEDs para dispersar el haz
+
+      // Puertos en pared frontal (+Y) y Pulsador en extremo derecho (+X)
+      // Según Foto 2 y 3: mirando los conectores de frente (+Y), Micro-USB está a la izquierda y USB-A a la derecha.
+      usbAOffsetX: 11.5,      // Centro X del USB-A respecto al centro de la caja
+      usbAWidth: 14.8,        // Ancho hueco USB-A
+      usbAHeight: 7.4,        // Alto hueco USB-A
+      usbAZ: 1.6,             // Altura desde la cara superior de la PCB
+
+      microUsbOffsetX: -4.5,  // Centro X del Micro-USB respecto al centro de la caja
+      microUsbWidth: 8.6,     // Ancho hueco Micro-USB
+      microUsbHeight: 3.6,    // Alto hueco Micro-USB
+      microUsbZ: 1.2,         // Altura desde la cara superior de la PCB
+
+      btnSide: 'right',       // 'right' (+X, extremo derecho junto al USB-A) o 'front' (+Y)
+      btnOffset: -3.0,        // Posición a lo largo de esa pared (Y si está en derecha, X si está en frente)
+      btnZ: 2.5,              // Altura del centro del pulsador sobre la PCB
+      btnHoleDiam: 5.2,       // Diámetro del orificio para pulsar con dedo/uña o actuador
+      btnIncludePlunger: true,// Generar botón/actuador pasante cautivo imprimible aparte o integrado
+
+      // Bornes B- (izquierda -X) y B+ (derecha +X) para cables de pinzas cocodrilo
+      wireHoleDiam: 4.2,      // Diámetro del orificio pasacables B- y B+
+      wireOffsetY: 5.5,       // Desplazamiento Y hacia la parte trasera (-Y) donde están las muescas B- y B+
+      wireZ: 4.5,             // Altura Z desde el fondo interno
+      wireStrainRelief: true, // Añadir collarín externo de alivio de tensión / guía de cable
+
+      // Tapa y Mecanismo Snap-Fit
+      lidThickness: 2.0,      // Grosor del techo de la tapa
+      lidSkirtHeight: 3.2,    // Altura del labio interno de encaje perimetral
+      snapTolerance: 0.25,    // Holgura de ajuste de la tapa (0.2 - 0.35 mm ideal FDM)
+      snapTabLength: 14.0,    // Longitud de cada pestaña snap-fit en paredes largas
+      snapBump: 0.55,         // Saliente de enganche de la pestaña
+      nailNotchWidth: 10.0,   // Ancho de la muesca exterior para abrir con la uña sin herramientas
+      engraveLabels: true     // Grabado en relieve de "B-" y "B+" junto a los bornes
+    };
+
+    const STORAGE_KEY = 'caja_usb_led_params_v1';
+    let params = loadParams();
+    let currentTab = 'general';
+    let viewMode = 'assembled';
+    let explodeDist = 22;
+
+    function loadParams() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return { ...DEFAULT_PARAMS, ...JSON.parse(saved) };
+      } catch (e) { console.warn('No se pudo leer localStorage:', e); }
+      return { ...DEFAULT_PARAMS };
+    }
+
+    // =========================================================================
+    // 2. DEFINICIÓN DE CONTROLES DE INTERFAZ POR PESTAÑAS
+    // =========================================================================
+    const TAB_SCHEMA = {
+      general: [
+        { section: 'Dimensiones de la Placa (PCB)', items: [
+          { key: 'pcbLength', label: 'Largo PCB (X)', min: 55, max: 80, step: 0.5, unit: 'mm' },
+          { key: 'pcbWidth', label: 'Ancho PCB (Y)', min: 22, max: 40, step: 0.5, unit: 'mm' },
+          { key: 'pcbHeight', label: 'Alto componentes (Z)', min: 7, max: 18, step: 0.5, unit: 'mm' },
+          { key: 'pcbCornerChamfer', label: 'Chaflán esquinas PCB', min: 0, max: 8, step: 0.5, unit: 'mm' },
+        ]},
+        { section: 'Paredes, Tolerancia y Soportes', items: [
+          { key: 'clearance', label: 'Holgura interna PCB', min: 0.15, max: 1.2, step: 0.05, unit: 'mm' },
+          { key: 'wallThickness', label: 'Grosor de paredes', min: 1.2, max: 3.5, step: 0.2, unit: 'mm' },
+          { key: 'bottomThickness', label: 'Grosor suelo (base LEDs)', min: 1.2, max: 3.5, step: 0.2, unit: 'mm' },
+          { key: 'standoffHeight', label: 'Altura topes apoyo PCB', min: 0.8, max: 3.5, step: 0.2, unit: 'mm' },
+          { key: 'outerFillet', label: 'Radio esquinas exteriores', min: 0.5, max: 6.0, step: 0.5, unit: 'mm' },
+        ]}
+      ],
+      leds: [
+        { section: 'Matriz de 9 LEDs SMD (3×3 en el fondo)', items: [
+          { key: 'ledOffsetX', label: 'Desplazamiento centro X', min: -12, max: 12, step: 0.5, unit: 'mm' },
+          { key: 'ledOffsetY', label: 'Desplazamiento centro Y', min: -6, max: 6, step: 0.5, unit: 'mm' },
+          { key: 'ledPitchX', label: 'Separación columnas (X)', min: 6.0, max: 12.0, step: 0.25, unit: 'mm' },
+          { key: 'ledPitchY', label: 'Separación filas (Y)', min: 4.5, max: 9.0, step: 0.25, unit: 'mm' },
+          { key: 'ledHoleSize', label: 'Tamaño ventana LED', min: 2.8, max: 6.0, step: 0.2, unit: 'mm' },
+          { key: 'ledHoleRadius', label: 'Redondeo ventana LED', min: 0.0, max: 2.5, step: 0.1, unit: 'mm' },
+          { key: 'ledBevel', label: 'Bisel difusor inferior', min: 0.0, max: 1.5, step: 0.1, unit: 'mm' },
+        ]}
+      ],
+      ports: [
+        { section: 'Conector USB-A Hembra (Pared Frontal)', items: [
+          { key: 'usbAOffsetX', label: 'Posición X centro USB-A', min: -20, max: 22, step: 0.5, unit: 'mm' },
+          { key: 'usbAWidth', label: 'Ancho hueco USB-A', min: 13.0, max: 17.0, step: 0.2, unit: 'mm' },
+          { key: 'usbAHeight', label: 'Alto hueco USB-A', min: 6.0, max: 9.5, step: 0.2, unit: 'mm' },
+          { key: 'usbAZ', label: 'Cota Z sobre PCB', min: 0.0, max: 4.0, step: 0.2, unit: 'mm' },
+        ]},
+        { section: 'Conector Micro-USB Hembra (Pared Frontal)', items: [
+          { key: 'microUsbOffsetX', label: 'Posición X centro Micro-USB', min: -22, max: 15, step: 0.5, unit: 'mm' },
+          { key: 'microUsbWidth', label: 'Ancho hueco Micro-USB', min: 7.0, max: 11.0, step: 0.2, unit: 'mm' },
+          { key: 'microUsbHeight', label: 'Alto hueco Micro-USB', min: 2.6, max: 5.5, step: 0.2, unit: 'mm' },
+          { key: 'microUsbZ', label: 'Cota Z sobre PCB', min: 0.0, max: 3.5, step: 0.2, unit: 'mm' },
+        ]},
+        { section: 'Pulsador Linterna (Extremo Derecho)', items: [
+          { key: 'btnSide', label: 'Pared del pulsador', type: 'select', options: [
+            { value: 'right', text: 'Pared Lateral Derecha (+X)' },
+            { value: 'front', text: 'Pared Frontal Derecha (+Y)' }
+          ]},
+          { key: 'btnOffset', label: 'Desplazamiento lateral', min: -10, max: 28, step: 0.5, unit: 'mm' },
+          { key: 'btnZ', label: 'Altura Z sobre PCB', min: 1.0, max: 6.0, step: 0.2, unit: 'mm' },
+          { key: 'btnHoleDiam', label: 'Diámetro orificio botón', min: 3.5, max: 8.0, step: 0.2, unit: 'mm' },
+          { key: 'btnIncludePlunger', label: 'Incluir botón actuador imprimible', type: 'checkbox' }
+        ]}
+      ],
+      terminals: [
+        { section: 'Salidas de Cables B- (Izq.) y B+ (Der.) para Cocodrilos', items: [
+          { key: 'wireHoleDiam', label: 'Diámetro pasacables B- / B+', min: 2.5, max: 7.0, step: 0.2, unit: 'mm' },
+          { key: 'wireOffsetY', label: 'Desplazamiento Y hacia muescas', min: -8, max: 10, step: 0.5, unit: 'mm' },
+          { key: 'wireZ', label: 'Altura Z desde fondo interno', min: 2.0, max: 8.0, step: 0.5, unit: 'mm' },
+          { key: 'wireStrainRelief', label: 'Collarín alivio de tensión', type: 'checkbox' },
+          { key: 'engraveLabels', label: 'Relieve indicadores B- y B+', type: 'checkbox' }
+        ]}
+      ],
+      lid: [
+        { section: 'Tapa Superior y Cierre Snap-Fit', items: [
+          { key: 'lidThickness', label: 'Grosor techo tapa', min: 1.2, max: 3.5, step: 0.2, unit: 'mm' },
+          { key: 'lidSkirtHeight', label: 'Altura faldón interno', min: 2.0, max: 5.0, step: 0.2, unit: 'mm' },
+          { key: 'snapTolerance', label: 'Holgura ajuste cierre', min: 0.1, max: 0.5, step: 0.05, unit: 'mm' },
+          { key: 'snapTabLength', label: 'Longitud pestañas snap', min: 8.0, max: 24.0, step: 1.0, unit: 'mm' },
+          { key: 'snapBump', label: 'Fuerza retención (uña)', min: 0.3, max: 0.9, step: 0.05, unit: 'mm' },
+          { key: 'nailNotchWidth', label: 'Ancho muesca apertura uña', min: 6.0, max: 16.0, step: 1.0, unit: 'mm' },
+        ]}
+      ]
+    };
+
+    function renderControls() {
+      const container = document.getElementById('controlsContainer');
+      container.innerHTML = '';
+      const groups = TAB_SCHEMA[currentTab] || [];
+
+      groups.forEach(group => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-800/60 border border-slate-700/80 rounded-lg p-3 space-y-2.5';
+        
+        const title = document.createElement('h3');
+        title.className = 'text-[11px] font-bold uppercase tracking-wider text-sky-400 border-b border-slate-700/80 pb-1';
+        title.textContent = group.section;
+        card.appendChild(title);
+
+        group.items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'space-y-1';
+
+          if (item.type === 'checkbox') {
+            row.className = 'flex items-center justify-between pt-1';
+            row.innerHTML = `
+              <label for="ctrl_${item.key}" class="text-slate-200 cursor-pointer">${item.label}</label>
+              <input id="ctrl_${item.key}" type="checkbox" ${params[item.key] ? 'checked' : ''} class="w-4 h-4 accent-sky-500 rounded cursor-pointer" />
+            `;
+            row.querySelector('input').addEventListener('change', (e) => {
+              params[item.key] = e.target.checked;
+              rebuildAll();
+            });
+          } else if (item.type === 'select') {
+            row.innerHTML = `
+              <div class="flex justify-between text-slate-300 mb-1">
+                <span>${item.label}</span>
+              </div>
+              <select id="ctrl_${item.key}" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs outline-none focus:border-sky-500">
+                ${item.options.map(o => `<option value="${o.value}" ${params[item.key] === o.value ? 'selected' : ''}>${o.text}</option>`).join('')}
+              </select>
+            `;
+            row.querySelector('select').addEventListener('change', (e) => {
+              params[item.key] = e.target.value;
+              rebuildAll();
+            });
+          } else {
+            row.innerHTML = `
+              <div class="flex justify-between items-center">
+                <label for="ctrl_${item.key}" class="text-slate-300">${item.label}</label>
+                <span id="val_${item.key}" class="font-mono text-[11px] text-sky-300 bg-slate-900/90 px-1.5 py-0.5 rounded border border-slate-700/70">
+                  ${Number(params[item.key]).toFixed(item.step < 0.1 ? 2 : 1)} ${item.unit}
+                </span>
+              </div>
+              <input id="ctrl_${item.key}" type="range" min="${item.min}" max="${item.max}" step="${item.step}" value="${params[item.key]}" class="w-full" />
+            `;
+            const input = row.querySelector('input');
+            const valSpan = row.querySelector(`#val_${item.key}`);
+            input.addEventListener('input', (e) => {
+              const v = parseFloat(e.target.value);
+              params[item.key] = v;
+              valSpan.textContent = `${v.toFixed(item.step < 0.1 ? 2 : 1)} ${item.unit}`;
+              rebuildAll();
+            });
+          }
+          card.appendChild(row);
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    // =========================================================================
+    // 3. MOTOR GEOMÉTRICO SÓLIDO (MANIFOLD / WATERPROOF PARA IMPRESIÓN 3D)
+    // =========================================================================
+    // Utilidad para crear un THREE.Shape rectangular con esquinas redondeadas
+    function createRoundedRectShape(w, h, r) {
+      const shape = new THREE.Shape();
+      const x = -w / 2;
+      const y = -h / 2;
+      const radius = Math.max(0, Math.min(r, w / 2 - 0.01, h / 2 - 0.01));
+
+      shape.moveTo(x + radius, y);
+      shape.lineTo(x + w - radius, y);
+      if (radius > 0) shape.quadraticCurveTo(x + w, y, x + w, y + radius);
+      shape.lineTo(x + w, y + h - radius);
+      if (radius > 0) shape.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      shape.lineTo(x + radius, y + h);
+      if (radius > 0) shape.quadraticCurveTo(x, y + h, x, y + h - radius);
+      shape.lineTo(x, y + radius);
+      if (radius > 0) shape.quadraticCurveTo(x, y, x + radius, y);
+      return shape;
+    }
+
+    // Utilidad para generar una pared segmentada con recortes rectangulares o circulares
+    // Construye bloques sólidos no solapados alrededor de los huecos para garantizar malla 100% manifold.
+    function buildWallWithCutouts(wallLength, wallThickness, wallHeight, cutouts, orientation, posX, posY, posZ) {
+      // cutouts: array de { uMin, uMax, zMin, zMax, isCircle, radius } en coordenadas locales de la pared [-wallLength/2, wallLength/2] y [0, wallHeight]
+      const halfL = wallLength / 2;
+      const uCoords = new Set([-halfL, halfL]);
+      const zCoords = new Set([0, wallHeight]);
+
+      const validCutouts = cutouts.map(c => {
+        const u0 = Math.max(-halfL + 0.4, Math.min(halfL - 0.4, c.uMin));
+        const u1 = Math.max(-halfL + 0.4, Math.min(halfL - 0.4, c.uMax));
+        const z0 = Math.max(0, Math.min(wallHeight, c.zMin));
+        const z1 = Math.max(0, Math.min(wallHeight, c.zMax));
+        if (u1 - u0 > 0.1 && z1 - z0 > 0.1) {
+          uCoords.add(u0); uCoords.add(u1);
+          zCoords.add(z0); zCoords.add(z1);
+          return { ...c, u0, u1, z0, z1 };
+        }
+        return null;
+      }).filter(Boolean);
+
+      const sortedU = Array.from(uCoords).sort((a, b) => a - b);
+      const sortedZ = Array.from(zCoords).sort((a, b) => a - b);
+      const geos = [];
+
+      for (let i = 0; i < sortedU.length - 1; i++) {
+        const uA = sortedU[i];
+        const uB = sortedU[i + 1];
+        const du = uB - uA;
+        if (du < 0.01) continue;
+        const uMid = (uA + uB) / 2;
+
+        for (let j = 0; j < sortedZ.length - 1; j++) {
+          const zA = sortedZ[j];
+          const zB = sortedZ[j + 1];
+          const dz = zB - zA;
+          if (dz < 0.01) continue;
+          const zMid = (zA + zB) / 2;
+
+          // Comprobar si esta celda pertenece a algún hueco
+          const hit = validCutouts.find(c => uMid > c.u0 && uMid < c.u1 && zMid > c.z0 && zMid < c.z1);
+          if (hit) {
+            // Si el hueco es circular, rellenamos las 4 esquinas del cuadrado circunscrito con arcos
+            if (hit.isCircle) {
+              const cx = (hit.u0 + hit.u1) / 2;
+              const cz = (hit.z0 + hit.z1) / 2;
+              const r = Math.min(hit.u1 - hit.u0, hit.z1 - hit.z0) / 2;
+              const ringShape = new THREE.Shape();
+              ringShape.moveTo(-du / 2, -dz / 2);
+              ringShape.lineTo(du / 2, -dz / 2);
+              ringShape.lineTo(du / 2, dz / 2);
+              ringShape.lineTo(-du / 2, dz / 2);
+              ringShape.closePath();
+
+              const holePath = new THREE.Path();
+              holePath.absarc(0, 0, r * 0.98, 0, Math.PI * 2, true);
+              ringShape.holes.push(holePath);
+
+              const ext = new THREE.ExtrudeGeometry(ringShape, { depth: wallThickness, bevelEnabled: false, curveSegments: 24 });
+              ext.translate(0, 0, -wallThickness / 2);
+              if (orientation === 'X') {
+                // Pared paralela a X (frontal/trasera): extrusión en Z -> rotar X +90°
+                ext.rotateX(Math.PI / 2);
+                ext.translate(posX + cx, posY, posZ + cz);
+              } else {
+                // Pared paralela a Y (izquierda/derecha): rotar Y +90°
+                ext.rotateY(Math.PI / 2);
+                ext.translate(posX, posY + cx, posZ + cz);
+              }
+              geos.push(ext.toNonIndexed());
+            }
+            continue;
+          }
+
+          let box;
+          if (orientation === 'X') {
+            box = new THREE.BoxGeometry(du, wallThickness, dz);
+            box.translate(posX + uMid, posY, posZ + zMid);
+          } else {
+            box = new THREE.BoxGeometry(wallThickness, du, dz);
+            box.translate(posX, posY + uMid, posZ + zMid);
+          }
+          geos.push(box.toNonIndexed());
+        }
+      }
+      return geos;
+    }
+
+    // Genera un bloque sólido de texto/símbolo simple ("B-" / "B+") mediante primitivas geométricas limpias
+    function createTerminalSymbolGeometry(type, x, y, z, side) {
+      const geos = [];
+      const barThick = 0.6;
+      const barHeight = 0.55; // Relieve exterior 0.55 mm
+      const len = 3.2;
+
+      // Símbolo "-" o "+"
+      const hBar = new THREE.BoxGeometry(barHeight, len, barThick);
+      hBar.translate(x, y, z);
+      geos.push(hBar.toNonIndexed());
+
+      if (type === '+') {
+        const vBar = new THREE.BoxGeometry(barHeight, barThick, len);
+        vBar.translate(x, y, z);
+        geos.push(vBar.toNonIndexed());
+      }
+      return geos;
+    }
+
+    // =========================================================================
+    // 4. CONSTRUCCIÓN DE LA PIEZA BASE (ALOJAMIENTO + LINTERNA 3x3 + PUERTOS)
+    // =========================================================================
+    function buildBaseGeometry(p) {
+      const geometries = [];
+
+      const innerL = p.pcbLength + p.clearance * 2;
+      const innerW = p.pcbWidth + p.clearance * 2;
+      const outerL = innerL + p.wallThickness * 2;
+      const outerW = innerW + p.wallThickness * 2;
+
+      // Altura interna: desde Z=bottomThickness hasta el borde superior de la base
+      const innerH = p.standoffHeight + p.pcbHeight + 0.8;
+      const totalBaseH = p.bottomThickness + innerH;
+
+      // 4.1 Suelo con matriz de 9 agujeros (3x3) para los LEDs SMD
+      const floorShape = createRoundedRectShape(outerL, outerW, p.outerFillet);
+
+      for (let col = -1; col <= 1; col++) {
+        for (let row = -1; row <= 1; row++) {
+          const cx = p.ledOffsetX + col * p.ledPitchX;
+          const cy = p.ledOffsetY + row * p.ledPitchY;
+          const hs = p.ledHoleSize;
+          const hr = Math.min(p.ledHoleRadius, hs / 2 - 0.05);
+
+          // Agujero con sentido horario (hole) en el Shape del suelo
+          const hole = new THREE.Path();
+          const x0 = cx - hs / 2;
+          const y0 = cy - hs / 2;
+          hole.moveTo(x0 + hr, y0);
+          if (hr > 0) hole.quadraticCurveTo(x0, y0, x0, y0 + hr);
+          hole.lineTo(x0, y0 + hs - hr);
+          if (hr > 0) hole.quadraticCurveTo(x0, y0 + hs, x0 + hr, y0 + hs);
+          hole.lineTo(x0 + hs - hr, y0 + hs);
+          if (hr > 0) hole.quadraticCurveTo(x0 + hs, y0 + hs, x0 + hs, y0 + hs - hr);
+          hole.lineTo(x0 + hs, y0 + hr);
+          if (hr > 0) hole.quadraticCurveTo(x0 + hs, y0, x0 + hs - hr, y0);
+          hole.lineTo(x0 + hr, y0);
+          floorShape.holes.push(hole);
+        }
+      }
+
+      const extrudeSettings = {
+        depth: p.bottomThickness,
+        bevelEnabled: p.ledBevel > 0,
+        bevelThickness: Math.min(p.ledBevel, p.bottomThickness * 0.45),
+        bevelSize: Math.min(p.ledBevel * 0.7, 0.5),
+        bevelSegments: 2,
+        curveSegments: 16
+      };
+
+      const floorGeo = new THREE.ExtrudeGeometry(floorShape, extrudeSettings);
+      // Normalizar Z del suelo exactamente entre [0, p.bottomThickness]
+      floorGeo.computeBoundingBox();
+      const fBox = floorGeo.boundingBox;
+      const scaleZ = p.bottomThickness / (fBox.max.z - fBox.min.z);
+      floorGeo.scale(1, 1, scaleZ);
+      floorGeo.computeBoundingBox();
+      floorGeo.translate(0, 0, -floorGeo.boundingBox.min.z);
+      geometries.push(floorGeo.toNonIndexed());
+
+      // 4.2 Cota Z donde apoya la cara inferior de la PCB
+      const pcbBottomZ = p.bottomThickness + p.standoffHeight;
+      const pcbTopZ = pcbBottomZ + p.pcbThickness;
+
+      // 4.3 Pared Frontal (+Y) con huecos para USB-A, Micro-USB y opcionalmente Pulsador
+      const frontCutouts = [
+        {
+          uMin: p.usbAOffsetX - p.usbAWidth / 2,
+          uMax: p.usbAOffsetX + p.usbAWidth / 2,
+          zMin: pcbTopZ + p.usbAZ - 0.3,
+          zMax: pcbTopZ + p.usbAZ + p.usbAHeight
+        },
+        {
+          uMin: p.microUsbOffsetX - p.microUsbWidth / 2,
+          uMax: p.microUsbOffsetX + p.microUsbWidth / 2,
+          zMin: pcbTopZ + p.microUsbZ - 0.3,
+          zMax: pcbTopZ + p.microUsbZ + p.microUsbHeight
+        }
+      ];
+
+      if (p.btnSide === 'front') {
+        const r = p.btnHoleDiam / 2;
+        frontCutouts.push({
+          uMin: p.btnOffset - r,
+          uMax: p.btnOffset + r,
+          zMin: pcbTopZ + p.btnZ - r,
+          zMax: pcbTopZ + p.btnZ + r,
+          isCircle: true
+        });
+      }
+
+      const frontWallY = innerW / 2 + p.wallThickness / 2;
+      geometries.push(...buildWallWithCutouts(
+        outerL, p.wallThickness, innerH, frontCutouts, 'X', 0, frontWallY, p.bottomThickness
+      ));
+
+      // 4.4 Pared Trasera (-Y) continua con muesca exterior superior para abrir la tapa con la uña
+      const backWallY = -(innerW / 2 + p.wallThickness / 2);
+      const backCutouts = [
+        {
+          uMin: -p.nailNotchWidth / 2,
+          uMax: p.nailNotchWidth / 2,
+          zMin: innerH - 1.2,
+          zMax: innerH + 0.1
+        }
+      ];
+      geometries.push(...buildWallWithCutouts(
+        outerL, p.wallThickness, innerH, backCutouts, 'X', 0, backWallY, p.bottomThickness
+      ));
+
+      // 4.5 Pared Lateral Izquierda (-X): Pasacables B-
+      const leftWallX = -(innerL / 2 + p.wallThickness / 2);
+      const wireCenterY = -p.wireOffsetY;
+      const wireCenterZ = p.wireZ;
+      const wireR = p.wireHoleDiam / 2;
+      const leftCutouts = [
+        {
+          uMin: wireCenterY - wireR,
+          uMax: wireCenterY + wireR,
+          zMin: wireCenterZ - wireR,
+          zMax: wireCenterZ + wireR,
+          isCircle: true
+        }
+      ];
+      geometries.push(...buildWallWithCutouts(
+        innerW, p.wallThickness, innerH, leftCutouts, 'Y', leftWallX, 0, p.bottomThickness
+      ));
+
+      // 4.6 Pared Lateral Derecha (+X): Pasacables B+ y Pulsador de linterna
+      const rightWallX = innerL / 2 + p.wallThickness / 2;
+      const rightCutouts = [
+        {
+          uMin: wireCenterY - wireR,
+          uMax: wireCenterY + wireR,
+          zMin: wireCenterZ - wireR,
+          zMax: wireCenterZ + wireR,
+          isCircle: true
+        }
+      ];
+
+      if (p.btnSide === 'right') {
+        const br = p.btnHoleDiam / 2;
+        const bz = (pcbTopZ - p.bottomThickness) + p.btnZ;
+        rightCutouts.push({
+          uMin: p.btnOffset - br,
+          uMax: p.btnOffset + br,
+          zMin: bz - br,
+          zMax: bz + br,
+          isCircle: true
+        });
+      }
+
+      geometries.push(...buildWallWithCutouts(
+        innerW, p.wallThickness, innerH, rightCutouts, 'Y', rightWallX, 0, p.bottomThickness
+      ));
+
+      // 4.7 Collarines externos de alivio de tensión (strain relief) en B- y B+
+      if (p.wireStrainRelief) {
+        [-1, 1].forEach(dir => {
+          const collarShape = new THREE.Shape();
+          const outerR = wireR + 1.4;
+          collarShape.absarc(0, 0, outerR, 0, Math.PI * 2, false);
+          const collarHole = new THREE.Path();
+          collarHole.absarc(0, 0, wireR * 0.98, 0, Math.PI * 2, true);
+          collarShape.holes.push(collarHole);
+
+          const collarDepth = 2.2;
+          const collarGeo = new THREE.ExtrudeGeometry(collarShape, { depth: collarDepth, bevelEnabled: false, curveSegments: 24 });
+          collarGeo.rotateY(dir === 1 ? Math.PI / 2 : -Math.PI / 2);
+          const wallFaceX = dir * (outerL / 2);
+          collarGeo.translate(wallFaceX, wireCenterY, p.bottomThickness + wireCenterZ);
+          geometries.push(collarGeo.toNonIndexed());
+        });
+      }
+
+      // 4.8 Grabados en relieve "-" (B-) y "+" (B+) en las paredes laterales
+      if (p.engraveLabels) {
+        geometries.push(...createTerminalSymbolGeometry('-', -outerL / 2 - 0.25, wireCenterY + 5.5, p.bottomThickness + wireCenterZ, 'left'));
+        geometries.push(...createTerminalSymbolGeometry('+', outerL / 2 + 0.25, wireCenterY + 5.5, p.bottomThickness + wireCenterZ, 'right'));
+      }
+
+      // 4.9 Soportes / Topes internos (Standoffs) en las 4 esquinas y laterales para nivelar la PCB y elevar los LEDs
+      const standoffPositions = [
+        [-innerL / 2 + 2.2, -innerW / 2 + 2.2],
+        [innerL / 2 - 2.2, -innerW / 2 + 2.2],
+        [-innerL / 2 + 2.2, innerW / 2 - 2.2],
+        [innerL / 2 - 2.2, innerW / 2 - 2.2],
+        [0, -innerW / 2 + 1.2],
+        [0, innerW / 2 - 1.2]
+      ];
+      standoffPositions.forEach(([sx, sy]) => {
+        const st = new THREE.BoxGeometry(3.4, 2.4, p.standoffHeight);
+        st.translate(sx, sy, p.bottomThickness + p.standoffHeight / 2);
+        geometries.push(st.toNonIndexed());
+      });
+
+      // 4.10 Rebajes / pestañas internas de retención Snap-Fit en paredes largas (+Y y -Y) de la Base
+      const catchZ = totalBaseH - 1.8;
+      [-1, 1].forEach(sideY => {
+        const catchBar = new THREE.BoxGeometry(p.snapTabLength + 0.6, p.snapBump, 0.9);
+        catchBar.translate(0, sideY * (innerW / 2 - p.snapBump / 2), catchZ);
+        geometries.push(catchBar.toNonIndexed());
+      });
+
+      return mergeGeometries(geometries, false);
+    }
+
+    // =========================================================================
+    // 5. CONSTRUCCIÓN DE LA PIEZA TAPA (CIERRE SNAP-FIT + LABIO PERIMETRAL)
+    // =========================================================================
+    function buildLidGeometry(p) {
+      const geometries = [];
+
+      const innerL = p.pcbLength + p.clearance * 2;
+      const innerW = p.pcbWidth + p.clearance * 2;
+      const outerL = innerL + p.wallThickness * 2;
+      const outerW = innerW + p.wallThickness * 2;
+
+      // 5.1 Placa superior (techo) con chaflán sutil en el borde superior
+      const roofShape = createRoundedRectShape(outerL, outerW, p.outerFillet);
+      const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
+        depth: p.lidThickness,
+        bevelEnabled: true,
+        bevelThickness: 0.45,
+        bevelSize: 0.45,
+        bevelSegments: 2,
+        curveSegments: 16
+      });
+      roofGeo.computeBoundingBox();
+      const rBox = roofGeo.boundingBox;
+      roofGeo.scale(1, 1, p.lidThickness / (rBox.max.z - rBox.min.z));
+      roofGeo.computeBoundingBox();
+      roofGeo.translate(0, 0, -roofGeo.boundingBox.min.z);
+      geometries.push(roofGeo.toNonIndexed());
+
+      // 5.2 Faldón / labio perimetral interno (encaja dentro de la base con holgura snapTolerance)
+      const lipOuterL = innerL - p.snapTolerance * 2;
+      const lipOuterW = innerW - p.snapTolerance * 2;
+      const lipThick = 1.35;
+      const lipInnerL = lipOuterL - lipThick * 2;
+      const lipInnerW = lipOuterW - lipThick * 2;
+
+      const lipShape = createRoundedRectShape(lipOuterL, lipOuterW, Math.max(0.5, p.outerFillet - p.wallThickness));
+      const lipHole = new THREE.Path();
+      const hx = -lipInnerL / 2;
+      const hy = -lipInnerW / 2;
+      const hr = Math.max(0.3, p.outerFillet - p.wallThickness - lipThick);
+      lipHole.moveTo(hx + hr, hy);
+      lipHole.quadraticCurveTo(hx, hy, hx, hy + hr);
+      lipHole.lineTo(hx, hy + lipInnerW - hr);
+      lipHole.quadraticCurveTo(hx, hy + lipInnerW, hx + hr, hy + lipInnerW);
+      lipHole.lineTo(hx + lipInnerL - hr, hy + lipInnerW);
+      lipHole.quadraticCurveTo(hx + lipInnerL, hy + lipInnerW, hx + lipInnerL, hy + lipInnerW - hr);
+      lipHole.lineTo(hx + lipInnerL, hy + hr);
+      lipHole.quadraticCurveTo(hx + lipInnerL, hy, hx + lipInnerL - hr, hy);
+      lipHole.lineTo(hx + hr, hy);
+      lipShape.holes.push(lipHole);
+
+      const lipGeo = new THREE.ExtrudeGeometry(lipShape, {
+        depth: p.lidSkirtHeight,
+        bevelEnabled: false,
+        curveSegments: 16
+      });
+      // El faldón cuelga hacia -Z desde Z=0 (en orientación ensamblada)
+      lipGeo.translate(0, 0, -p.lidSkirtHeight);
+      geometries.push(lipGeo.toNonIndexed());
+
+      // 5.3 Pestañas elásticas Snap-Fit en paredes largas (+Y y -Y) con uña triangular de enganche
+      [-1, 1].forEach(sideY => {
+        const bump = new THREE.BoxGeometry(p.snapTabLength, p.snapBump, 0.85);
+        bump.translate(0, sideY * (lipOuterW / 2 + p.snapBump / 2 - 0.05), -1.85);
+        geometries.push(bump.toNonIndexed());
+      });
+
+      // 5.4 Nervios internos de presión suave para sujetar la PCB contra los topes inferiores sin vibración
+      const innerH = p.standoffHeight + p.pcbHeight + 0.8;
+      const pcbTopZ = p.standoffHeight + p.pcbThickness;
+      const holdDownDrop = Math.max(0.5, innerH - pcbTopZ - 0.3);
+      if (holdDownDrop > 0.6 && holdDownDrop < 8.5) {
+        [
+          [-lipInnerL / 2 + 3.0, -lipInnerW / 2 + 2.5],
+          [lipInnerL / 2 - 3.0, -lipInnerW / 2 + 2.5],
+          [-lipInnerL / 2 + 3.0, lipInnerW / 2 - 2.5]
+        ].forEach(([px, py]) => {
+          const rib = new THREE.BoxGeometry(2.6, 2.2, holdDownDrop);
+          rib.translate(px, py, -holdDownDrop / 2);
+          geometries.push(rib.toNonIndexed());
+        });
+      }
+
+      // 5.5 Botón actuador pasante imprimible aparte (si está activado, se coloca al lado de la tapa en STL)
+      if (p.btnIncludePlunger) {
+        const plungerGroup = buildPlungerGeometry(p);
+        plungerGroup.translate(0, outerW / 2 + 7.5, 0);
+        geometries.push(plungerGroup);
+      }
+
+      return mergeGeometries(geometries, false);
+    }
+
+    // Botón actuador pasante con valona interna para que no se salga de la carcasa
+    function buildPlungerGeometry(p) {
+      const shaftR = Math.max(1.4, (p.btnHoleDiam - 0.5) / 2);
+      const flangeR = shaftR + 1.1;
+      const flangeH = 1.2;
+      const shaftH = p.wallThickness + 2.2;
+
+      const flange = new THREE.CylinderGeometry(flangeR, flangeR, flangeH, 24);
+      flange.rotateX(Math.PI / 2);
+      flange.translate(0, 0, flangeH / 2);
+
+      const shaft = new THREE.CylinderGeometry(shaftR * 0.94, shaftR, shaftH, 24);
+      shaft.rotateX(Math.PI / 2);
+      shaft.translate(0, 0, flangeH + shaftH / 2);
+
+      return mergeGeometries([flange.toNonIndexed(), shaft.toNonIndexed()], false);
+    }
+
+    // =========================================================================
+    // 6. MODELO VIRTUAL DE REFERENCIA DE LA PCB (FOTOS 1, 2, 3 Y 4)
+    // =========================================================================
+    function buildVirtualPcbGroup(p) {
+      const group = new THREE.Group();
+
+      // Sustrato FR4 verde con chaflanes y muescas laterales B- y B+
+      const w = p.pcbLength;
+      const h = p.pcbWidth;
+      const c = Math.min(p.pcbCornerChamfer, 7);
+      const notchR = 2.4;
+      const notchY = -p.wireOffsetY;
+
+      const shape = new THREE.Shape();
+      shape.moveTo(-w / 2 + c, -h / 2);
+      shape.lineTo(w / 2 - c, -h / 2);
+      shape.lineTo(w / 2, -h / 2 + c);
+      // Muesca derecha B+
+      shape.lineTo(w / 2, notchY - notchR);
+      shape.absarc(w / 2, notchY, notchR, -Math.PI / 2, Math.PI / 2, true);
+      shape.lineTo(w / 2, h / 2 - c);
+      shape.lineTo(w / 2 - c, h / 2);
+      shape.lineTo(-w / 2 + c, h / 2);
+      shape.lineTo(-w / 2, h / 2 - c);
+      // Muesca izquierda B-
+      shape.lineTo(-w / 2, notchY + notchR);
+      shape.absarc(-w / 2, notchY, notchR, Math.PI / 2, -Math.PI / 2, true);
+      shape.lineTo(-w / 2, -h / 2 + c);
+      shape.closePath();
+
+      const pcbGeo = new THREE.ExtrudeGeometry(shape, { depth: p.pcbThickness, bevelEnabled: false });
+      const pcbMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.45, metalness: 0.15 });
+      const pcbMesh = new THREE.Mesh(pcbGeo, pcbMat);
+      group.add(pcbMesh);
+
+      // 9 LEDs SMD amarillos en la cara inferior (Z < 0 respecto a la PCB)
+      const ledMat = new THREE.MeshStandardMaterial({
+        color: 0xfacc15,
+        emissive: 0xf59e0b,
+        emissiveIntensity: 0.55,
+        roughness: 0.25
+      });
+      const ledGeo = new THREE.BoxGeometry(3.2, 2.8, 0.9);
+      for (let col = -1; col <= 1; col++) {
+        for (let row = -1; row <= 1; row++) {
+          const led = new THREE.Mesh(ledGeo, ledMat);
+          led.position.set(
+            p.ledOffsetX + col * p.ledPitchX,
+            p.ledOffsetY + row * p.ledPitchY,
+            -0.45
+          );
+          group.add(led);
+        }
+      }
+
+      // Conector USB-A metálico en pared frontal (+Y)
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.85, roughness: 0.25 });
+      const usbAGeo = new THREE.BoxGeometry(13.8, 14.0, 6.6);
+      const usbAMesh = new THREE.Mesh(usbAGeo, metalMat);
+      usbAMesh.position.set(p.usbAOffsetX, h / 2 - 5.5, p.pcbThickness + p.usbAZ + 3.3);
+      group.add(usbAMesh);
+
+      // Conector Micro-USB metálico
+      const microGeo = new THREE.BoxGeometry(7.6, 6.0, 2.8);
+      const microMesh = new THREE.Mesh(microGeo, metalMat);
+      microMesh.position.set(p.microUsbOffsetX, h / 2 - 2.0, p.pcbThickness + p.microUsbZ + 1.4);
+      group.add(microMesh);
+
+      // Pulsador táctil en el extremo derecho
+      const btnBaseGeo = new THREE.BoxGeometry(6.0, 6.0, 3.6);
+      const btnBase = new THREE.Mesh(btnBaseGeo, metalMat);
+      const capMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+      const btnCapGeo = new THREE.CylinderGeometry(1.6, 1.6, 2.2, 16);
+      btnCapGeo.rotateZ(Math.PI / 2);
+      const btnCap = new THREE.Mesh(btnCapGeo, capMat);
+
+      if (p.btnSide === 'right') {
+        btnBase.position.set(w / 2 - 3.0, p.btnOffset, p.pcbThickness + 1.8);
+        btnCap.position.set(w / 2 + 0.8, p.btnOffset, p.pcbThickness + p.btnZ);
+      } else {
+        btnBase.position.set(p.btnOffset, h / 2 - 3.0, p.pcbThickness + 1.8);
+        btnCap.rotateZ(-Math.PI / 2);
+        btnCap.position.set(p.btnOffset, h / 2 + 0.8, p.pcbThickness + p.btnZ);
+      }
+      group.add(btnBase, btnCap);
+
+      // Cables rojo (B+) y negro (B-) de ejemplo saliendo por los bornes
+      const redWireMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.5 });
+      const blkWireMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+      const wireGeo = new THREE.CylinderGeometry(1.1, 1.1, 18, 12);
+      wireGeo.rotateZ(Math.PI / 2);
+
+      const wirePlus = new THREE.Mesh(wireGeo, redWireMat);
+      wirePlus.position.set(w / 2 + 8, notchY, p.pcbThickness + 1.0);
+      const wireMinus = new THREE.Mesh(wireGeo, blkWireMat);
+      wireMinus.position.set(-w / 2 - 8, notchY, p.pcbThickness + 1.0);
+      group.add(wirePlus, wireMinus);
+
+      return group;
+    }
+
+    // =========================================================================
+    // 7. CONFIGURACIÓN DE ESCENA THREE.JS, CÁMARA, LUCES Y RENDERIZADO
+    // =========================================================================
+    const container = document.getElementById('canvasContainer');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b1120);
+
+    // Eje Z vertical estilo CAD / Impresión 3D
+    THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
+
+    const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.5, 1000);
+    camera.up.set(0, 0, 1);
+    camera.position.set(78, -92, 68);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.target.set(0, 0, 8);
+
+    // Iluminación de estudio CAD
+    const hemiLight = new THREE.HemisphereLight(0xf8fafc, 0x334155, 1.15);
+    hemiLight.position.set(0, 0, 100);
+    scene.add(hemiLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.4);
+    dirLight1.position.set(60, -70, 110);
+    dirLight1.castShadow = true;
+    dirLight1.shadow.mapSize.set(2048, 2048);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 0.65);
+    dirLight2.position.set(-70, 80, -40);
+    scene.add(dirLight2);
+
+    // Rejilla simulando cama de impresión (Elegoo Neptune 3 Pro: 225x225mm)
+    const gridHelper = new THREE.GridHelper(220, 22, 0x334155, 0x1e293b);
+    gridHelper.rotation.x = Math.PI / 2;
+    scene.add(gridHelper);
+
+    const axesHelper = new THREE.AxesHelper(18);
+    scene.add(axesHelper);
+
+    // Materiales de piezas impresas 3D
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      roughness: 0.38,
+      metalness: 0.08,
+      transparent: false,
+      opacity: 1.0
+    });
+
+    const lidMaterial = new THREE.MeshStandardMaterial({
+      color: 0x818cf8,
+      roughness: 0.35,
+      metalness: 0.08,
+      transparent: false,
+      opacity: 1.0
+    });
+
+    let baseMesh = null;
+    let lidMesh = null;
+    let pcbGroup = null;
+    let currentBaseGeo = null;
+    let currentLidGeo = null;
+
+    function rebuildAll() {
+      // Limpiar geometrías previas de memoria
+      if (baseMesh) { scene.remove(baseMesh); currentBaseGeo?.dispose(); }
+      if (lidMesh) { scene.remove(lidMesh); currentLidGeo?.dispose(); }
+      if (pcbGroup) { scene.remove(pcbGroup); }
+
+      currentBaseGeo = buildBaseGeometry(params);
+      currentLidGeo = buildLidGeometry(params);
+
+      baseMesh = new THREE.Mesh(currentBaseGeo, baseMaterial);
+      baseMesh.castShadow = true;
+      baseMesh.receiveShadow = true;
+
+      lidMesh = new THREE.Mesh(currentLidGeo, lidMaterial);
+      lidMesh.castShadow = true;
+      lidMesh.receiveShadow = true;
+
+      pcbGroup = buildVirtualPcbGroup(params);
+
+      scene.add(baseMesh);
+      scene.add(lidMesh);
+      scene.add(pcbGroup);
+
+      updateLayoutAndVisibility();
+      updateBadgeDimensions();
+    }
+
+    function updateBadgeDimensions() {
+      const outerL = (params.pcbLength + params.clearance * 2 + params.wallThickness * 2).toFixed(1);
+      const outerW = (params.pcbWidth + params.clearance * 2 + params.wallThickness * 2).toFixed(1);
+      const totalH = (params.bottomThickness + params.standoffHeight + params.pcbHeight + 0.8 + params.lidThickness).toFixed(1);
+      document.getElementById('dimBadge').textContent = `${outerL}×${outerW}×${totalH}mm`;
+    }
+
+    function updateLayoutAndVisibility() {
+      if (!baseMesh || !lidMesh || !pcbGroup) return;
+
+      const innerH = params.standoffHeight + params.pcbHeight + 0.8;
+      const totalBaseH = params.bottomThickness + innerH;
+      const pcbZ = params.bottomThickness + params.standoffHeight;
+      const showPcb = document.getElementById('chkShowPcb').checked;
+      const xray = document.getElementById('chkXray').checked;
+
+      // Modo Rayos X / Transparencia
+      baseMaterial.transparent = xray;
+      baseMaterial.opacity = xray ? 0.42 : 1.0;
+      baseMaterial.depthWrite = !xray;
+      lidMaterial.transparent = xray;
+      lidMaterial.opacity = xray ? 0.42 : 1.0;
+      lidMaterial.depthWrite = !xray;
+
+      // Reset transformaciones
+      baseMesh.position.set(0, 0, 0);
+      baseMesh.rotation.set(0, 0, 0);
+      lidMesh.position.set(0, 0, 0);
+      lidMesh.rotation.set(0, 0, 0);
+      pcbGroup.position.set(0, 0, pcbZ);
+
+      baseMesh.visible = true;
+      lidMesh.visible = true;
+      pcbGroup.visible = showPcb;
+
+      if (viewMode === 'assembled') {
+        lidMesh.position.set(0, 0, totalBaseH);
+      } else if (viewMode === 'exploded') {
+        pcbGroup.position.set(0, 0, pcbZ + explodeDist * 0.55);
+        lidMesh.position.set(0, 0, totalBaseH + explodeDist * 1.25);
+      } else if (viewMode === 'base') {
+        lidMesh.visible = false;
+      } else if (viewMode === 'lid') {
+        baseMesh.visible = false;
+        pcbGroup.visible = false;
+        // Volteada boca arriba para inspección
+        lidMesh.rotation.set(Math.PI, 0, 0);
+        lidMesh.position.set(0, 0, params.lidThickness);
+      } else if (viewMode === 'bed') {
+        // Disposición lista para imprimir en la cama Z=0: Base normal + Tapa volteada al lado
+        pcbGroup.visible = false;
+        const outerW = params.pcbWidth + params.clearance * 2 + params.wallThickness * 2;
+        lidMesh.rotation.set(Math.PI, 0, 0);
+        lidMesh.position.set(0, outerW + 10, params.lidThickness);
+      }
+    }
+
+    // =========================================================================
+    // 8. EXPORTACIÓN BINARIA STL (COMPATIBLE CON ULTIMAKER CURA / PRUSASLICER)
+    // =========================================================================
+    const exporter = new STLExporter();
+
+    function downloadBinarySTL(meshOrGroup, filename) {
+      try {
+        const result = exporter.parse(meshOrGroup, { binary: true });
+        const blob = new Blob([result], { type: 'application/octet-stream' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        showToast(`✅ Archivo "${filename}" descargado`);
+      } catch (err) {
+        console.error(err);
+        showToast('❌ Error al generar STL');
+      }
+    }
+
+    document.getElementById('btnStlBase').addEventListener('click', () => {
+      const exportMesh = new THREE.Mesh(currentBaseGeo.clone());
+      downloadBinarySTL(exportMesh, 'caja_usb_linterna_BASE.stl');
+    });
+
+    document.getElementById('btnStlLid').addEventListener('click', () => {
+      // Orientar la tapa boca arriba (techo apoyado en Z=0) para imprimir sin soportes
+      const geo = currentLidGeo.clone();
+      geo.rotateX(Math.PI);
+      geo.translate(0, 0, params.lidThickness);
+      const exportMesh = new THREE.Mesh(geo);
+      downloadBinarySTL(exportMesh, 'caja_usb_linterna_TAPA.stl');
+    });
+
+    document.getElementById('btnStlBoth').addEventListener('click', () => {
+      const outerW = params.pcbWidth + params.clearance * 2 + params.wallThickness * 2;
+      const baseGeo = currentBaseGeo.clone();
+      const lidGeo = currentLidGeo.clone();
+      lidGeo.rotateX(Math.PI);
+      lidGeo.translate(0, outerW + 10, params.lidThickness);
+
+      const combined = mergeGeometries([baseGeo, lidGeo], false);
+      const exportMesh = new THREE.Mesh(combined);
+      downloadBinarySTL(exportMesh, 'caja_usb_linterna_COMPLETA_CURA.stl');
+    });
+
+    // =========================================================================
+    // 9. EVENTOS DE INTERFAZ, PESTAÑAS, VISTA Y GUARDADO JSON/LOCALSTORAGE
+    // =========================================================================
+    function showToast(text) {
+      const el = document.getElementById('toastMsg');
+      el.textContent = text;
+      el.classList.remove('opacity-0');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.add('opacity-0'), 2600);
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active');
+          b.classList.add('bg-slate-800', 'text-slate-300');
+        });
+        btn.classList.add('active');
+        btn.classList.remove('bg-slate-800', 'text-slate-300');
+        currentTab = btn.dataset.tab;
+        renderControls();
+      });
+    });
+
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.view-btn').forEach(b => {
+          b.classList.remove('active', 'bg-sky-600', 'text-white');
+          b.classList.add('bg-slate-800', 'text-slate-300');
+        });
+        btn.classList.add('active', 'bg-sky-600', 'text-white');
+        btn.classList.remove('bg-slate-800', 'text-slate-300');
+
+        viewMode = btn.dataset.view;
+        document.getElementById('explodeBar').classList.toggle('hidden', viewMode !== 'exploded');
+        updateLayoutAndVisibility();
+      });
+    });
+
+    document.getElementById('sliderExplode').addEventListener('input', (e) => {
+      explodeDist = parseFloat(e.target.value);
+      document.getElementById('valExplode').textContent = `${explodeDist} mm`;
+      updateLayoutAndVisibility();
+    });
+
+    document.getElementById('chkShowPcb').addEventListener('change', updateLayoutAndVisibility);
+    document.getElementById('chkXray').addEventListener('change', updateLayoutAndVisibility);
+
+    document.getElementById('btnCamBottom').addEventListener('click', () => {
+      camera.position.set(0, -15, -95);
+      controls.target.set(0, 0, 2);
+      controls.update();
+    });
+
+    document.getElementById('btnSaveLocal').addEventListener('click', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
+      showToast('💾 Configuración guardada en el navegador');
+    });
+
+    document.getElementById('btnExportJson').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(params, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'config_caja_usb_led.json';
+      a.click();
+      showToast('📤 Parámetros exportados a JSON');
+    });
+
+    document.getElementById('inputImportJson').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          params = { ...DEFAULT_PARAMS, ...imported };
+          renderControls();
+          rebuildAll();
+          showToast('📥 Configuración cargada correctamente');
+        } catch (err) {
+          showToast('❌ Archivo JSON no válido');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      params = { ...DEFAULT_PARAMS };
+      localStorage.removeItem(STORAGE_KEY);
+      renderControls();
+      rebuildAll();
+      showToast('↺ Valores restaurados por defecto');
+    });
+
+    // Ajuste responsivo de ventana
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // Bucle de renderizado
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Inicialización al cargar la página
+    window.onload = () => {
+      renderControls();
+      rebuildAll();
+      animate();
+    };
+  </script>
+</body>
+</html>
