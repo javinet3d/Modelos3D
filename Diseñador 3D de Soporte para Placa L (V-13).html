@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseñador STL - Soporte Adhesivo Placa L (V-13)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Three.js & OrbitControls & STLExporter -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        cad: {
+                            bg: '#0f172a',
+                            panel: '#1e293b',
+                            border: '#334155',
+                            accent: '#10b981', // Verde V-13
+                            accentHover: '#059669',
+                            blue: '#3b82f6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos personalizados para sliders y scrollbars estilo CAD */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: #334155;
+            height: 5px;
+            border-radius: 999px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -5.5px;
+            background-color: #10b981;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+            transition: transform 0.1s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background-color: #34d399;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-cad-bg text-slate-100 font-sans antialiased overflow-hidden select-none h-screen flex flex-col">
+
+    <!-- Barra Superior (Header CAD) -->
+    <header class="h-14 bg-cad-panel border-b border-cad-border px-4 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center gap-3">
+            <!-- Icono SVG Señal V-13 -->
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 border-2 border-white flex items-center justify-center shadow-md">
+                <span class="font-bold text-white text-lg leading-none">L</span>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm sm:text-base tracking-tight text-white flex items-center gap-2">
+                    Soporte Adhesivo Placa L (V-13)
+                    <span class="hidden md:inline-block text-[11px] font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">Generador STL Paramétrico</span>
+                </h1>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Gancho compacto reforzado para luna trasera de automóvil</p>
+            </div>
+        </div>
+
+        <!-- Acciones Principales -->
+        <div class="flex items-center gap-2">
+            <button id="btn-export-stl" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Descargar .STL</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal (Panel Controles + Visor 3D) -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+        <!-- Panel Lateral Izquierdo: Parámetros -->
+        <aside class="w-full lg:w-[390px] xl:w-[420px] bg-cad-panel border-b lg:border-b-0 lg:border-r border-cad-border flex flex-col h-[48vh] lg:h-full shrink-0 z-10">
+            
+            <!-- Sub-barra de gestión de configuración (LocalStorage & JSON) -->
+            <div class="p-2.5 bg-slate-900/60 border-b border-cad-border flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                <div class="flex items-center gap-1">
+                    <button id="btn-save-local" title="Guardar ajuste en este navegador" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 transition">
+                        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                        <span>Guardar</span>
+                    </button>
+                    <button id="btn-reset-default" title="Restaurar medidas recomendadas" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 transition">
+                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>Defecto</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="btn-export-json" title="Exportar parámetros a archivo JSON" class="px-2 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                        JSON ↓
+                    </button>
+                    <label title="Importar parámetros desde archivo JSON" class="px-2 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer transition">
+                        JSON ↑
+                        <input type="file" id="input-import-json" accept=".json" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Lista Desplazable de Parámetros -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-5">
+
+                <!-- SECCIÓN 1: BASE ADHESIVA -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">1. Base Adhesiva (Al Cristal)</h2>
+                        <span class="text-[11px] text-slate-400">Cinta doble cara 3M</span>
+                    </div>
+
+                    <!-- Forma de la base -->
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-medium text-slate-300">Forma de la base</label>
+                        <div class="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-700">
+                            <button type="button" data-shape="circle" class="shape-btn px-3 py-1 rounded-md text-xs font-medium transition bg-emerald-600 text-white">Circular</button>
+                            <button type="button" data-shape="rounded_square" class="shape-btn px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white">Cuadrada</button>
+                        </div>
+                    </div>
+
+                    <!-- Diámetro / Ancho de la base -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-baseDiameter" class="text-slate-300">Diámetro / Ancho base</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-baseDiameter" min="14" max="35" step="0.5" value="22" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-baseDiameter" min="14" max="35" step="0.5" value="22" class="w-full">
+                    </div>
+
+                    <!-- Grosor de la base -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-baseThickness" class="text-slate-300">Grosor de la base</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-baseThickness" min="1.5" max="5.0" step="0.1" value="2.4" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-baseThickness" min="1.5" max="5.0" step="0.1" value="2.4" class="w-full">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: CUELLO Y GANCHO -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">2. Cuello y Gancho Compacto</h2>
+                        <span class="text-[11px] text-slate-400">Encaje agujero V-13</span>
+                    </div>
+
+                    <!-- Diámetro del pin/gancho -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-pinDiameter" class="text-slate-300">Diámetro del pivote/gancho</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-pinDiameter" min="2.0" max="6.0" step="0.1" value="3.6" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-pinDiameter" min="2.0" max="6.0" step="0.1" value="3.6" class="w-full">
+                        <p class="text-[10px] text-slate-400">Recomendado: 3.5–3.8 mm para agujeros estándar de ~4.2 mm.</p>
+                    </div>
+
+                    <!-- Separación del cristal / longitud cuello -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-neckLength" class="text-slate-300">Separación cristal (cuello)</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-neckLength" min="1.5" max="8.0" step="0.1" value="3.2" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-neckLength" min="1.5" max="8.0" step="0.1" value="3.2" class="w-full">
+                    </div>
+
+                    <!-- Altura del gancho vertical -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-hookHeight" class="text-slate-300">Altura del gancho</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-hookHeight" min="3.0" max="12.0" step="0.1" value="5.5" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-hookHeight" min="3.0" max="12.0" step="0.1" value="5.5" class="w-full">
+                    </div>
+
+                    <!-- Ángulo inclinación del gancho -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-hookAngle" class="text-slate-300">Inclinación hacia arriba</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-hookAngle" min="0" max="25" step="1" value="8" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">°</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-hookAngle" min="0" max="25" step="1" value="8" class="w-full">
+                    </div>
+
+                    <!-- Labio/tope de retención -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-retentionLip" class="text-slate-300">Tope de retención en punta</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-retentionLip" min="0" max="1.5" step="0.05" value="0.5" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-retentionLip" min="0" max="1.5" step="0.05" value="0.5" class="w-full">
+                    </div>
+
+                    <!-- Refuerzo base-cuello -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="param-filletSize" class="text-slate-300">Refuerzo unión base-cuello</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="num-filletSize" min="0" max="3.5" step="0.1" value="1.5" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                <span class="text-slate-500 font-mono text-[11px]">mm</span>
+                            </div>
+                        </div>
+                        <input type="range" id="param-filletSize" min="0" max="3.5" step="0.1" value="1.5" class="w-full">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: VISUALIZACIÓN Y EXPORTACIÓN -->
+                <div class="space-y-3 pb-4">
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">3. Impresión y Referencia</h2>
+                    </div>
+
+                    <!-- Cantidad a exportar -->
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-medium text-slate-300">Cantidad en archivo .STL</label>
+                        <div class="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-700">
+                            <button type="button" data-qty="1" class="qty-btn px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white">1 Unidad</button>
+                            <button type="button" data-qty="2" class="qty-btn px-3 py-1 rounded-md text-xs font-medium transition bg-emerald-600 text-white">Par (2 uds)</button>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Placa L de referencia -->
+                    <label class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-700/80 cursor-pointer hover:border-slate-600 transition">
+                        <div>
+                            <span class="text-xs font-medium text-slate-200 block">Mostrar Placa L de referencia</span>
+                            <span class="text-[10px] text-slate-400">Simula encaje en agujero Ø 4.3 mm (no se exporta)</span>
+                        </div>
+                        <input type="checkbox" id="toggle-reference-plate" checked class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+                    </label>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Área Principal Derecha: Visor 3D Interactivo -->
+        <main class="flex-1 relative bg-slate-950 h-[52vh] lg:h-full overflow-hidden" id="viewport-container">
+            
+            <!-- Canvas Three.js se insertará aquí -->
+
+            <!-- Barra flotante superior en el visor: Orientación -->
+            <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                
+                <!-- Selector de orientación: Impresión vs Montado -->
+                <div class="pointer-events-auto inline-flex rounded-xl bg-slate-900/90 backdrop-blur-md p-1 border border-slate-700/80 shadow-xl">
+                    <button id="btn-view-print" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-emerald-600 text-white shadow">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        <span>Orientación Impresión (Tumbado)</span>
+                    </button>
+                    <button id="btn-view-mounted" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-300 hover:text-white">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Vista Montado en Cristal</span>
+                    </button>
+                </div>
+
+                <!-- Botón centrar cámara -->
+                <button id="btn-reset-camera" title="Centrar vista 3D" class="pointer-events-auto p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 shadow-xl backdrop-blur-md transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                </button>
+            </div>
+
+            <!-- Tarjeta informativa de dimensiones y consejos de impresión (Inferior Izquierda) -->
+            <div class="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md pointer-events-none">
+                <div class="pointer-events-auto bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 shadow-xl text-xs space-y-1.5">
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-slate-400 font-medium">Dimensiones pieza:</span>
+                        <span id="readout-dimensions" class="font-mono text-emerald-400 font-semibold">22.0 × 22.0 × 9.8 mm</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-slate-400 font-medium">Holgura en agujero (Ø 4.3mm):</span>
+                        <span id="readout-clearance" class="font-mono text-sky-400 font-semibold">+0.70 mm (Óptima)</span>
+                    </div>
+                    <p id="print-tip-text" class="text-[11px] text-slate-300 pt-1 border-t border-slate-800 leading-relaxed">
+                        💡 <strong>Consejo 3D:</strong> Imprime en <strong>PETG o ASA</strong> (soporta el sol tras el cristal sin deformarse). En orientación <em>tumbada</em> las capas recorren todo el gancho evitando que parta.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Controles táctiles/ratón ayuda (Inferior Derecha en pantallas grandes) -->
+            <div class="hidden xl:block absolute bottom-3 right-3 pointer-events-none bg-slate-900/75 backdrop-blur-sm border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400">
+                🖱️ Izq: Rotar · Der: Mover · Rueda: Zoom
+            </div>
+        </main>
+    </div>
+
+    <!-- Notificación Toast (Sin usar alert()) -->
+    <div id="toast-notification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-800 border border-emerald-500/50 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="toast-message">Configuración guardada</span>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * CONFIGURACIÓN POR DEFECTO Y ESTADO GLOBAL
+         * ============================================================================
+         */
+        const STORAGE_KEY = 'soporte_placa_l_v13_config_v1';
+
+        const DEFAULT_PARAMS = {
+            baseDiameter: 22.0,     // Diámetro o ancho de la base adhesiva (mm)
+            baseThickness: 2.4,     // Grosor de la base (mm)
+            baseShape: 'circle',    // 'circle' | 'rounded_square'
+            pinDiameter: 3.6,       // Diámetro del cuello/gancho (mm)
+            neckLength: 3.2,        // Separación del cristal / espacio para la placa (mm)
+            hookHeight: 5.5,        // Altura del gancho vertical (mm)
+            hookAngle: 8,           // Inclinación del gancho hacia arriba (grados)
+            retentionLip: 0.5,      // Labio/tope superior de retención en la punta (mm)
+            filletSize: 1.5,        // Refuerzo chaflán/fillet en unión base-cuello (mm)
+            exportQuantity: 2,      // 1 o 2 soportes
+            showReferencePlate: true, // Mostrar placa L fantasma en visor
+            viewOrientation: 'print'  // 'print' (tumbado para laminar) | 'mounted' (pegado en cristal)
+        };
+
+        let params = { ...DEFAULT_PARAMS };
+
+        // Variables de Three.js
+        let scene, camera, renderer, controls;
+        let printableGroup;     // Contiene los 1 o 2 soportes que SÍ se exportan a STL
+        let referenceGroup;     // Contiene la placa L y cristal fantasma (NO se exportan)
+        let gridHelper;
+
+        /**
+         * ============================================================================
+         * INICIALIZACIÓN DE LA ESCENA 3D (THREE.JS)
+         * ============================================================================
+         */
+        function initThreeJS() {
+            const container = document.getElementById('viewport-container');
+
+            // 1. Escena
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x090d16);
+
+            // 2. Cámara
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(40, aspect, 0.5, 500);
+            camera.position.set(38, 32, 42);
+
+            // 3. Renderizador con antialiasing y sombras suaves
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // 4. Controles de Órbita
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.07;
+            controls.minDistance = 12;
+            controls.maxDistance = 180;
+            controls.target.set(0, 6, 0);
+
+            // 5. Iluminación Estudio CAD
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.85);
+            dirLight1.position.set(35, 55, 40);
+            dirLight1.castShadow = true;
+            dirLight1.shadow.mapSize.width = 1024;
+            dirLight1.shadow.mapSize.height = 1024;
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.35);
+            dirLight2.position.set(-40, 25, -30);
+            scene.add(dirLight2);
+
+            const bottomLight = new THREE.DirectionalLight(0x10b981, 0.18);
+            bottomLight.position.set(0, -30, 10);
+            scene.add(bottomLight);
+
+            // 6. Rejilla de cama de impresión (100x100 mm, subdivisiones cada 5 mm)
+            gridHelper = new THREE.GridHelper(100, 20, 0x334155, 0x1e293b);
+            scene.add(gridHelper);
+
+            // Ejes sutiles de referencia en el origen
+            const axesHelper = new THREE.AxesHelper(8);
+            axesHelper.position.set(-45, 0.05, -45);
+            scene.add(axesHelper);
+
+            // Grupos principales
+            printableGroup = new THREE.Group();
+            referenceGroup = new THREE.Group();
+            scene.add(printableGroup);
+            scene.add(referenceGroup);
+
+            // Redimensionado responsivo
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('viewport-container');
+            if (!container || !camera || !renderer) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        /**
+         * ============================================================================
+         * GENERACIÓN PROCEDURAL DE LA GEOMETRÍA DEL SOPORTE (WATERTIGHT / SÓLIDO)
+         * ============================================================================
+         * Sistema de coordenadas local del soporte antes de orientar:
+         * - Plano XY: Cara plana trasera de la base que se pega al cristal (en Z = 0).
+         * - Eje +Z: Sale perpendicular desde el cristal hacia el interior del habitáculo.
+         * - Eje +Y: Dirección vertical hacia arriba (donde apunta el gancho).
+         */
+        function createSingleHookGeometry(p) {
+            const geometriesToMerge = [];
+
+            const baseD = p.baseDiameter;
+            const baseR = baseD / 2;
+            const baseT = p.baseThickness;
+            const pinD = p.pinDiameter;
+            const pinR = pinD / 2;
+            const neckL = p.neckLength;
+            const hookH = p.hookHeight;
+            const angleRad = THREE.MathUtils.degToRad(p.hookAngle);
+            const lip = p.retentionLip;
+            const fillet = Math.min(p.filletSize, (baseR - pinR) * 0.85, neckL * 0.85);
+
+            // ------------------------------------------------------------------------
+            // 1. BASE ADHESIVA (en Z de 0 a baseT)
+            // ------------------------------------------------------------------------
+            let baseGeom;
+            if (p.baseShape === 'circle') {
+                // Cilindro con ligero bisel frontal para estética y resistencia
+                const radialSegs = 48;
+                const bevel = Math.min(0.4, baseT * 0.25);
+                const points = [
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(baseR, 0),
+                    new THREE.Vector2(baseR, baseT - bevel),
+                    new THREE.Vector2(baseR - bevel, baseT),
+                    new THREE.Vector2(0, baseT)
+                ];
+                baseGeom = new THREE.LatheGeometry(points, radialSegs);
+                // LatheGeometry gira alrededor de Y; rotamos X +90° para que quede en plano XY y crezca en +Z
+                baseGeom.rotateX(Math.PI / 2);
+            } else {
+                // Base cuadrada con esquinas redondeadas
+                const shape = new THREE.Shape();
+                const half = baseR;
+                const cornerR = Math.min(4.0, half * 0.35);
+                shape.moveTo(-half + cornerR, -half);
+                shape.lineTo(half - cornerR, -half);
+                shape.quadraticCurveTo(half, -half, half, -half + cornerR);
+                shape.lineTo(half, half - cornerR);
+                shape.quadraticCurveTo(half, half, half - cornerR, half);
+                shape.lineTo(-half + cornerR, half);
+                shape.quadraticCurveTo(-half, half, -half, half - cornerR);
+                shape.lineTo(-half, -half + cornerR);
+                shape.quadraticCurveTo(-half, -half, -half + cornerR, -half);
+
+                const extrudeSettings = {
+                    depth: Math.max(0.2, baseT - 0.3),
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 1,
+                    bevelSize: 0.3,
+                    bevelThickness: 0.3
+                };
+                baseGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                // Ajustar Z para que empiece exactamente en Z = 0
+                baseGeom.translate(0, 0, 0.3);
+            }
+            geometriesToMerge.push(baseGeom.toNonIndexed());
+
+            // ------------------------------------------------------------------------
+            // 2. REFUERZO (FILLET / CHAFLÁN CURVO) EN LA UNIÓN BASE - CUELLO
+            // ------------------------------------------------------------------------
+            if (fillet > 0.05) {
+                const filletPts = [];
+                const steps = 10;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    // Perfil cóncavo suave (cuarto de círculo invertido)
+                    const r = pinR + fillet * (1 - Math.sin(t * Math.PI * 0.5));
+                    const z = baseT - 0.1 + fillet * (1 - Math.cos(t * Math.PI * 0.5));
+                    filletPts.push(new THREE.Vector2(r, z));
+                }
+                // Cerrar perfil hacia el eje central
+                filletPts.push(new THREE.Vector2(0, baseT - 0.1 + fillet));
+                filletPts.push(new THREE.Vector2(0, baseT - 0.1));
+                filletPts.unshift(new THREE.Vector2(0, baseT - 0.1));
+
+                const filletGeom = new THREE.LatheGeometry(filletPts, 32);
+                filletGeom.rotateX(Math.PI / 2);
+                geometriesToMerge.push(filletGeom.toNonIndexed());
+            }
+
+            // ------------------------------------------------------------------------
+            // 3. CUELLO HORIZONTAL (Sale en +Z desde baseT hasta el codo del gancho)
+            // ------------------------------------------------------------------------
+            // Ligeramente solapado dentro de la base (-0.2mm) para unión sólida sin huecos
+            const neckStartZ = baseT - 0.2;
+            const elbowCenterZ = baseT + neckL + pinR * 0.7;
+            const actualNeckLen = elbowCenterZ - neckStartZ;
+
+            const neckGeom = new THREE.CylinderGeometry(pinR, pinR, actualNeckLen, 32);
+            neckGeom.rotateX(Math.PI / 2);
+            neckGeom.translate(0, 0, neckStartZ + actualNeckLen / 2);
+            geometriesToMerge.push(neckGeom.toNonIndexed());
+
+            // Esfera de unión suave en el codo (evita cantos vivos que concentren tensión)
+            const elbowSphere = new THREE.SphereGeometry(pinR, 28, 20);
+            elbowSphere.translate(0, 0, elbowCenterZ);
+            geometriesToMerge.push(elbowSphere.toNonIndexed());
+
+            // ------------------------------------------------------------------------
+            // 4. GANCHO VERTICAL / INCLINADO + TOPE DE RETENCIÓN EN PUNTA
+            // ------------------------------------------------------------------------
+            // El gancho parte del centro del codo (0, 0, elbowCenterZ) hacia +Y
+            // con una inclinación 'angleRad' hacia +Z (hacia afuera del cristal)
+            const shaftLen = Math.max(1.5, hookH - pinR);
+
+            // Cuerpo principal del gancho
+            const hookShaft = new THREE.CylinderGeometry(pinR, pinR, shaftLen, 32);
+            // Colocar la base del cilindro en el origen (0,0,0) creciendo en +Y
+            hookShaft.translate(0, shaftLen / 2, 0);
+            // Inclinar hacia +Z (rotar alrededor de X positivo inclina +Y hacia +Z)
+            hookShaft.rotateX(angleRad);
+            hookShaft.translate(0, 0, elbowCenterZ);
+            geometriesToMerge.push(hookShaft.toNonIndexed());
+
+            // Punta redondeada y labio/tope de retención superior
+            // Calculamos la posición exacta de la punta del eje del gancho
+            const tipLocalY = shaftLen * Math.cos(angleRad);
+            const tipLocalZ = elbowCenterZ + shaftLen * Math.sin(angleRad);
+
+            if (lip > 0.02) {
+                // Bulbo/labio de retención con entrada cónica suave para que la placa entre fácil
+                // y tope inferior para que no se salga sola
+                const lipRadius = pinR + lip;
+                const lipPoints = [
+                    new THREE.Vector2(0, -pinR * 0.4),
+                    new THREE.Vector2(pinR, -pinR * 0.4),
+                    new THREE.Vector2(lipRadius, 0),
+                    new THREE.Vector2(lipRadius * 0.92, pinR * 0.45),
+                    new THREE.Vector2(pinR * 0.45, pinR * 0.95),
+                    new THREE.Vector2(0, pinR * 1.05)
+                ];
+                const lipGeom = new THREE.LatheGeometry(lipPoints, 32);
+                lipGeom.rotateX(angleRad);
+                lipGeom.translate(0, tipLocalY, tipLocalZ);
+                geometriesToMerge.push(lipGeom.toNonIndexed());
+            } else {
+                // Semiesfera redondeada estándar en la punta
+                const tipSphere = new THREE.SphereGeometry(pinR, 28, 20);
+                tipSphere.translate(0, tipLocalY, tipLocalZ);
+                geometriesToMerge.push(tipSphere.toNonIndexed());
+            }
+
+            // Fusionar todas las partes en una única malla limpia
+            const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(geometriesToMerge, false);
+            merged.computeVertexNormals();
+            return merged;
+        }
+
+        /**
+         * ============================================================================
+         * ACTUALIZACIÓN DE LA ESCENA 3D (SOPORTES + PLACA L FANTASMA DE REFERENCIA)
+         * ============================================================================
+         */
+        function rebuildScene() {
+            // Limpiar grupos anteriores
+            clearGroup(printableGroup);
+            clearGroup(referenceGroup);
+
+            // Material plástico técnico (PETG Negro/Antracita satinado o Blanco/Gris claro bien visible)
+            const partMaterial = new THREE.MeshStandardMaterial({
+                color: 0xe2e8f0,
+                roughness: 0.35,
+                metalness: 0.08
+            });
+
+            // Generar geometría base de una unidad
+            const singleGeom = createSingleHookGeometry(params);
+
+            // Determinar si exportamos/mostramos 1 o 2 unidades
+            const qty = params.exportQuantity;
+            const spacing = params.baseDiameter + 8.0; // Separación de 8 mm entre bordes
+
+            // Nota: Si mostramos la placa L de referencia en vista "montado",
+            // colocamos los soportes en posición real (uno arriba y otro abajo de la placa L)
+            // o lado a lado si estamos en modo impresión.
+            const isMountedWithRef = (params.viewOrientation === 'mounted' && params.showReferencePlate && qty === 2);
+
+            for (let i = 0; i < qty; i++) {
+                const mesh = new THREE.Mesh(singleGeom, partMaterial);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                if (params.viewOrientation === 'print') {
+                    // ORIENTACIÓN ÓPTIMA DE IMPRESIÓN 3D:
+                    // Tumbado de lado (rotado -90° en Z) para que el perfil de la base y el gancho
+                    // se impriman en planos horizontales XY. Así las capas recorren longitudinalmente
+                    // el cuello y el gancho, multiplicando por 4x su resistencia a rotura.
+                    mesh.rotation.z = -Math.PI / 2;
+
+                    // Apoyar exactamente sobre la cama Z=0 (en Three.js el suelo es Y=0)
+                    // Al rotar -90° en Z, el punto más bajo en Y es -baseDiameter/2
+                    const yOffset = params.baseDiameter / 2;
+                    // Apoyar la cara trasera de la base en Z=0 o centrar
+                    const xOffset = (qty === 2) ? (i === 0 ? -spacing / 2 : spacing / 2) : 0;
+
+                    mesh.position.set(xOffset, yOffset, -params.baseThickness);
+                } else {
+                    // VISTA MONTADO EN CRISTAL:
+                    // La base pega contra el cristal vertical (plano XY, Z=0), y el gancho apunta hacia +Y
+                    if (isMountedWithRef) {
+                        // Posición real en una placa L homologada (distancia entre centros de agujeros = 172 mm,
+                        // aquí usamos una escala compacta de representación de 95 mm para ver ambos cómodamente en pantalla)
+                        const verticalSpan = 88;
+                        const yPos = (i === 0) ? (verticalSpan / 2 + 12) : (-verticalSpan / 2 + 12);
+                        mesh.position.set(0, yPos, 0);
+                    } else {
+                        const xOffset = (qty === 2) ? (i === 0 ? -spacing / 2 : spacing / 2) : 0;
+                        mesh.position.set(xOffset, params.baseDiameter / 2 + 2, 0);
+                    }
+                }
+
+                printableGroup.add(mesh);
+            }
+
+            // Construir referencia visual (Cristal + Placa L V-13 semitransparente)
+            if (params.showReferencePlate) {
+                buildReferenceObjects(isMountedWithRef);
+            }
+
+            updateUIReadouts(singleGeom);
+        }
+
+        /**
+         * Construye la placa L (V-13) fantasma con el agujero real (Ø 4.3 mm) encajado en el gancho
+         * para comprobar visualmente la holgura y la separación respecto al cristal.
+         */
+        function buildReferenceObjects(isTwoHoleSpan) {
+            const plateThickness = 1.6; // Grosor típico placa aluminio/PVC V-13
+            const holeRadius = 4.3 / 2; // Agujero estándar de 4.3 mm
+
+            // Posición donde apoya la placa L dentro del cuello del gancho
+            const plateZ = params.baseThickness + (params.neckLength - plateThickness) * 0.5;
+            const pinR = params.pinDiameter / 2;
+
+            // El borde superior del agujero de la placa descansa apoyado sobre la parte superior del cuello del gancho
+            // Centro del cuello está en Y_hook. El borde superior del agujero está en Y_hole + holeRadius.
+            // Para que apoye arriba: Y_hole + holeRadius = Y_hook + pinR  =>  Y_hole = Y_hook + pinR - holeRadius
+            const hookCenterY = (params.viewOrientation === 'print')
+                ? (params.baseDiameter / 2)
+                : (isTwoHoleSpan ? (88 / 2 + 12) : (params.baseDiameter / 2 + 2));
+
+            const holeCenterY = hookCenterY + pinR - holeRadius;
+
+            // Crear sección superior de la placa L con su agujero circular
+            const plateW = 76;
+            const plateH = isTwoHoleSpan ? 104 : 46;
+            const cornerR = 6;
+
+            const shape = new THREE.Shape();
+            const topY = holeCenterY + 8.5; // Distancia típica desde el agujero al borde superior de la L (~8.5 mm)
+            const botY = topY - plateH;
+            const halfW = plateW / 2;
+
+            shape.moveTo(-halfW + cornerR, botY);
+            shape.lineTo(halfW - cornerR, botY);
+            shape.quadraticCurveTo(halfW, botY, halfW, botY + cornerR);
+            shape.lineTo(halfW, topY - cornerR);
+            shape.quadraticCurveTo(halfW, topY, halfW - cornerR, topY);
+            shape.lineTo(-halfW + cornerR, topY);
+            shape.quadraticCurveTo(-halfW, topY, -halfW, topY - cornerR);
+            shape.lineTo(-halfW, botY + cornerR);
+            shape.quadraticCurveTo(-halfW, botY, -halfW + cornerR, botY);
+
+            // Agujero superior
+            const holeTop = new THREE.Path();
+            holeTop.absarc(0, holeCenterY, holeRadius, 0, Math.PI * 2, true);
+            shape.holes.push(holeTop);
+
+            // Si estamos mostrando ambos soportes montados, añadir también el agujero inferior
+            if (isTwoHoleSpan) {
+                const holeBot = new THREE.Path();
+                holeBot.absarc(0, holeCenterY - 88, holeRadius, 0, Math.PI * 2, true);
+                shape.holes.push(holeBot);
+            }
+
+            const plateGeom = new THREE.ExtrudeGeometry(shape, {
+                depth: plateThickness,
+                bevelEnabled: false,
+                curveSegments: 32
+            });
+
+            // Material verde reflectante V-13 semitransparente
+            const greenMat = new THREE.MeshStandardMaterial({
+                color: 0x059669,
+                transparent: true,
+                opacity: 0.45,
+                roughness: 0.25,
+                side: THREE.DoubleSide
+            });
+
+            const plateMesh = new THREE.Mesh(plateGeom, greenMat);
+
+            // Añadir la letra "L" blanca decorativa sobre la placa fantasma
+            const lShape = new THREE.Shape();
+            const lx = -14;
+            const ly = topY - 38;
+            lShape.moveTo(lx, ly);
+            lShape.lineTo(lx + 26, ly);
+            lShape.lineTo(lx + 26, ly + 7);
+            lShape.lineTo(lx + 8, ly + 7);
+            lShape.lineTo(lx + 8, ly + 28);
+            lShape.lineTo(lx, ly + 28);
+            lShape.closePath();
+
+            const lGeom = new THREE.ShapeGeometry(lShape);
+            const whiteMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.55,
+                side: THREE.DoubleSide
+            });
+            const lMesh = new THREE.Mesh(lGeom, whiteMat);
+            lMesh.position.z = plateThickness + 0.05;
+            plateMesh.add(lMesh);
+
+            // Posicionar la placa fantasma según la orientación actual
+            const xShift = (params.exportQuantity === 2 && !isTwoHoleSpan)
+                ? -(params.baseDiameter + 8.0) / 2
+                : 0;
+
+            if (params.viewOrientation === 'print') {
+                // Ajustar a la orientación tumbada del primer soporte
+                plateMesh.position.set(xShift, 0, plateZ - params.baseThickness);
+            } else {
+                plateMesh.position.set(xShift, 0, plateZ);
+
+                // Añadir también un plano sutil simulando el cristal del coche (en Z = -0.3 mm)
+                const glassGeom = new THREE.PlaneGeometry(110, 125);
+                const glassMat = new THREE.MeshPhysicalMaterial({
+                    color: 0x38bdf8,
+                    transparent: true,
+                    opacity: 0.12,
+                    roughness: 0.1,
+                    side: THREE.DoubleSide
+                });
+                const glassMesh = new THREE.Mesh(glassGeom, glassMat);
+                glassMesh.position.set(0, 15, -0.2);
+                referenceGroup.add(glassMesh);
+            }
+
+            referenceGroup.add(plateMesh);
+        }
+
+        function clearGroup(group) {
+            while (group.children.length > 0) {
+                const obj = group.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                group.remove(obj);
+            }
+        }
+
+        /**
+         * ============================================================================
+         * LECTURAS TÉCNICAS EN TIEMPO REAL
+         * ============================================================================
+         */
+        function updateUIReadouts(singleGeom) {
+            singleGeom.computeBoundingBox();
+            const box = singleGeom.boundingBox;
+            const sizeX = (box.max.x - box.min.x).toFixed(1);
+            const sizeY = (box.max.y - box.min.y).toFixed(1);
+            const sizeZ = (box.max.z - box.min.z).toFixed(1);
+
+            document.getElementById('readout-dimensions').textContent = `${sizeX} × ${sizeY} × ${sizeZ} mm`;
+
+            // Cálculo de holgura respecto a un agujero estándar de 4.3 mm
+            const standardHole = 4.3;
+            const maxPinWithLip = params.pinDiameter + params.retentionLip * 2;
+            const shaftClearance = standardHole - params.pinDiameter;
+            const clearanceEl = document.getElementById('readout-clearance');
+
+            if (shaftClearance < 0.15) {
+                clearanceEl.textContent = `${shaftClearance >= 0 ? '+' : ''}${shaftClearance.toFixed(2)} mm (¡Muy justo!)`;
+                clearanceEl.className = 'font-mono text-rose-400 font-semibold';
+            } else if (shaftClearance > 1.4) {
+                clearanceEl.textContent = `+${shaftClearance.toFixed(2)} mm (Holgado)`;
+                clearanceEl.className = 'font-mono text-amber-400 font-semibold';
+            } else {
+                clearanceEl.textContent = `+${shaftClearance.toFixed(2)} mm (Óptima)`;
+                clearanceEl.className = 'font-mono text-sky-400 font-semibold';
+            }
+
+            // Actualizar botones visuales de forma, cantidad y vista
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                const active = btn.dataset.shape === params.baseShape;
+                btn.className = active
+                    ? 'shape-btn px-3 py-1 rounded-md text-xs font-medium transition bg-emerald-600 text-white'
+                    : 'shape-btn px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white';
+            });
+
+            document.querySelectorAll('.qty-btn').forEach(btn => {
+                const active = Number(btn.dataset.qty) === params.exportQuantity;
+                btn.className = active
+                    ? 'qty-btn px-3 py-1 rounded-md text-xs font-medium transition bg-emerald-600 text-white'
+                    : 'qty-btn px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white';
+            });
+
+            const btnPrint = document.getElementById('btn-view-print');
+            const btnMounted = document.getElementById('btn-view-mounted');
+            if (params.viewOrientation === 'print') {
+                btnPrint.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-emerald-600 text-white shadow';
+                btnMounted.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-300 hover:text-white';
+            } else {
+                btnMounted.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-emerald-600 text-white shadow';
+                btnPrint.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-300 hover:text-white';
+            }
+        }
+
+        /**
+         * ============================================================================
+         * EXPORTACIÓN A ARCHIVO .STL (BINARIO LIMPIO LISTO PARA LAMINADOR)
+         * ============================================================================
+         */
+        function exportToSTL() {
+            try {
+                // Asegurar que la exportación siempre salga en orientación óptima de impresión (tumbado sobre cama)
+                const previousOrientation = params.viewOrientation;
+                if (previousOrientation !== 'print') {
+                    params.viewOrientation = 'print';
+                    rebuildScene();
+                }
+
+                // Actualizar matrices mundiales antes de exportar
+                printableGroup.updateMatrixWorld(true);
+
+                const exporter = new THREE.STLExporter();
+                // Exportar en formato binario (más compacto y estándar para Cura, PrusaSlicer y Bambu Studio)
+                const stlBinary = exporter.parse(printableGroup, { binary: true });
+
+                const blob = new Blob([stlBinary], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+
+                const qtyLabel = params.exportQuantity === 2 ? 'x2_par' : 'x1';
+                const fileName = `soporte_placa_L_V13_${params.baseDiameter}mm_pin${params.pinDiameter}mm_${qtyLabel}.stl`;
+
+                const link = document.createElement('a');
+                link.style.display = 'none';
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                // Restaurar vista si el usuario estaba en modo montado
+                if (previousOrientation !== 'print') {
+                    params.viewOrientation = previousOrientation;
+                    rebuildScene();
+                }
+
+                showToast(`STL exportado: ${fileName}`);
+            } catch (err) {
+                console.error('Error al generar STL:', err);
+                showToast('Error al exportar el STL. Revisa la consola.');
+            }
+        }
+
+        /**
+         * ============================================================================
+         * PERSISTENCIA EN LOCALSTORAGE E IMPORT/EXPORT JSON
+         * ============================================================================
+         */
+        function saveToLocalStorage(silent = false) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
+                if (!silent) showToast('Configuración guardada en el navegador');
+            } catch (e) {
+                console.warn('No se pudo guardar en localStorage:', e);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    params = { ...DEFAULT_PARAMS, ...parsed };
+                }
+            } catch (e) {
+                console.warn('Error leyendo localStorage:', e);
+            }
+        }
+
+        function syncInputsFromParams() {
+            const numericKeys = [
+                'baseDiameter', 'baseThickness', 'pinDiameter',
+                'neckLength', 'hookHeight', 'hookAngle',
+                'retentionLip', 'filletSize'
+            ];
+
+            numericKeys.forEach(key => {
+                const slider = document.getElementById(`param-${key}`);
+                const numInput = document.getElementById(`num-${key}`);
+                if (slider) slider.value = params[key];
+                if (numInput) numInput.value = params[key];
+            });
+
+            document.getElementById('toggle-reference-plate').checked = params.showReferencePlate;
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(params, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `config_soporte_placa_L.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Parámetros exportados a JSON');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    params = { ...DEFAULT_PARAMS, ...imported };
+                    syncInputsFromParams();
+                    saveToLocalStorage(true);
+                    rebuildScene();
+                    showToast('Configuración JSON cargada correctamente');
+                } catch (err) {
+                    showToast('Archivo JSON inválido');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * ============================================================================
+         * VINCULACIÓN DE EVENTOS DE INTERFAZ
+         * ============================================================================
+         */
+        function bindUIEvents() {
+            const numericKeys = [
+                'baseDiameter', 'baseThickness', 'pinDiameter',
+                'neckLength', 'hookHeight', 'hookAngle',
+                'retentionLip', 'filletSize'
+            ];
+
+            numericKeys.forEach(key => {
+                const slider = document.getElementById(`param-${key}`);
+                const numInput = document.getElementById(`num-${key}`);
+
+                slider.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    params[key] = val;
+                    numInput.value = val;
+                    saveToLocalStorage(true);
+                    rebuildScene();
+                });
+
+                numInput.addEventListener('change', (e) => {
+                    let val = parseFloat(e.target.value);
+                    const min = parseFloat(slider.min);
+                    const max = parseFloat(slider.max);
+                    if (isNaN(val)) val = DEFAULT_PARAMS[key];
+                    val = Math.max(min, Math.min(max, val));
+                    params[key] = val;
+                    numInput.value = val;
+                    slider.value = val;
+                    saveToLocalStorage(true);
+                    rebuildScene();
+                });
+            });
+
+            // Botones forma base
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    params.baseShape = btn.dataset.shape;
+                    saveToLocalStorage(true);
+                    rebuildScene();
+                });
+            });
+
+            // Botones cantidad STL
+            document.querySelectorAll('.qty-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    params.exportQuantity = Number(btn.dataset.qty);
+                    saveToLocalStorage(true);
+                    rebuildScene();
+                });
+            });
+
+            // Toggle placa L referencia
+            document.getElementById('toggle-reference-plate').addEventListener('change', (e) => {
+                params.showReferencePlate = e.target.checked;
+                saveToLocalStorage(true);
+                rebuildScene();
+            });
+
+            // Cambio orientación visor
+            document.getElementById('btn-view-print').addEventListener('click', () => {
+                params.viewOrientation = 'print';
+                controls.target.set(0, 6, 0);
+                camera.position.set(36, 30, 40);
+                rebuildScene();
+            });
+
+            document.getElementById('btn-view-mounted').addEventListener('click', () => {
+                params.viewOrientation = 'mounted';
+                controls.target.set(0, 12, 4);
+                camera.position.set(48, 22, 65);
+                rebuildScene();
+            });
+
+            // Centrar cámara
+            document.getElementById('btn-reset-camera').addEventListener('click', () => {
+                if (params.viewOrientation === 'print') {
+                    controls.target.set(0, 6, 0);
+                    camera.position.set(36, 30, 40);
+                } else {
+                    controls.target.set(0, 12, 4);
+                    camera.position.set(48, 22, 65);
+                }
+            });
+
+            // Acciones de guardado, reset, JSON y STL
+            document.getElementById('btn-save-local').addEventListener('click', () => saveToLocalStorage(false));
+
+            document.getElementById('btn-reset-default').addEventListener('click', () => {
+                params = { ...DEFAULT_PARAMS };
+                syncInputsFromParams();
+                saveToLocalStorage(true);
+                rebuildScene();
+                showToast('Valores recomendados restaurados');
+            });
+
+            document.getElementById('btn-export-json').addEventListener('click', exportJSON);
+            document.getElementById('input-import-json').addEventListener('change', importJSON);
+            document.getElementById('btn-export-stl').addEventListener('click', exportToSTL);
+        }
+
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            const label = document.getElementById('toast-message');
+            label.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3200);
+        }
+
+        /**
+         * ============================================================================
+         * BUCLE DE ANIMACIÓN Y ARRANQUE
+         * ============================================================================
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        window.onload = function () {
+            loadFromLocalStorage();
+            initThreeJS();
+            syncInputsFromParams();
+            bindUIEvents();
+            rebuildScene();
+            animate();
+        };
+    </script>
+</body>
+</html>

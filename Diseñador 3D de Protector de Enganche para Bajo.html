@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseñador 3D - Protector de Enganche de Bajo para Funda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 3px;
+            background: #1e293b;
+            border: 1px solid #334155;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ef4444;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            transition: transform 0.1s ease, background-color 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #f87171;
+        }
+        .section-card {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row select-none">
+
+    <!-- PANEL LATERAL IZQUIERDO: PARÁMETROS -->
+    <aside class="w-full md:w-[430px] lg:w-[465px] h-[50vh] md:h-full bg-slate-900/95 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col z-20 shrink-0">
+        
+        <!-- Cabecera + Botón Guardar Estado -->
+        <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500 to-rose-700 flex items-center justify-center shadow-lg shadow-red-900/30 shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-sm text-white leading-tight">StrapGuard 3D Pro</h1>
+                        <span id="saveStatusBadge" class="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Guardado
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Diseño Mecánico Anti-Bloqueo (Fácil Poner/Quitar)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button id="btnQuickSave" title="Guardar parámetros actuales en el navegador" class="text-xs px-2.5 py-1.5 rounded-md bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1 font-medium">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                    Guardar
+                </button>
+                <button id="btnReset" title="Restaurar medidas por defecto de fábrica" class="text-xs px-2 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Gestor de Perfiles Guardados y Exportación JSON -->
+        <div class="px-3.5 py-2.5 bg-slate-950/50 border-b border-slate-800/90 space-y-2">
+            <div class="flex items-center gap-1.5">
+                <select id="profileSelect" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                    <option value="">-- Perfiles guardados --</option>
+                </select>
+                <button id="btnSaveAsProfile" title="Guardar como nuevo perfil con nombre" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0">
+                    + Nuevo
+                </button>
+                <button id="btnDeleteProfile" title="Borrar perfil seleccionado" class="px-2 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-300 border border-slate-700 transition shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+                <button id="btnExportJSON" title="Descargar parámetros en un archivo .JSON" class="px-2 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition shrink-0">
+                    JSON ↓
+                </button>
+                <label title="Importar parámetros desde un archivo .JSON" class="px-2 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer shrink-0">
+                    JSON ↑
+                    <input type="file" id="inputImportJSON" accept=".json" class="hidden">
+                </label>
+            </div>
+
+            <!-- Barra emergente para escribir el nombre de un nuevo perfil -->
+            <div id="newProfileBox" class="hidden items-center gap-1.5 pt-1">
+                <input type="text" id="newProfileName" placeholder="Nombre del perfil (ej. Bajo Ibanez TPU)..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-emerald-500">
+                <button id="btnConfirmSaveProfile" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition">
+                    Guardar
+                </button>
+                <button id="btnCancelSaveProfile" class="px-2 py-1 rounded-lg text-xs bg-slate-800 text-slate-400 hover:text-white transition">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Selector de Sistema Mecánico de Colocación y Extracción -->
+            <div class="pt-1 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Modo de Colocación / Extracción:
+                    </span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button id="modeLateralC" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-500/25 text-amber-200 border border-amber-500/50 transition text-center leading-tight">
+                        1. Lateral en "C"<br><span class="text-[9px] font-normal opacity-80">Deslizar de lado</span>
+                    </button>
+                    <button id="modeVerticalCap" class="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition text-center leading-tight">
+                        2. Vertical Arriba<br><span class="text-[9px] font-normal opacity-80">Cilindro directo</span>
+                    </button>
+                    <button id="modeFlexClamp" class="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition text-center leading-tight">
+                        3. Pinza TPU<br><span class="text-[9px] font-normal opacity-80">Rampa suave 45°</span>
+                    </button>
+                </div>
+                <div id="mountExplanationBox" class="p-2 rounded-lg bg-slate-900/90 border border-slate-700/80 text-[11px] text-slate-300 leading-snug">
+                    <strong class="text-amber-300">Cómo se pone y se quita:</strong> La ranura lateral sube también por la cámara superior (en forma de herradura "C") manteniendo el techo cerrado. Entra <strong>deslizando de lado</strong> (hacia la correa) y sale tirando de la <strong>pestaña trasera</strong> con un dedo.
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles Deslizables -->
+        <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5">
+
+            <!-- SECCIÓN 0: FACILIDAD DE EXTRACCIÓN Y DESBLOQUEO -->
+            <div class="section-card rounded-xl p-3.5 space-y-2.5 border-amber-500/40">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">0. Ergonomía de Poner y Sacar</h2>
+                    </div>
+                    <span class="text-[10px] text-amber-300 mono">Anti-Atasco</span>
+                </div>
+
+                <!-- Canal de paso superior para modo C-Clip -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="headEntryRatio">Apertura lateral de cabeza (% de Ø1)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="headEntryRatioNum" step="2" min="0" max="105" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-amber-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">%</span>
+                        </div>
+                    </div>
+                    <input type="range" id="headEntryRatio" min="0" max="105" step="2" value="94" class="w-full">
+                    <p class="text-[11px] text-slate-500 mt-0.5">92%-96% hace un "clic" suave lateral en la cabeza moleteada; 0% cierra el anillo superior (solo entrada vertical).</p>
+                </div>
+
+                <!-- Pestaña / Asa trasera para sacar con el dedo -->
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <label class="text-slate-300" for="pullTabLen">Asa trasera (Dedo)</label>
+                            <span class="mono text-amber-300"><input type="number" id="pullTabLenNum" step="0.5" min="0" max="10" class="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-right mono text-[11px]"></span>
+                        </div>
+                        <input type="range" id="pullTabLen" min="0" max="10" step="0.5" value="4.5" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <label class="text-slate-300" for="releaseChamfer">Rampa salida (45°)</label>
+                            <span class="mono text-amber-300"><input type="number" id="releaseChamferNum" step="0.2" min="0.4" max="5.0" class="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-right mono text-[11px]"></span>
+                        </div>
+                        <input type="range" id="releaseChamfer" min="0.4" max="5.0" step="0.2" value="2.4" class="w-full">
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-500">El <strong>Asa trasera</strong> te permite tirar hacia atrás/arriba con el pulgar para sacarlo sin esfuerzo.</p>
+            </div>
+
+            <!-- SECCIÓN 1: CABEZA MOLETEADA SUPERIOR -->
+            <div class="section-card rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">1. Sección Superior (Cabeza Moleteada)</h2>
+                    </div>
+                    <span class="text-[10px] text-amber-400/90 mono">Ø1 / H1</span>
+                </div>
+
+                <!-- Diámetro Perno (d1) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="pinDiam">Diámetro cabeza estriada (Ø1)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="pinDiamNum" step="0.1" min="6" max="22" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-amber-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="pinDiam" min="6" max="22" step="0.1" value="11.6" class="w-full">
+                </div>
+
+                <!-- Altura Perno (h1) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="pinDepth">Altura cabeza + cuello sup. (H1)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="pinDepthNum" step="0.2" min="2.5" max="15" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-amber-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="pinDepth" min="2.5" max="15" step="0.2" value="5.6" class="w-full">
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2: ARANDELA SUPERIOR + CORREA DE CUERO -->
+            <div class="section-card rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">2. Sección Media (Arandelas y Correa)</h2>
+                    </div>
+                    <span class="text-[10px] text-sky-400/90 mono">Ø2 / H2</span>
+                </div>
+
+                <!-- Diámetro Arandela + Cuero (d2) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="washerDiam">Diámetro cavidad arandela (Ø2)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="washerDiamNum" step="0.2" min="14" max="36" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-sky-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="washerDiam" min="14" max="36" step="0.2" value="23.2" class="w-full">
+                </div>
+
+                <!-- Altura Sección Media (h2) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="skirtDepth">Altura paquete arandelas + cuero (H2)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="skirtDepthNum" step="0.2" min="3" max="16" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-sky-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="skirtDepth" min="3" max="16" step="0.2" value="6.8" class="w-full">
+                </div>
+            </div>
+
+            <!-- SECCIÓN 3: SECCIÓN INFERIOR (MUELLE HELICOIDAL + CAZOLETA BASE) -->
+            <div class="section-card rounded-xl p-3.5 space-y-2.5 border-purple-500/40">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">3. Sección Inferior (Muelle y Base)</h2>
+                    </div>
+                    <span class="text-[10px] text-purple-300 mono">Ø3 / H3 + Cierre</span>
+                </div>
+
+                <!-- Diámetro Zona Muelle y Cazoleta (d3) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="lowerDiam">Diámetro interior muelle/base (Ø3)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="lowerDiamNum" step="0.2" min="10" max="34" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-purple-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="lowerDiam" min="10" max="34" step="0.2" value="17.8" class="w-full">
+                    <p class="text-[11px] text-slate-500 mt-0.5">Recoge el muelle cónico y el plato acampanado inferior.</p>
+                </div>
+
+                <!-- Altura Sección Inferior (h3) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="lowerDepth">Altura sección inferior hasta base (H3)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="lowerDepthNum" step="0.2" min="2" max="20" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-purple-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="lowerDepth" min="2" max="20" step="0.2" value="9.6" class="w-full">
+                </div>
+
+                <!-- Labio Inferior que abraza bajo la cazoleta -->
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <label class="text-slate-300" for="snapLip">Cierre bajo base</label>
+                            <span class="mono text-purple-300"><input type="number" id="snapLipNum" step="0.1" min="0" max="4.5" class="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-right mono text-[11px]"></span>
+                        </div>
+                        <input type="range" id="snapLip" min="0" max="4.5" step="0.1" value="1.8" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <label class="text-slate-300" for="lipHeight">Altura labio inf.</label>
+                            <span class="mono text-purple-300"><input type="number" id="lipHeightNum" step="0.2" min="1.0" max="6.0" class="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-right mono text-[11px]"></span>
+                        </div>
+                        <input type="range" id="lipHeight" min="1.0" max="6.0" step="0.2" value="2.6" class="w-full">
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-500">Abraza el estrechamiento inferior del botón junto al cuerpo del bajo.</p>
+            </div>
+
+            <!-- SECCIÓN 4: VENTANA LATERAL PARA LA CORREA DE CUERO -->
+            <div class="section-card rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">4. Salida Lateral de Correa y Flexión</h2>
+                    </div>
+                    <span class="text-[10px] text-emerald-400/90 mono">Sin desmontar</span>
+                </div>
+
+                <!-- Ángulo Apertura Correa -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="strapAngle">Ángulo ventana lateral para cuero (°)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="strapAngleNum" step="5" min="0" max="200" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-emerald-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">deg</span>
+                        </div>
+                    </div>
+                    <input type="range" id="strapAngle" min="0" max="200" step="5" value="125" class="w-full">
+                </div>
+
+                <!-- Altura de corte para la correa -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="strapHeight">Altura total ventana lateral</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="strapHeightNum" step="0.5" min="0" max="28" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-emerald-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="strapHeight" min="0" max="28" step="0.5" value="14.5" class="w-full">
+                    <p class="text-[11px] text-slate-500 mt-0.5">Desde la base hasta la correa para encajar sin quitar la correa.</p>
+                </div>
+
+                <!-- Ranuras de Flexibilidad -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="flexSlots">Ranuras verticales de flexión</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="flexSlotsNum" step="1" min="0" max="6" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-emerald-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">uds</span>
+                        </div>
+                    </div>
+                    <input type="range" id="flexSlots" min="0" max="6" step="1" value="2" class="w-full">
+                </div>
+            </div>
+
+            <!-- SECCIÓN 5: EXTERIOR Y AMORTIGUACIÓN EN FUNDA -->
+            <div class="section-card rounded-xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">5. Exterior (Apoyo en Funda)</h2>
+                    </div>
+                    <span class="text-[10px] text-rose-400/90 mono">Domo Protector</span>
+                </div>
+
+                <!-- Diámetro Exterior Total -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="outerDiam">Diámetro exterior de apoyo (Ø Ext)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="outerDiamNum" step="0.5" min="24" max="55" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-rose-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="outerDiam" min="24" max="55" step="0.5" value="35.0" class="w-full">
+                </div>
+
+                <!-- Grosor Techo / Almohadilla superior -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="topThickness">Grosor cojín superior (Techo)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="topThicknessNum" step="0.5" min="2.5" max="14" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-rose-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="topThickness" min="2.5" max="14" step="0.5" value="5.5" class="w-full">
+                </div>
+
+                <!-- Radio de Redondeo Superior -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="text-slate-300" for="domeRadius">Redondeo superior antidesgarro</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="domeRadiusNum" step="0.5" min="1" max="14" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right mono text-xs text-rose-300 focus:outline-none focus:border-red-500">
+                            <span class="text-slate-500 text-[11px] mono">mm</span>
+                        </div>
+                    </div>
+                    <input type="range" id="domeRadius" min="1" max="14" step="0.5" value="7.0" class="w-full">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Pie Lateral: Acciones y Exportación STL -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950/90 space-y-2.5">
+            <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span>Orientación al exportar STL:</span>
+                <label class="flex items-center gap-1.5 cursor-pointer text-slate-200">
+                    <input type="checkbox" id="chkFlipPrint" checked class="rounded bg-slate-800 border-slate-700 text-red-500 focus:ring-0">
+                    <span>Invertir (Techo en cama, sin soportes)</span>
+                </label>
+            </div>
+            <button id="btnDownloadSTL" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-sm shadow-lg shadow-red-900/40 flex items-center justify-center gap-2 transition transform active:scale-[0.99]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <span>Descargar Modelo 3D (.STL)</span>
+            </button>
+        </div>
+
+    </aside>
+
+    <!-- VISOR 3D PRINCIPAL -->
+    <main class="flex-1 h-[52vh] md:h-full relative flex flex-col bg-slate-950 overflow-hidden">
+        
+        <!-- Barra Flotante Superior: Herramientas de Vista y Simulador de Montaje -->
+        <div class="absolute top-3 left-3 right-3 z-10 flex flex-col gap-2 pointer-events-none">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <!-- Botones de Inspección -->
+                <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 p-1.5 rounded-xl backdrop-blur-md pointer-events-auto shadow-xl">
+                    <button id="btnSectionView" class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
+                        <span>Vista en Corte (50%)</span>
+                    </button>
+
+                    <button id="btnShowHardware" class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/40 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <span>Enganche + Correa</span>
+                    </button>
+
+                    <button id="btnPrintPose" class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        <span>Posición Impresora</span>
+                    </button>
+
+                    <button id="btnWireframe" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition" title="Ver malla triangular">
+                        Malla
+                    </button>
+                </div>
+
+                <!-- Resumen de Cotas en Tiempo Real -->
+                <div class="bg-slate-900/90 border border-slate-700/80 px-3.5 py-2 rounded-xl backdrop-blur-md pointer-events-auto shadow-xl flex items-center gap-4 text-xs">
+                    <div>
+                        <span class="text-slate-400 block text-[10px]">ALTURA TOTAL</span>
+                        <span id="statHeight" class="mono font-semibold text-white">27.5 mm</span>
+                    </div>
+                    <div class="h-6 w-px bg-slate-800"></div>
+                    <div>
+                        <span class="text-slate-400 block text-[10px]">PARED MÍN.</span>
+                        <span id="statWall" class="mono font-semibold text-emerald-400">6.4 mm</span>
+                    </div>
+                    <div class="h-6 w-px bg-slate-800"></div>
+                    <div>
+                        <span class="text-slate-400 block text-[10px]">EXTRACCIÓN</span>
+                        <span id="statExtraction" class="mono font-semibold text-emerald-400">Libre (Lateral)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra Interactiva: Simulador de Poner y Quitar la Pieza -->
+            <div class="bg-slate-900/95 border border-emerald-500/40 px-3.5 py-2 rounded-xl backdrop-blur-md pointer-events-auto shadow-xl flex flex-wrap items-center gap-3 max-w-2xl">
+                <button id="btnPlayInstall" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition shadow">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6V4z"/></svg>
+                    <span id="btnPlayInstallText">Simular Cómo Poner / Sacar</span>
+                </button>
+                <div class="flex-1 flex items-center gap-2 min-w-[180px]">
+                    <span class="text-[11px] text-slate-400 shrink-0">Encajado</span>
+                    <input type="range" id="installProgress" min="0" max="100" step="1" value="0" class="w-full">
+                    <span class="text-[11px] text-slate-400 shrink-0">Fuera</span>
+                </div>
+                <span id="installStepLabel" class="text-[11px] mono text-emerald-300 font-medium min-w-[140px] text-right">
+                    Posición: Colocado (0%)
+                </span>
+            </div>
+        </div>
+
+        <!-- Contenedor del Canvas Three.js -->
+        <div id="canvasContainer" class="w-full h-full flex-1 cursor-grab active:cursor-grabbing"></div>
+
+        <!-- Leyenda Inferior Flotante + Esquema Técnico 2D -->
+        <div class="absolute bottom-3 left-3 right-3 z-10 flex flex-col sm:flex-row items-end sm:items-center justify-between gap-2 pointer-events-none">
+            
+            <!-- Guía de uso rápida -->
+            <div class="bg-slate-900/85 border border-slate-800/90 px-3.5 py-2 rounded-xl backdrop-blur-md pointer-events-auto text-[11px] text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1 shadow-lg">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> Pieza Protectora 3D</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-300"></span> Enganche Metálico (Ref)</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-700"></span> Puntera Correa Cuero</span>
+                <span class="text-slate-500 hidden lg:inline">| Click izq: Rotar • Rueda: Zoom • Click der: Mover</span>
+            </div>
+
+            <!-- Mini plano de sección 2D en vivo -->
+            <div class="bg-slate-900/95 border border-slate-700/80 p-2 rounded-xl backdrop-blur-md pointer-events-auto shadow-xl flex items-center gap-2.5">
+                <div class="text-right hidden sm:block">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Perfil de Encaje</span>
+                    <span class="text-[11px] text-slate-300 block">Escala real 2D</span>
+                </div>
+                <canvas id="profile2DCanvas" width="130" height="90" class="rounded-lg bg-slate-950 border border-slate-800"></canvas>
+            </div>
+        </div>
+
+        <!-- Notificación Toast -->
+        <div id="toastMsg" class="fixed bottom-5 right-5 z-50 hidden bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-2xl text-xs font-medium items-center gap-2 border border-emerald-400/40">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span id="toastText">Archivo STL generado correctamente</span>
+        </div>
+
+    </main>
+
+    <script>
+        // =========================================================================
+        // ESTADO DE PARÁMETROS DEL PROTECTOR (CON CANAL DE ENTRADA Y TIRADOR)
+        // =========================================================================
+        const STORAGE_KEY_CURRENT = 'strapguard_3d_current_params_v3';
+        const STORAGE_KEY_PROFILES = 'strapguard_3d_saved_profiles_v3';
+
+        const defaultParams = {
+            mountMode: 1,          // 1 = Lateral en C (deslizar de lado), 2 = Vertical desde arriba, 3 = Pinza Flexible TPU
+            headEntryRatio: 94,    // % de apertura lateral en la cavidad de la cabeza moleteada (permite entrar de lado haciendo clic)
+            pullTabLen: 4.5,       // Longitud del tirador trasero para sacar con el dedo (mm)
+            releaseChamfer: 2.4,   // Chaflán interno a 45° para que los escalones nunca bloqueen la salida (mm)
+            pinDiam: 11.6,         // Ø1: Diámetro interior cabeza moleteada superior (mm)
+            pinDepth: 5.6,         // H1: Altura cabeza moleteada + cuello superior (mm)
+            washerDiam: 23.2,      // Ø2: Diámetro cavidad arandelas + correa de cuero (mm)
+            skirtDepth: 6.8,       // H2: Altura paquete arandelas + correa (mm)
+            lowerDiam: 18.8,       // Ø3: Diámetro sección inferior (muelle helicoidal + plato cónico) (mm)
+            lowerDepth: 9.6,       // H3: Altura sección inferior hasta cerca de la madera (mm)
+            snapLip: 1.0,          // Labio suave inferior con rampa de 45° (mm)
+            lipHeight: 2.8,        // Altura del labio de retención inferior (mm)
+            strapAngle: 120,       // Apertura lateral en grados para la salida de la correa y entrada en C
+            strapHeight: 16.4,     // Altura de la ventana lateral (cubre hasta la correa) (mm)
+            flexSlots: 2,          // Número de ranuras verticales de alivio para encaje elástico
+            outerDiam: 35.0,       // Diámetro exterior del capuchón de apoyo (mm)
+            topThickness: 5.5,     // Grosor macizo sobre la cabeza del perno (mm)
+            domeRadius: 7.0        // Radio de curvatura exterior en la cabeza del capuchón (mm)
+        };
+
+        let params = { ...defaultParams };
+        let savedProfiles = {};
+        let isDirty = false;
+
+        // Estado del simulador de colocación/extracción (0 = puesto, 1 = fuera)
+        let installProgress = 0;
+        let isAnimatingInstall = false;
+        let animDirection = 1;
+
+        // Modos de visualización
+        let viewState = {
+            sectionCut: true,      // Por defecto activado al inicio para ver las 3 cámaras interiores
+            showHardware: true,    // Muestra el enganche completo con muelle + base + correa
+            printPose: false,      // Orientación boca abajo para impresión
+            wireframe: false
+        };
+
+        // Referencias Three.js
+        let scene, camera, renderer, controls;
+        let protectorMesh = null;
+        let hardwareGroup = null;
+        let currentGeometry = null;
+
+        // =========================================================================
+        // GESTIÓN DE GUARDADO Y PERFILES (LOCALSTORAGE + JSON)
+        // =========================================================================
+        const sliderParamKeys = [
+            'headEntryRatio', 'pullTabLen', 'releaseChamfer',
+            'pinDiam', 'pinDepth', 'washerDiam', 'skirtDepth',
+            'lowerDiam', 'lowerDepth', 'snapLip', 'lipHeight',
+            'strapAngle', 'strapHeight', 'flexSlots',
+            'outerDiam', 'topThickness', 'domeRadius'
+        ];
+
+        function loadFromLocalStorage() {
+            try {
+                const rawCurrent = localStorage.getItem(STORAGE_KEY_CURRENT);
+                if (rawCurrent) {
+                    const parsed = JSON.parse(rawCurrent);
+                    Object.keys(defaultParams).forEach(k => {
+                        if (typeof parsed[k] === 'number' && !isNaN(parsed[k])) {
+                            params[k] = parsed[k];
+                        }
+                    });
+                }
+                const rawProfiles = localStorage.getItem(STORAGE_KEY_PROFILES);
+                if (rawProfiles) {
+                    savedProfiles = JSON.parse(rawProfiles) || {};
+                } else {
+                    savedProfiles = {
+                        "1. Lateral en C (Sin quitar correa)": { ...defaultParams, mountMode: 1 },
+                        "2. Capuchón Vertical (Entrada desde arriba)": {
+                            ...defaultParams,
+                            mountMode: 2,
+                            headEntryRatio: 0,
+                            lowerDiam: 23.2,
+                            snapLip: 0.6,
+                            strapAngle: 115,
+                            strapHeight: 16.4
+                        },
+                        "3. Pinza TPU Flexible (Abraza muelle)": {
+                            ...defaultParams,
+                            mountMode: 3,
+                            headEntryRatio: 92,
+                            lowerDiam: 18.2,
+                            snapLip: 1.4,
+                            releaseChamfer: 3.2,
+                            flexSlots: 2
+                        }
+                    };
+                    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(savedProfiles));
+                }
+            } catch (e) {
+                console.warn('No se pudo leer localStorage:', e);
+            }
+            refreshProfileDropdown();
+            setDirtyState(false);
+        }
+
+        function saveCurrentToLocalStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(params));
+                setDirtyState(false);
+                showToast('Parámetros guardados correctamente en el navegador');
+            } catch (e) {
+                showToast('Error al guardar en almacenamiento local');
+            }
+        }
+
+        function setDirtyState(dirty) {
+            isDirty = dirty;
+            const badge = document.getElementById('saveStatusBadge');
+            if (!badge) return;
+            if (isDirty) {
+                badge.textContent = 'Sin guardar *';
+                badge.className = 'text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            } else {
+                badge.textContent = 'Guardado';
+                badge.textContent = 'Guardado';
+                badge.className = 'text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            }
+        }
+
+        function refreshProfileDropdown(selectedName = '') {
+            const sel = document.getElementById('profileSelect');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- Perfiles guardados --</option>';
+            Object.keys(savedProfiles).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                if (name === selectedName) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function syncInputsFromParams() {
+            sliderParamKeys.forEach(key => {
+                const slider = document.getElementById(key);
+                const num = document.getElementById(key + 'Num');
+                if (slider) slider.value = params[key];
+                if (num) num.value = params[key];
+            });
+            updateMountModeButtonsUI();
+        }
+
+        function updateMountModeButtonsUI() {
+            const b1 = document.getElementById('modeLateralC');
+            const b2 = document.getElementById('modeVerticalCap');
+            const b3 = document.getElementById('modeFlexClamp');
+            const box = document.getElementById('mountExplanationBox');
+            const statExt = document.getElementById('statExtraction');
+
+            const activeCls = 'px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-500/25 text-amber-200 border border-amber-500/50 transition text-center leading-tight';
+            const idleCls = 'px-2 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition text-center leading-tight';
+
+            b1.className = params.mountMode === 1 ? activeCls : idleCls;
+            b2.className = params.mountMode === 2 ? activeCls : idleCls;
+            b3.className = params.mountMode === 3 ? activeCls : idleCls;
+
+            if (params.mountMode === 1) {
+                box.innerHTML = `<strong class="text-amber-300">1. Deslizamiento Lateral en "C" (Recomendado):</strong> El canal lateral sube también hasta la cabeza superior formando un clip en "C" bajo el techo protector. <strong>Para ponerlo:</strong> lo encajas de lado desde el lomo opuesto a la correa. <strong>Para sacarlo:</strong> tiras del <strong>asa trasera</strong> con el dedo y sale de lado sin trabarse en la arandela.`;
+                if (statExt) {
+                    statExt.textContent = 'Libre (Lateral C)';
+                    statExt.className = 'mono font-semibold text-emerald-400';
+                }
+            } else if (params.mountMode === 2) {
+                box.innerHTML = `<strong class="text-sky-300">2. Capuchón Vertical (Desde arriba):</strong> La cámara inferior tiene el mismo diámetro que la arandela (Ø3 = Ø2) para que la arandela no choque al bajar ni al subir. <strong>Para ponerlo:</strong> lo bajas recto desde arriba. <strong>Para sacarlo:</strong> tiras hacia arriba desde el asa trasera.`;
+                if (statExt) {
+                    statExt.textContent = 'Libre (Vertical)';
+                    statExt.className = 'mono font-semibold text-sky-400';
+                }
+            } else {
+                box.innerHTML = `<strong class="text-purple-300">3. Pinza TPU con Rampa 45°:</strong> Combina apertura lateral amplia con rampas internas a 45° en el escalón de la arandela y la base. Al tirar del <strong>asa trasera</strong>, las paredes flexibles se abren solas gracias a la rampa inclinada y liberan el enganche.`;
+                if (statExt) {
+                    statExt.textContent = 'Flexible (Rampa 45°)';
+                    statExt.className = 'mono font-semibold text-purple-400';
+                }
+            }
+        }
+
+        function validateAndClampParams() {
+            if (params.washerDiam < params.pinDiam + 2.0) {
+                params.washerDiam = +(params.pinDiam + 2.0).toFixed(1);
+            }
+            // En Modo 2 (Capuchón Vertical), Ø3 no puede ser menor que Ø2 o la arandela quedaría atrapada dentro
+            if (params.mountMode === 2 && params.lowerDiam < params.washerDiam) {
+                params.lowerDiam = params.washerDiam;
+            }
+            if (params.lowerDiam > params.washerDiam) {
+                params.lowerDiam = params.washerDiam;
+            }
+            const maxInner = Math.max(params.washerDiam, params.lowerDiam, params.pinDiam);
+            if (params.outerDiam < maxInner + 4.0) {
+                params.outerDiam = +(maxInner + 4.0).toFixed(1);
+            }
+            if (params.lipHeight > params.lowerDepth - 1.0) {
+                params.lipHeight = Math.max(1.0, +(params.lowerDepth - 1.0).toFixed(1));
+            }
+            const totalWallH = params.lowerDepth + params.skirtDepth;
+            if (params.strapHeight > totalWallH) {
+                params.strapHeight = +totalWallH.toFixed(1);
+            }
+            const maxDome = Math.min((params.outerDiam - params.pinDiam) / 2, params.topThickness + params.pinDepth - 1);
+            if (params.domeRadius > maxDome) {
+                params.domeRadius = Math.max(1, +maxDome.toFixed(1));
+            }
+            syncInputsFromParams();
+        }
+
+        function applyMountModePreset(mode) {
+            params.mountMode = mode;
+            if (mode === 1) {
+                // Modo 1: Lateral en C (Entra y sale deslizándose de lado, sin bloqueos)
+                params.headEntryRatio = 94;
+                params.lowerDiam = 18.8;
+                params.snapLip = 1.0;
+                params.releaseChamfer = 2.4;
+                params.pullTabLen = 4.5;
+                params.strapAngle = 120;
+                params.strapHeight = +(params.lowerDepth + params.skirtDepth).toFixed(1);
+                params.flexSlots = 2;
+            } else if (mode === 2) {
+                // Modo 2: Capuchón Vertical directo (Interior cilíndrico sin estrechamiento que atrape la arandela)
+                params.headEntryRatio = 0;
+                params.lowerDiam = params.washerDiam;
+                params.snapLip = 0.6;
+                params.releaseChamfer = 2.8;
+                params.pullTabLen = 4.5;
+                params.strapAngle = 115;
+                params.strapHeight = +(params.lowerDepth + params.skirtDepth).toFixed(1);
+                params.flexSlots = 2;
+            } else if (mode === 3) {
+                // Modo 3: Pinza Flexible TPU con rampas de desbloqueo a 45°
+                params.headEntryRatio = 92;
+                params.lowerDiam = 18.2;
+                params.snapLip = 1.5;
+                params.releaseChamfer = 3.2;
+                params.pullTabLen = 5.0;
+                params.strapAngle = 135;
+                params.strapHeight = +(params.lowerDepth + params.skirtDepth).toFixed(1);
+                params.flexSlots = 3;
+            }
+            validateAndClampParams();
+            setDirtyState(true);
+            rebuildSceneGeometry();
+            updateProtectorAnimationTransform();
+        }
+
+        function setupUIEvents() {
+            sliderParamKeys.forEach(key => {
+                const slider = document.getElementById(key);
+                const num = document.getElementById(key + 'Num');
+                if (!slider || !num) return;
+
+                slider.addEventListener('input', (e) => {
+                    params[key] = parseFloat(e.target.value);
+                    validateAndClampParams();
+                    setDirtyState(true);
+                    rebuildSceneGeometry();
+                });
+
+                num.addEventListener('change', (e) => {
+                    let val = parseFloat(e.target.value);
+                    if (isNaN(val)) val = defaultParams[key];
+                    val = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), val));
+                    params[key] = val;
+                    validateAndClampParams();
+                    setDirtyState(true);
+                    rebuildSceneGeometry();
+                });
+            });
+
+            // Botones de Modo de Montaje
+            document.getElementById('modeLateralC').addEventListener('click', () => {
+                applyMountModePreset(1);
+                showToast('Modo 1: Inserción Lateral en "C" activado');
+            });
+            document.getElementById('modeVerticalCap').addEventListener('click', () => {
+                applyMountModePreset(2);
+                showToast('Modo 2: Capuchón Vertical (sin atrapamiento inferior) activado');
+            });
+            document.getElementById('modeFlexClamp').addEventListener('click', () => {
+                applyMountModePreset(3);
+                showToast('Modo 3: Pinza TPU con Rampa 45° activado');
+            });
+
+            // Simulador de Poner y Quitar
+            const progSlider = document.getElementById('installProgress');
+            progSlider.addEventListener('input', (e) => {
+                isAnimatingInstall = false;
+                document.getElementById('btnPlayInstallText').textContent = 'Simular Cómo Poner / Sacar';
+                installProgress = parseFloat(e.target.value) / 100;
+                updateProtectorAnimationTransform();
+            });
+
+            document.getElementById('btnPlayInstall').addEventListener('click', () => {
+                if (viewState.printPose) {
+                    viewState.printPose = false;
+                    updateToggleButtons();
+                    rebuildSceneGeometry();
+                }
+                isAnimatingInstall = !isAnimatingInstall;
+                const btnTxt = document.getElementById('btnPlayInstallText');
+                btnTxt.textContent = isAnimatingInstall ? '⏸ Pausar Simulación' : 'Simular Cómo Poner / Sacar';
+            });
+
+            // Botón Guardar Rápido
+            document.getElementById('btnQuickSave').addEventListener('click', () => {
+                saveCurrentToLocalStorage();
+            });
+
+            // Selector de Perfiles
+            document.getElementById('profileSelect').addEventListener('change', (e) => {
+                const name = e.target.value;
+                if (name && savedProfiles[name]) {
+                    params = { ...defaultParams, ...savedProfiles[name] };
+                    validateAndClampParams();
+                    saveCurrentToLocalStorage();
+                    rebuildSceneGeometry();
+                    showToast(`Perfil "${name}" cargado`);
+                }
+            });
+
+            // Mostrar caja para guardar nuevo perfil
+            const newProfileBox = document.getElementById('newProfileBox');
+            const newProfileName = document.getElementById('newProfileName');
+
+            document.getElementById('btnSaveAsProfile').addEventListener('click', () => {
+                newProfileBox.classList.remove('hidden');
+                newProfileBox.classList.add('flex');
+                newProfileName.value = '';
+                newProfileName.focus();
+            });
+
+            document.getElementById('btnCancelSaveProfile').addEventListener('click', () => {
+                newProfileBox.classList.add('hidden');
+                newProfileBox.classList.remove('flex');
+            });
+
+            document.getElementById('btnConfirmSaveProfile').addEventListener('click', () => {
+                const name = newProfileName.value.trim();
+                if (!name) {
+                    showToast('Escribe un nombre para el perfil');
+                    return;
+                }
+                savedProfiles[name] = { ...params };
+                try {
+                    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(savedProfiles));
+                    localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(params));
+                } catch (err) {}
+                refreshProfileDropdown(name);
+                setDirtyState(false);
+                newProfileBox.classList.add('hidden');
+                newProfileBox.classList.remove('flex');
+                showToast(`Perfil "${name}" guardado`);
+            });
+
+            // Borrar perfil seleccionado
+            document.getElementById('btnDeleteProfile').addEventListener('click', () => {
+                const sel = document.getElementById('profileSelect');
+                const name = sel.value;
+                if (!name || !savedProfiles[name]) {
+                    showToast('Selecciona primero un perfil de la lista para borrarlo');
+                    return;
+                }
+                delete savedProfiles[name];
+                try {
+                    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(savedProfiles));
+                } catch (err) {}
+                refreshProfileDropdown('');
+                showToast(`Perfil "${name}" eliminado`);
+            });
+
+            // Exportar parámetros a archivo .JSON
+            document.getElementById('btnExportJSON').addEventListener('click', () => {
+                const dataStr = JSON.stringify({
+                    app: 'StrapGuard 3D Pro',
+                    version: 3,
+                    timestamp: new Date().toISOString(),
+                    params: params
+                }, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `parametros_enganche_bajo_${params.pinDiam}x${params.washerDiam}x${params.lowerDiam}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Configuración exportada a archivo .JSON');
+            });
+
+            // Importar parámetros desde archivo .JSON
+            document.getElementById('inputImportJSON').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const parsed = JSON.parse(ev.target.result);
+                        const sourceParams = parsed.params || parsed;
+                        Object.keys(defaultParams).forEach(k => {
+                            if (typeof sourceParams[k] === 'number' && !isNaN(sourceParams[k])) {
+                                params[k] = sourceParams[k];
+                            }
+                        });
+                        validateAndClampParams();
+                        saveCurrentToLocalStorage();
+                        rebuildSceneGeometry();
+                        showToast('Parámetros importados desde JSON correctamente');
+                    } catch (err) {
+                        showToast('El archivo JSON no tiene un formato válido');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            });
+
+            // Botón Reset
+            document.getElementById('btnReset').addEventListener('click', () => {
+                params = { ...defaultParams };
+                syncInputsFromParams();
+                setDirtyState(true);
+                rebuildSceneGeometry();
+                showToast('Medidas restauradas a los valores recomendados');
+            });
+
+            // Botones de visualización
+            document.getElementById('btnSectionView').addEventListener('click', () => {
+                viewState.sectionCut = !viewState.sectionCut;
+                updateToggleButtons();
+                rebuildSceneGeometry();
+            });
+
+            document.getElementById('btnShowHardware').addEventListener('click', () => {
+                viewState.showHardware = !viewState.showHardware;
+                updateToggleButtons();
+                rebuildSceneGeometry();
+            });
+
+            document.getElementById('btnPrintPose').addEventListener('click', () => {
+                viewState.printPose = !viewState.printPose;
+                if (viewState.printPose) {
+                    isAnimatingInstall = false;
+                    installProgress = 0;
+                    document.getElementById('installProgress').value = 0;
+                }
+                updateToggleButtons();
+                rebuildSceneGeometry();
+            });
+
+            document.getElementById('btnWireframe').addEventListener('click', () => {
+                viewState.wireframe = !viewState.wireframe;
+                updateToggleButtons();
+                if (protectorMesh) {
+                    protectorMesh.material.wireframe = viewState.wireframe;
+                }
+            });
+
+            // Exportar STL
+            document.getElementById('btnDownloadSTL').addEventListener('click', exportBinarySTL);
+        }
+
+        function updateToggleButtons() {
+            const btnSection = document.getElementById('btnSectionView');
+            btnSection.className = viewState.sectionCut
+                ? 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-amber-500/25 text-amber-300 border border-amber-500/50 transition'
+                : 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition';
+
+            const btnHardware = document.getElementById('btnShowHardware');
+            btnHardware.className = viewState.showHardware
+                ? 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-sky-500/25 text-sky-300 border border-sky-500/50 transition'
+                : 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition';
+
+            const btnPrintPose = document.getElementById('btnPrintPose');
+            btnPrintPose.className = viewState.printPose
+                ? 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 transition'
+                : 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition';
+
+            const btnWireframe = document.getElementById('btnWireframe');
+            btnWireframe.className = viewState.wireframe
+                ? 'px-2.5 py-1.5 rounded-lg text-xs font-medium bg-rose-500/25 text-rose-300 border border-rose-500/50 transition'
+                : 'px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition';
+        }
+
+        // =========================================================================
+        // GENERADOR DE MALLA SÓLIDA MANIFOLD CON CANAL DE ENTRADA EN "C",
+        // RAMPAS DE DESBLOQUEO A 45° Y PESTAÑA TRASERA DE EXTRACCIÓN
+        // =========================================================================
+        function buildProtectorManifoldGeometry(p, isSectionPreview = false) {
+            const totalHeight = p.lowerDepth + p.skirtDepth + p.pinDepth + p.topThickness;
+            const rOuterBase = p.outerDiam / 2;
+            const rWasher = p.washerDiam / 2;
+            const rLower = p.lowerDiam / 2;
+            const rPin = p.pinDiam / 2;
+            const rLip = Math.max(4.0, rLower - p.snapLip);
+
+            // Cotas verticales Y de las 3 secciones (y=0 es la base junto al cuerpo del bajo)
+            const yLowerTop = p.lowerDepth;                       // Fin sección muelle / inicio cavidad arandela
+            const ySkirtTop = p.lowerDepth + p.skirtDepth;        // Fin cavidad arandela / inicio cabeza moleteada
+            const yPinTop = ySkirtTop + p.pinDepth;               // Techo cavidad cabeza moleteada
+            const yTop = totalHeight;                             // Cima exterior del protector
+
+            const halfStrapRad = (p.strapAngle * Math.PI / 180) / 2;
+
+            // Canal lateral superior para la cabeza moleteada (Modo 1 y 3):
+            // Si headEntryRatio > 0, en el frente (+X, donde sale la correa) la cavidad de la cabeza (Sección 1)
+            // también se abre hacia la ventana lateral con un ancho = (headEntryRatio% * Ø1) para permitir
+            // que el protector entre y salga deslizándose de lado bajo su propio techo cerrado.
+            const headSlotHalfAngle = (p.headEntryRatio > 0)
+                ? Math.min(halfStrapRad * 0.88, Math.asin(Math.min(0.98, (p.headEntryRatio / 100))))
+                : 0.0;
+
+            function normalizeAngle(theta) {
+                let a = theta;
+                while (a > Math.PI) a -= Math.PI * 2;
+                while (a < -Math.PI) a += Math.PI * 2;
+                return a;
+            }
+
+            function getSectorConfig(theta) {
+                const a = normalizeAngle(theta);
+
+                // ¿Está dentro del canal frontal donde hasta la cámara de la cabeza se abre lateralmente?
+                if (p.headEntryRatio > 0 && Math.abs(a) <= headSlotHalfAngle) {
+                    return {
+                        yBottom: yPinTop, // El faldón se abre hasta el techo interior de la cabeza (el techo superior sigue macizo)
+                        isHeadChannel: true
+                    };
+                }
+
+                // ¿Está dentro de la ventana lateral de salida de la correa de cuero?
+                if (p.strapAngle > 0 && p.strapHeight > 0 && Math.abs(a) <= halfStrapRad) {
+                    return {
+                        yBottom: Math.min(ySkirtTop, p.strapHeight),
+                        isHeadChannel: false
+                    };
+                }
+
+                // ¿Está en una de las ranuras verticales de flexión?
+                if (p.flexSlots > 0) {
+                    const remainingArc = Math.PI * 2 - (halfStrapRad * 2);
+                    const slotWidthRad = 0.12;
+                    for (let s = 1; s <= p.flexSlots; s++) {
+                        const slotCenter = -Math.PI + halfStrapRad + (remainingArc * s) / (p.flexSlots + 1);
+                        const sc = normalizeAngle(slotCenter + Math.PI);
+                        if (Math.abs(a - sc) <= slotWidthRad / 2) {
+                            return {
+                                yBottom: Math.min(ySkirtTop - 0.8, (p.lowerDepth + p.skirtDepth) * 0.78),
+                                isHeadChannel: false
+                            };
+                        }
+                    }
+                }
+
+                return {
+                    yBottom: 0.0,
+                    isHeadChannel: false
+                };
+            }
+
+            // Calcula el radio exterior añadiendo la pestaña/asa trasera de extracción en el lado opuesto a la correa (theta ≈ ±PI)
+            function getOuterRadiusAt(theta, y) {
+                if (p.pullTabLen <= 0) return rOuterBase;
+                const a = normalizeAngle(theta);
+                const distFromBack = Math.abs(Math.abs(a) - Math.PI); // 0 en la parte trasera exacta
+                const tabHalfAngle = 0.48; // ~55 grados de arco trasero para apoyar el dedo
+                if (distFromBack <= tabHalfAngle) {
+                    // Perfil suave cosenoidal en ángulo y concentrado en la mitad inferior/media para hacer palanca con el dedo
+                    const angFactor = Math.cos((distFromBack / tabHalfAngle) * (Math.PI / 2));
+                    const tabCenterY = Math.min(ySkirtTop, Math.max(4.0, p.lowerDepth * 0.65));
+                    const tabHalfH = 3.8;
+                    const dy = Math.abs(y - tabCenterY);
+                    if (dy <= tabHalfH) {
+                        const yFactor = Math.cos((dy / tabHalfH) * (Math.PI / 2));
+                        return rOuterBase + p.pullTabLen * angFactor * yFactor;
+                    }
+                }
+                return rOuterBase;
+            }
+
+            // Genera un loop radial de 22 vértices con rampas de 45° para evitar cualquier bloqueo mecánico
+            function getFixedCountLoop(sectorCfg, theta) {
+                const yBottom = sectorCfg.yBottom;
+                const pts = [];
+                const lipH = Math.min(p.lipHeight, p.lowerDepth * 0.65);
+                const chamferH = Math.min(p.releaseChamfer, p.skirtDepth * 0.75);
+
+                let rAtStart = rLower;
+                if (yBottom >= ySkirtTop - 0.05) {
+                    rAtStart = rPin;
+                } else if (yBottom >= yLowerTop - 0.05) {
+                    rAtStart = rWasher;
+                }
+
+                // Puntos 0..8: Perfil interior escalonado con rampas de desbloqueo a 45°
+                if (sectorCfg.isHeadChannel) {
+                    // En el canal frontal de entrada en "C", solo queda el techo macizo superior (de yPinTop a yTop)
+                    for (let k = 0; k <= 8; k++) {
+                        pts.push({ r: rPin + (rOuterBase - rPin) * (0.15 * (8 - k) / 8), y: yPinTop });
+                    }
+                } else if (yBottom < 0.05) {
+                    // Sector completo hasta la base:
+                    // Incluye rampa de entrada/salida en el labio inferior + rampa de 45° entre muelle (Ø3) y arandela (Ø2)
+                    pts.push({ r: rLower, y: 0.0 });                                 // 0: Boca inferior biselada
+                    pts.push({ r: rLip, y: lipH * 0.45 });                           // 1: Labio suave redondeado
+                    pts.push({ r: rLower, y: lipH });                                // 2: Fin rampa de salida del labio
+                    pts.push({ r: rLower, y: Math.max(lipH, yLowerTop - chamferH * 0.5) }); // 3: Inicio rampa de 45° hacia arandela
+                    pts.push({ r: rWasher, y: yLowerTop + chamferH * 0.5 });         // 4: Fin rampa 45° (nunca bloquea la arandela al sacar)
+                    pts.push({ r: rWasher, y: ySkirtTop - 0.4 });                    // 5: Pared arandela
+                    pts.push({ r: rPin + 0.35, y: ySkirtTop });                      // 6: Escalón hacia cabeza
+                    pts.push({ r: rPin, y: ySkirtTop + 0.45 });                      // 7: Cuello cabeza
+                    pts.push({ r: rPin, y: yPinTop });                               // 8: Techo cabeza
+                } else if (yBottom < yLowerTop) {
+                    const dy = yLowerTop - yBottom;
+                    pts.push({ r: rLower, y: yBottom });                             // 0
+                    pts.push({ r: rLower, y: yBottom + dy * 0.33 });                 // 1
+                    pts.push({ r: rLower, y: yBottom + dy * 0.66 });                 // 2
+                    pts.push({ r: rLower, y: yLowerTop });                           // 3
+                    pts.push({ r: rWasher, y: yLowerTop + chamferH * 0.5 });         // 4
+                    pts.push({ r: rWasher, y: ySkirtTop - 0.4 });                    // 5
+                    pts.push({ r: rPin + 0.35, y: ySkirtTop });                      // 6
+                    pts.push({ r: rPin, y: ySkirtTop + 0.45 });                      // 7
+                    pts.push({ r: rPin, y: yPinTop });                               // 8
+                } else {
+                    // Ventana lateral sobre la correa pero manteniendo el cuello de la cabeza parcial
+                    const dy = Math.max(0.15, ySkirtTop - yBottom);
+                    pts.push({ r: rWasher, y: yBottom });                            // 0
+                    pts.push({ r: rWasher, y: yBottom + dy * 0.25 });                // 1
+                    pts.push({ r: rWasher, y: yBottom + dy * 0.50 });                // 2
+                    pts.push({ r: rWasher, y: yBottom + dy * 0.75 });                // 3
+                    pts.push({ r: rWasher, y: ySkirtTop });                          // 4
+                    pts.push({ r: rWasher, y: ySkirtTop });                          // 5
+                    pts.push({ r: rPin + 0.35, y: ySkirtTop });                      // 6
+                    pts.push({ r: rPin, y: ySkirtTop + 0.45 });                      // 7
+                    pts.push({ r: rPin, y: yPinTop });                               // 8
+                }
+
+                // Punto 9: Centro techo interior de la cabeza (intacto al 100% para amortiguar contra la funda)
+                pts.push({ r: 0.0, y: yPinTop });                                    // 9
+
+                // Punto 10: Centro domo superior exterior
+                pts.push({ r: 0.0, y: yTop });                                       // 10
+
+                // Puntos 11..19: Curva del domo exterior (funda)
+                const R = Math.min(p.domeRadius, rOuterBase - 0.5, totalHeight - yBottom - 0.5);
+                const rFlatTop = Math.max(0.0, rOuterBase - R);
+                pts.push({ r: rFlatTop, y: yTop });                                  // 11
+
+                const arcSteps = 8;
+                for (let i = 1; i <= arcSteps; i++) {
+                    const ang = (Math.PI / 2) * (1 - i / arcSteps);
+                    const yCur = (yTop - R) + R * Math.sin(ang);
+                    const rDom = rFlatTop + R * Math.cos(ang);
+                    pts.push({ r: rDom, y: yCur });                                  // 12..19
+                }
+
+                // Puntos 20..21: Pared exterior bajando hasta yBottom (incluye el Asa Trasera ergonómica si corresponde)
+                const botChamfer = Math.min(1.0, (rOuterBase - rAtStart) * 0.25);
+                const y20 = yBottom + botChamfer;
+                pts.push({ r: getOuterRadiusAt(theta, y20), y: y20 });               // 20
+                pts.push({ r: getOuterRadiusAt(theta, yBottom) - botChamfer, y: yBottom }); // 21
+
+                return pts; // 22 puntos exactos
+            }
+
+            const totalSegments = 144;
+            const startAngle = isSectionPreview ? -Math.PI / 2 : -Math.PI;
+            const endAngle = isSectionPreview ? Math.PI / 2 : Math.PI;
+            const segCount = isSectionPreview ? totalSegments / 2 : totalSegments;
+
+            const positions = [];
+            const normals = [];
+
+            function pushTriangle(ax, ay, az, bx, by, bz, cx, cy, cz) {
+                const ux = bx - ax, uy = by - ay, uz = bz - az;
+                const vx = cx - ax, vy = cy - ay, vz = cz - az;
+                let nx = uy * vz - uz * vy;
+                let ny = uz * vx - ux * vz;
+                let nz = ux * vy - uy * vx;
+                const len = Math.hypot(nx, ny, nz);
+                if (len < 1e-9) return;
+                nx /= len; ny /= len; nz /= len;
+
+                positions.push(ax, ay, az, bx, by, bz, cx, cy, cz);
+                normals.push(nx, ny, nz, nx, ny, nz, nx, ny, nz);
+            }
+
+            function cylToCart(r, y, theta) {
+                return [r * Math.cos(theta), y, r * Math.sin(theta)];
+            }
+
+            function addSectionCap(loop, theta, windingForward) {
+                const c3d = loop.map(pt => cylToCart(pt.r, pt.y, theta));
+                const emit = (i0, i1, i2) => {
+                    const A = c3d[i0], B = c3d[i1], C = c3d[i2];
+                    if (windingForward) {
+                        pushTriangle(A[0], A[1], A[2], B[0], B[1], B[2], C[0], C[1], C[2]);
+                    } else {
+                        pushTriangle(A[0], A[1], A[2], C[0], C[1], C[2], B[0], B[1], B[2]);
+                    }
+                };
+
+                emit(0, 21, 20);
+                emit(0, 20, 1);
+                emit(1, 20, 2);
+                emit(2, 20, 3);
+                emit(3, 20, 19);
+                emit(3, 19, 4);
+                emit(4, 19, 5);
+
+                for (let k = 5; k < 18; k++) {
+                    emit(19, k, k + 1);
+                }
+            }
+
+            function addPartialWallCap(lowLoop, highLoop, theta, facingBackward) {
+                const yLow = lowLoop[0].y;
+                const yHigh = highLoop[0].y;
+                const rOut = getOuterRadiusAt(theta, (yLow + yHigh) * 0.5);
+
+                const steps = [];
+                if (yLow < yLowerTop && yHigh > yLowerTop) {
+                    steps.push({ y0: yLow, y1: yLowerTop, rIn0: lowLoop[0].r, rIn1: rLower });
+                    if (yHigh > ySkirtTop) {
+                        steps.push({ y0: yLowerTop, y1: ySkirtTop, rIn0: rWasher, rIn1: rWasher });
+                        steps.push({ y0: ySkirtTop, y1: yHigh, rIn0: rPin, rIn1: rPin });
+                    } else {
+                        steps.push({ y0: yLowerTop, y1: yHigh, rIn0: rWasher, rIn1: rWasher });
+                    }
+                } else if (yLow < ySkirtTop && yHigh > ySkirtTop) {
+                    steps.push({ y0: yLow, y1: ySkirtTop, rIn0: rWasher, rIn1: rWasher });
+                    steps.push({ y0: ySkirtTop, y1: yHigh, rIn0: rPin, rIn1: rPin });
+                } else {
+                    const rIn = (yHigh <= yLowerTop) ? rLower : (yHigh <= ySkirtTop ? rWasher : rPin);
+                    steps.push({ y0: yLow, y1: yHigh, rIn0: lowLoop[0].r, rIn1: rIn });
+                }
+
+                steps.forEach(st => {
+                    const pInLow = cylToCart(st.rIn0, st.y0, theta);
+                    const pInHigh = cylToCart(st.rIn1, st.y1, theta);
+                    const pOutHigh = cylToCart(rOut, st.y1, theta);
+                    const pOutLow = cylToCart(rOut, st.y0, theta);
+
+                    if (facingBackward) {
+                        pushTriangle(pInLow[0], pInLow[1], pInLow[2], pOutLow[0], pOutLow[1], pOutLow[2], pOutHigh[0], pOutHigh[1], pOutHigh[2]);
+                        pushTriangle(pInLow[0], pInLow[1], pInLow[2], pOutHigh[0], pOutHigh[1], pOutHigh[2], pInHigh[0], pInHigh[1], pInHigh[2]);
+                    } else {
+                        pushTriangle(pInLow[0], pInLow[1], pInLow[2], pOutHigh[0], pOutHigh[1], pOutHigh[2], pOutLow[0], pOutLow[1], pOutLow[2]);
+                        pushTriangle(pInLow[0], pInLow[1], pInLow[2], pInHigh[0], pInHigh[1], pInHigh[2], pOutHigh[0], pOutHigh[1], pOutHigh[2]);
+                    }
+                });
+            }
+
+            let prevCfg = null;
+            let prevLoop = null;
+            let prevTheta = null;
+
+            for (let s = 0; s <= segCount; s++) {
+                const theta = startAngle + (endAngle - startAngle) * (s / segCount);
+                const midTheta = s < segCount
+                    ? startAngle + (endAngle - startAngle) * ((s + 0.5) / segCount)
+                    : startAngle + (endAngle - startAngle) * (0.5 / segCount);
+
+                const curCfg = getSectorConfig(midTheta);
+                const curLoop = getFixedCountLoop(curCfg, theta);
+
+                if (s > 0) {
+                    if (Math.abs(curCfg.yBottom - prevCfg.yBottom) > 1e-4) {
+                        if (curCfg.yBottom > prevCfg.yBottom) {
+                            addPartialWallCap(prevLoop, curLoop, prevTheta, false);
+                        } else {
+                            addPartialWallCap(curLoop, prevLoop, prevTheta, true);
+                        }
+                    }
+
+                    const loopA = getFixedCountLoop(curCfg, prevTheta);
+                    for (let i = 0; i < loopA.length; i++) {
+                        const j = (i + 1) % loopA.length;
+                        const pA0 = cylToCart(loopA[i].r, loopA[i].y, prevTheta);
+                        const pA1 = cylToCart(loopA[j].r, loopA[j].y, prevTheta);
+                        const pB0 = cylToCart( curLoop[i].r, curLoop[i].y, theta);
+                        const pB1 = cylToCart( curLoop[j].r, curLoop[j].y, theta);
+
+                        pushTriangle(pA0[0], pA0[1], pA0[2], pB0[0], pB0[1], pB0[2], pB1[0], pB1[1], pB1[2]);
+                        pushTriangle(pA0[0], pA0[1], pA0[2], pB1[0], pB1[1], pB1[2], pA1[0], pA1[1], pA1[2]);
+                    }
+                }
+
+                prevCfg = curCfg;
+                prevLoop = curLoop;
+                prevTheta = theta;
+            }
+
+            if (isSectionPreview) {
+                const startCfg = getSectorConfig(startAngle + 0.01);
+                const endCfg = getSectorConfig(endAngle - 0.01);
+                addSectionCap(getFixedCountLoop(startCfg, startAngle), startAngle, true);
+                addSectionCap(getFixedCountLoop(endCfg, endAngle), endAngle, false);
+            } else {
+                const firstMid = startAngle + (endAngle - startAngle) * (0.5 / segCount);
+                const lastMid = startAngle + (endAngle - startAngle) * ((segCount - 0.5) / segCount);
+                const firstCfg = getSectorConfig(firstMid);
+                const lastCfg = getSectorConfig(lastMid);
+                if (Math.abs(firstCfg.yBottom - lastCfg.yBottom) > 1e-4) {
+                    if (firstCfg.yBottom > lastCfg.yBottom) {
+                        addPartialWallCap(getFixedCountLoop(lastCfg, Math.PI), getFixedCountLoop(firstCfg, Math.PI), Math.PI, false);
+                    } else {
+                        addPartialWallCap(getFixedCountLoop(firstCfg, Math.PI), getFixedCountLoop(lastCfg, Math.PI), Math.PI, true);
+                    }
+                }
+            }
+
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+
+            return geom;
+        }
+
+        // =========================================================================
+        // SIMULADOR INTERACTIVO DE COLOCACIÓN Y EXTRACCIÓN EN 3D
+        // =========================================================================
+        function updateProtectorAnimationTransform() {
+            if (!protectorMesh || viewState.printPose) return;
+
+            const t = installProgress; // 0 = encajado, 1 = fuera
+            const label = document.getElementById('installStepLabel');
+
+            protectorMesh.position.set(0, 0, 0);
+            protectorMesh.rotation.set(0, 0, 0);
+
+            if (params.mountMode === 1) {
+                // Modo 1 (Lateral en C): Se desliza horizontalmente hacia atrás (-X) con un ligero cabeceo ergonómico
+                protectorMesh.position.x = -t * 34;
+                protectorMesh.position.y = t * 4.5;
+                protectorMesh.rotation.z = t * 0.14;
+                if (label) {
+                    label.textContent = t === 0
+                        ? 'Posición: Encajado (0%)'
+                        : `Deslizando de lado (${Math.round(t * 100)}%)`;
+                }
+            } else if (params.mountMode === 2) {
+                // Modo 2 (Capuchón Vertical): Sube y baja recto en vertical (+Y) sin chocar con la arandela
+                protectorMesh.position.y = t * 32;
+                if (label) {
+                    label.textContent = t === 0
+                        ? 'Posición: Encajado (0%)'
+                        : `Extracción vertical (${Math.round(t * 100)}%)`;
+                }
+            } else {
+                // Modo 3 (Pinza TPU con rampa 45°): Bascula desde el tirador trasero y sale en diagonal
+                protectorMesh.position.x = -t * 24;
+                protectorMesh.position.y = t * 20;
+                protectorMesh.rotation.z = t * 0.35;
+                if (label) {
+                    label.textContent = t === 0
+                        ? 'Posición: Encajado (0%)'
+                        : `Basculando con tirador (${Math.round(t * 100)}%)`;
+                }
+            }
+        }
+
+        // =========================================================================
+        // RECREACIÓN 3D FIEL A LAS NUEVAS FOTOS LATERALES (CON MUELLE Y BASE CÓNICA)
+        // =========================================================================
+        function buildReferenceHardwareGroup(p) {
+            const group = new THREE.Group();
+
+            const chromeMat = new THREE.MeshStandardMaterial({
+                color: 0xe2e8f0,
+                metalness: 0.85,
+                roughness: 0.2,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            const springMat = new THREE.MeshStandardMaterial({
+                color: 0xcbd5e1,
+                metalness: 0.9,
+                roughness: 0.15
+            });
+
+            const leatherMat = new THREE.MeshStandardMaterial({
+                color: 0x27272a,
+                roughness: 0.92,
+                metalness: 0.05
+            });
+
+            const bassBodyMat = new THREE.MeshPhysicalMaterial({
+                color: 0xb91c1c,
+                roughness: 0.12,
+                metalness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.08,
+                transparent: true,
+                opacity: 0.72
+            });
+
+            const rPinReal = (p.pinDiam - 0.4) / 2;
+            const rWasherReal = (p.washerDiam - 0.6) / 2;
+            const rLowerReal = (p.lowerDiam - 0.6) / 2;
+
+            const yLowerTop = p.lowerDepth;
+            const ySkirtTop = p.lowerDepth + p.skirtDepth;
+
+            // 1. SECCIÓN SUPERIOR: Cabeza moleteada + cuello corto inferior
+            const headH = p.pinDepth * 0.62;
+            const neckH = p.pinDepth * 0.38;
+            const headGeom = new THREE.CylinderGeometry(rPinReal, rPinReal, headH, 36);
+            headGeom.translate(0, ySkirtTop + neckH + headH / 2, 0);
+            group.add(new THREE.Mesh(headGeom, chromeMat));
+
+            const neckGeom = new THREE.CylinderGeometry(rPinReal * 0.86, rPinReal * 0.86, neckH, 32);
+            neckGeom.translate(0, ySkirtTop + neckH / 2, 0);
+            group.add(new THREE.Mesh(neckGeom, chromeMat));
+
+            // 2. SECCIÓN MEDIA: Arandela superior + Correa de cuero + Arandela inferior bajo el cuero
+            const topWasherH = 1.4;
+            const botWasherH = 1.2;
+            const leatherH = Math.max(2.0, p.skirtDepth - topWasherH - botWasherH);
+
+            const topWasherGeom = new THREE.CylinderGeometry(rWasherReal, rWasherReal, topWasherH, 48);
+            topWasherGeom.translate(0, ySkirtTop - topWasherH / 2, 0);
+            group.add(new THREE.Mesh(topWasherGeom, chromeMat));
+
+            // Puntera de cuero saliendo hacia +X
+            const strapShape = new THREE.Shape();
+            const rStrap = rWasherReal + 1.8;
+            strapShape.absarc(0, 0, rStrap, Math.PI * 0.35, -Math.PI * 0.35, false);
+            strapShape.lineTo(rStrap + 24, -13);
+            strapShape.lineTo(rStrap + 24, 13);
+            strapShape.closePath();
+
+            const strapGeom = new THREE.ExtrudeGeometry(strapShape, {
+                steps: 1,
+                depth: leatherH,
+                bevelEnabled: true,
+                bevelThickness: 0.4,
+                bevelSize: 0.4,
+                bevelSegments: 2
+            });
+            strapGeom.rotateX(Math.PI / 2);
+            strapGeom.translate(0, ySkirtTop - topWasherH, 0);
+            group.add(new THREE.Mesh(strapGeom, leatherMat));
+
+            // Arandela metálica justo debajo del cuero (sobre el muelle)
+            const midWasherGeom = new THREE.CylinderGeometry(rLowerReal * 0.98, rLowerReal * 0.98, botWasherH, 40);
+            midWasherGeom.translate(0, yLowerTop + botWasherH / 2, 0);
+            group.add(new THREE.Mesh(midWasherGeom, chromeMat));
+
+            // 3. SECCIÓN INFERIOR: Muelle helicoidal expuesto + eje central + cazoleta/base acampanada
+            const springZoneH = p.lowerDepth * 0.48;
+            const cupFlangeH = p.lowerDepth * 0.20;
+            const cupBodyH = p.lowerDepth * 0.32;
+
+            // Eje interno del botón dentro del muelle
+            const innerPostGeom = new THREE.CylinderGeometry(rLowerReal * 0.52, rLowerReal * 0.52, springZoneH, 28);
+            innerPostGeom.translate(0, yLowerTop - springZoneH / 2, 0);
+            group.add(new THREE.Mesh(innerPostGeom, chromeMat));
+
+            // Muelle helicoidal 3D real alrededor del eje
+            const springCurvePts = [];
+            const turns = 2.6;
+            const springSamples = 64;
+            const ySpringStart = yLowerTop - springZoneH;
+            for (let i = 0; i <= springSamples; i++) {
+                const t = i / springSamples;
+                const ang = t * Math.PI * 2 * turns;
+                const rCur = (rLowerReal * 0.72) + t * (rLowerReal * 0.18);
+                springCurvePts.push(new THREE.Vector3(
+                    rCur * Math.cos(ang),
+                    ySpringStart + t * springZoneH,
+                    rCur * Math.sin(ang)
+                ));
+            }
+            const springCurve = new THREE.CatmullRomCurve3(springCurvePts);
+            const springTubeGeom = new THREE.TubeGeometry(springCurve, 64, 0.65, 10, false);
+            group.add(new THREE.Mesh(springTubeGeom, springMat));
+
+            // Plato/bisel acampanado de la cazoleta inferior (con reflejo rojizo del cuerpo)
+            const yCupFlangeTop = yLowerTop - springZoneH;
+            const cupFlangeGeom = new THREE.CylinderGeometry(rLowerReal, rLowerReal * 0.80, cupFlangeH, 44);
+            cupFlangeGeom.translate(0, yCupFlangeTop - cupFlangeH / 2, 0);
+            group.add(new THREE.Mesh(cupFlangeGeom, chromeMat));
+
+            // Tambor cilíndrico inferior del botón
+            const yCupBodyTop = yCupFlangeTop - cupFlangeH;
+            const cupBodyGeom = new THREE.CylinderGeometry(rLowerReal * 0.80, rLowerReal * 0.75, cupBodyH * 0.75, 44);
+            cupBodyGeom.translate(0, yCupBodyTop - (cupBodyH * 0.75) / 2, 0);
+            group.add(new THREE.Mesh(cupBodyGeom, chromeMat));
+
+            // Cuello estrecho sobre la madera donde se aloja el labio de nuestro protector
+            const neckBaseH = 2.0;
+            const neckBaseGeom = new THREE.CylinderGeometry(rLowerReal * 0.50, rLowerReal * 0.50, neckBaseH, 32);
+            neckBaseGeom.translate(0, (yCupBodyTop - cupBodyH * 0.75) - neckBaseH / 2, 0);
+            group.add(new THREE.Mesh(neckBaseGeom, chromeMat));
+
+            // 4. Cuerpo del bajo eléctrico rojo lacado
+            const hornY = (yCupBodyTop - cupBodyH * 0.75) - neckBaseH;
+            const hornGeom = new THREE.SphereGeometry(29, 32, 24);
+            hornGeom.scale(0.85, 0.42, 1.35);
+            hornGeom.translate(0, hornY - 11.5, 0);
+            group.add(new THREE.Mesh(hornGeom, bassBodyMat));
+
+            return group;
+        }
+
+        // =========================================================================
+        // ESCENA THREE.JS Y ACTUALIZACIÓN EN TIEMPO REAL
+        // =========================================================================
+        function initThreeScene() {
+            const container = document.getElementById('canvasContainer');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x090d16);
+
+            camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(42, 34, 58);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.target.set(0, 10, 0);
+
+            // Iluminación de estudio técnico
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.85);
+            dirLight1.position.set(40, 70, 50);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x60a5fa, 0.45);
+            dirLight2.position.set(-50, 30, -40);
+            scene.add(dirLight2);
+
+            const bottomLight = new THREE.DirectionalLight(0xf43f5e, 0.25);
+            bottomLight.position.set(0, -50, 20);
+            scene.add(bottomLight);
+
+            // Grilla milimétrica de referencia (100x100 mm con divisiones cada 5 mm)
+            const grid = new THREE.GridHelper(100, 20, 0x334155, 0x1e293b);
+            grid.position.y = 0;
+            scene.add(grid);
+
+            window.addEventListener('resize', onWindowResize);
+            rebuildSceneGeometry();
+            animate();
+        }
+
+        function rebuildSceneGeometry() {
+            if (!scene) return;
+
+            // Limpiar mallas anteriores
+            if (protectorMesh) {
+                scene.remove(protectorMesh);
+                protectorMesh.geometry.dispose();
+            }
+            if (hardwareGroup) {
+                scene.remove(hardwareGroup);
+            }
+
+            // Construir geometría según estado de sección
+            currentGeometry = buildProtectorManifoldGeometry(params, viewState.sectionCut);
+
+            const totalHeight = params.lowerDepth + params.skirtDepth + params.pinDepth + params.topThickness;
+
+            // Si el usuario activa "Posición en Impresora", rotamos la pieza 180° para que el domo/techo apoye en Y=0
+            if (viewState.printPose) {
+                currentGeometry.rotateX(Math.PI);
+                currentGeometry.translate(0, totalHeight, 0);
+            }
+
+            const protectorMat = new THREE.MeshStandardMaterial({
+                color: 0xef4444,
+                roughness: 0.35,
+                metalness: 0.08,
+                wireframe: viewState.wireframe,
+                side: THREE.DoubleSide
+            });
+
+            protectorMesh = new THREE.Mesh(currentGeometry, protectorMat);
+            scene.add(protectorMesh);
+
+            updateProtectorAnimationTransform();
+
+            // Añadir herraje y correa de referencia si está activo y no estamos en pose invertida de impresión
+            if (viewState.showHardware && !viewState.printPose) {
+                hardwareGroup = buildReferenceHardwareGroup(params);
+                scene.add(hardwareGroup);
+            }
+
+            // Actualizar estadísticas y plano 2D
+            updateMetricsAnd2DProfile();
+        }
+
+        function updateMetricsAnd2DProfile() {
+            const totalH = (params.lowerDepth + params.skirtDepth + params.pinDepth + params.topThickness).toFixed(1);
+            const minWall = ((params.outerDiam - params.washerDiam) / 2).toFixed(1);
+
+            document.getElementById('statHeight').textContent = `${totalH} mm`;
+            const wallEl = document.getElementById('statWall');
+            wallEl.textContent = `${minWall} mm`;
+            wallEl.className = parseFloat(minWall) < 2.5
+                ? 'mono font-semibold text-amber-400'
+                : 'mono font-semibold text-emerald-400';
+
+            updateMountModeButtonsUI();
+            draw2DProfileCanvas();
+        }
+
+        // =========================================================================
+        // PLANO ESQUEMÁTICO 2D EN TIEMPO REAL DE LAS 3 SECCIONES + TIRADOR Y RAMPAS
+        // =========================================================================
+        function draw2DProfileCanvas() {
+            const canvas = document.getElementById('profile2DCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const totalH = params.lowerDepth + params.skirtDepth + params.pinDepth + params.topThickness;
+            const scale = Math.min((w - 28) / (params.outerDiam + params.pullTabLen), (h - 14) / totalH);
+
+            const cx = w / 2 + 2;
+            const baseY = h - 6;
+
+            // Eje de simetría
+            ctx.strokeStyle = '#334155';
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(cx, 4);
+            ctx.lineTo(cx, h - 4);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const rOut = (params.outerDiam / 2) * scale;
+            const rTab = (params.pullTabLen) * scale;
+            const rWash = (params.washerDiam / 2) * scale;
+            const rLow = (params.lowerDiam / 2) * scale;
+            const rLip = Math.max(2, (params.lowerDiam / 2 - params.snapLip) * scale);
+            const rPin = (params.pinDiam / 2) * scale;
+
+            const hLow = params.lowerDepth * scale;
+            const hSkirt = params.skirtDepth * scale;
+            const hPin = params.pinDepth * scale;
+            const hTop = totalH * scale;
+            const hStrap = params.strapHeight * scale;
+            const hLip = Math.min(params.lipHeight, params.lowerDepth * 0.6) * scale;
+            const hChamf = Math.min(params.releaseChamfer, params.skirtDepth * 0.6) * scale;
+
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+            ctx.strokeStyle = '#f87171';
+            ctx.lineWidth = 1.4;
+
+            ctx.beginPath();
+            // Mitad izquierda: Perfil interior con rampas de 45° + Asa trasera a la izquierda
+            ctx.moveTo(cx - rLow, baseY);
+            ctx.lineTo(cx - rLip, baseY - hLip * 0.45);
+            ctx.lineTo(cx - rLow, baseY - hLip);
+            ctx.lineTo(cx - rLow, baseY - hLow + hChamf * 0.5);
+            ctx.lineTo(cx - rWash, baseY - hLow - hChamf * 0.5);
+            ctx.lineTo(cx - rWash, baseY - hLow - hSkirt);
+            ctx.lineTo(cx - rPin, baseY - hLow - hSkirt);
+            ctx.lineTo(cx - rPin, baseY - hLow - hSkirt - hPin);
+
+            // Mitad derecha: Si tiene canal en C para la cabeza (headEntryRatio > 0), el paso llega hasta el techo interior
+            if (params.headEntryRatio > 0) {
+                ctx.lineTo(cx + rOut, baseY - hLow - hSkirt - hPin);
+            } else {
+                ctx.lineTo(cx + rPin, baseY - hLow - hSkirt - hPin);
+                ctx.lineTo(cx + rPin, baseY - hLow - hSkirt);
+                ctx.lineTo(cx + rWash, baseY - hLow - hSkirt);
+                const rRightCut = (params.strapHeight >= params.lowerDepth) ? rWash : rLow;
+                ctx.lineTo(cx + rRightCut, baseY - hStrap);
+                ctx.lineTo(cx + rOut, baseY - hStrap);
+            }
+
+            // Contorno exterior y domo + pestaña tirador a la izquierda
+            ctx.lineTo(cx + rOut, baseY - hTop + 5);
+            ctx.quadraticCurveTo(cx + rOut, baseY - hTop, cx + rOut - 5, baseY - hTop);
+            ctx.lineTo(cx - rOut + 5, baseY - hTop);
+            ctx.quadraticCurveTo(cx - rOut, baseY - hTop, cx - rOut, baseY - hTop + 5);
+            // Saliente del tirador trasero en la pared izquierda
+            ctx.lineTo(cx - rOut, baseY - hLow * 0.9);
+            ctx.lineTo(cx - rOut - rTab, baseY - hLow * 0.6);
+            ctx.lineTo(cx - rOut, baseY - hLow * 0.25);
+            ctx.lineTo(cx - rOut, baseY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // =========================================================================
+        // EXPORTADOR A ARCHIVO .STL BINARIO (100% COMPATIBLE CON CURA / PRUSASLICER)
+        // =========================================================================
+        function exportBinarySTL() {
+            // Siempre generamos la malla 360° completa (sin el corte de inspección del 50%)
+            const fullGeom = buildProtectorManifoldGeometry(params, false);
+            const flipForPrint = document.getElementById('chkFlipPrint').checked;
+
+            if (flipForPrint) {
+                // En archivos STL el eje vertical es Z.
+                // Si invertimos para imprimir sin soportes, colocamos el domo/techo sobre Z=0.
+                const totalHeight = params.lowerDepth + params.skirtDepth + params.pinDepth + params.topThickness;
+                fullGeom.rotateX(Math.PI / 2);
+                fullGeom.translate(0, 0, totalHeight);
+            } else {
+                fullGeom.rotateX(Math.PI / 2);
+            }
+
+            const posAttr = fullGeom.getAttribute('position');
+            const numTriangles = posAttr.count / 3;
+
+            // Formato STL Binario: 80 bytes cabecera + 4 bytes uint32 (nº triángulos) + 50 bytes por triángulo
+            const bufferLength = 84 + numTriangles * 50;
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
+
+            // Escribir cabecera ASCII de 80 bytes
+            const headerText = `StrapGuard Bass Protector Ø${params.outerDiam}x${params.pinDiam}mm`;
+            for (let i = 0; i < 80; i++) {
+                view.setUint8(i, i < headerText.length ? headerText.charCodeAt(i) : 32);
+            }
+
+            // Número de triángulos
+            view.setUint32(80, numTriangles, true);
+
+            let offset = 84;
+            const pA = new THREE.Vector3();
+            const pB = new THREE.Vector3();
+            const pC = new THREE.Vector3();
+            const cb = new THREE.Vector3();
+            const ab = new THREE.Vector3();
+
+            for (let i = 0; i < numTriangles; i++) {
+                const idx = i * 3;
+                pA.fromBufferAttribute(posAttr, idx);
+                pB.fromBufferAttribute(posAttr, idx + 1);
+                pC.fromBufferAttribute(posAttr, idx + 2);
+
+                cb.subVectors(pC, pB);
+                ab.subVectors(pA, pB);
+                cb.cross(ab).normalize();
+
+                // Normal (3 floats)
+                view.setFloat32(offset, cb.x, true); offset += 4;
+                view.setFloat32(offset, cb.y, true); offset += 4;
+                view.setFloat32(offset, cb.z, true); offset += 4;
+
+                // Vértice 1
+                view.setFloat32(offset, pA.x, true); offset += 4;
+                view.setFloat32(offset, pA.y, true); offset += 4;
+                view.setFloat32(offset, pA.z, true); offset += 4;
+
+                // Vértice 2
+                view.setFloat32(offset, pB.x, true); offset += 4;
+                view.setFloat32(offset, pB.y, true); offset += 4;
+                view.setFloat32(offset, pB.z, true); offset += 4;
+
+                // Vértice 3
+                view.setFloat32(offset, pC.x, true); offset += 4;
+                view.setFloat32(offset, pC.y, true); offset += 4;
+                view.setFloat32(offset, pC.z, true); offset += 4;
+
+                // Attribute byte count (uint16 = 0)
+                view.setUint16(offset, 0, true); offset += 2;
+            }
+
+            fullGeom.dispose();
+
+            const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `protector_enganche_3secciones_${params.pinDiam}x${params.washerDiam}x${params.lowerDiam}mm.stl`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast(`STL descargado (${numTriangles} triángulos cerrados)`);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastMsg');
+            const text = document.getElementById('toastText');
+            text.textContent = msg;
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('flex');
+            }, 3200);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvasContainer');
+            if (!container || !renderer || !camera) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isAnimatingInstall && !viewState.printPose) {
+                installProgress += 0.012 * animDirection;
+                if (installProgress >= 1.0) {
+                    installProgress = 1.0;
+                    animDirection = -1;
+                } else if (installProgress <= 0.0) {
+                    installProgress = 0.0;
+                    animDirection = 1;
+                }
+                const slider = document.getElementById('installProgress');
+                if (slider) slider.value = Math.round(installProgress * 100);
+                updateProtectorAnimationTransform();
+            }
+            if (controls) controls.update();
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        window.onload = function () {
+            loadFromLocalStorage();
+            syncInputsFromParams();
+            setupUIEvents();
+            updateToggleButtons();
+            initThreeScene();
+        };
+    </script>
+</body>
+</html>
