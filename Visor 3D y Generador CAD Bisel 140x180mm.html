@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bisel Automotriz 140x180mm - Pestaña Curva de Espesor Constante</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js y OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body {
+      overflow-x: hidden;
+      user-select: none;
+    }
+    #viewport3D canvas {
+      outline: none;
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    /* Estilo de barras de desplazamiento personalizadas */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Encabezado Superior -->
+  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 sm:px-6 py-2.5 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 font-bold text-xs tracking-tight">
+        CAD
+      </div>
+      <div>
+        <h1 class="text-xs sm:text-sm font-bold text-white tracking-wide">Cerquillo / Embellecedor 140 × 180 mm</h1>
+        <p class="text-[11px] text-slate-400">Pestaña superior con curvatura continua interior-exterior de espesor constante</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <!-- Selector de Modo de Inspección y Material -->
+      <button id="btnSlicerSim" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium text-xs border border-emerald-500/40 transition flex items-center gap-1.5" title="Simular capas horizontales de impresión idénticas a Cura">
+        <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <span id="txtSlicerBtn">Simulador Capas Cura</span>
+      </button>
+
+      <button id="btnClipPlane" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium text-xs border border-amber-500/40 transition flex items-center gap-1.5" title="Corte transversal para comprobar el grosor constante de la pestaña superior curvada">
+        <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="4" y1="13" x2="20" y2="13"/></svg>
+        <span>Ver Corte Sólido</span>
+      </button>
+
+      <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+        <button id="matChrome" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">Cromo</button>
+        <button id="matMatte" class="px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 font-medium border border-teal-500/40 transition">ABS Slicer</button>
+        <button id="matWire" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">Malla</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Cuerpo Principal: Visor 3D + Panel de Parámetros -->
+  <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+    <!-- Visor 3D Three.js -->
+    <main class="flex-1 relative bg-gradient-to-b from-slate-950 via-[#0a0f1d] to-slate-950 min-h-[440px] lg:min-h-0 flex flex-col">
+      <div id="viewport3D" class="w-full flex-1 relative cursor-grab active:cursor-grabbing"></div>
+
+      <!-- Control Deslizante de Capas cuando el Simulador Slicer está activo -->
+      <div id="slicerSliderContainer" class="hidden absolute top-14 left-3 right-3 sm:right-auto sm:w-80 bg-slate-900/90 backdrop-blur-md p-2.5 rounded-xl border border-emerald-500/40 shadow-xl z-20">
+        <div class="flex justify-between items-center text-xs text-emerald-300 font-mono mb-1">
+          <span>Altura de corte capa Z:</span>
+          <span id="lblLayerHeight" class="font-bold">Z = 0.0 mm</span>
+        </div>
+        <input type="range" id="slLayerHeight" min="-25" max="10" step="0.2" value="0" 
+               class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400">
+      </div>
+
+      <!-- Presets de Cámara Fotográfica -->
+      <div class="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+        <button id="camIso" class="px-2.5 py-1.5 rounded-lg bg-slate-900/85 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-medium text-slate-200 backdrop-blur shadow transition">
+          Isométrica
+        </button>
+        <button id="camSideCurve" class="px-2.5 py-1.5 rounded-lg bg-teal-950/80 hover:bg-teal-900 border border-teal-500/40 text-[11px] font-medium text-teal-300 backdrop-blur shadow transition" title="Vista frontal del borde corto arqueado de esquina a esquina">
+          Borde Corto Arqueado (Captura 1)
+        </button>
+        <button id="camRearCorner" class="px-2.5 py-1.5 rounded-lg bg-slate-900/85 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-medium text-slate-200 backdrop-blur shadow transition" title="Vista igual a Captura 2">
+          Pared Interior (Captura 2)
+        </button>
+        <button id="camTop" class="px-2.5 py-1.5 rounded-lg bg-slate-900/85 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-medium text-slate-200 backdrop-blur shadow transition">
+          Plano Superior
+        </button>
+      </div>
+
+      <!-- Métricas y Cotas Dinámicas en Pantalla -->
+      <div class="absolute bottom-3 left-3 right-3 sm:right-auto sm:w-84 bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-800 text-xs font-mono space-y-1 shadow-2xl pointer-events-none z-10">
+        <div class="flex justify-between text-slate-400">
+          <span>Dimensiones ext.:</span>
+          <span id="statDim" class="text-teal-300 font-semibold">140.0 × 180.0 mm</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Flecha / Sagitta Arco Corto:</span>
+          <span id="statSagitta" class="text-amber-400 font-bold">h = 4.2 mm</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Curva Bloque Superior (Int→Ext):</span>
+          <span id="statTopCurve" class="text-cyan-400 font-bold">Δv = 1.5 mm (Grosor cte.)</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Inclinación pared (Draft):</span>
+          <span id="statDraft" class="text-teal-400 font-bold">5.0° hacia el interior</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Radio de acuerdo (Filete):</span>
+          <span id="statFillet" class="text-emerald-400 font-bold">R = 3.0 mm</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Estado Malla Slicer:</span>
+          <span class="text-emerald-400 font-bold">✓ 100% Watertight Manifold</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Panel Lateral de Ajustes de Ingeniería -->
+    <aside class="w-full lg:w-[410px] bg-slate-900/95 border-t lg:border-t-0 lg:border-l border-slate-800 p-4 sm:p-5 overflow-y-auto flex flex-col justify-between">
+      
+      <div class="space-y-3.5">
+        <div>
+          <h2 class="text-xs font-bold text-teal-400 uppercase tracking-wider mb-0.5">Parámetros Geométricos (Solid Sweep)</h2>
+          <p class="text-[11px] text-slate-400 leading-snug">El bloque superior se curva desde el interior hacia el exterior manteniendo constante el grosor sólido base en todo su recorrido.</p>
+        </div>
+
+        <!-- 1. Curvatura del Borde Corto (Captura 1) -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span> Arco Completo Borde Corto (X: -70 a +70mm)
+            </span>
+            <span id="valShortCurve" class="font-mono font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/50">10.0°</span>
+          </div>
+          <input type="range" id="slShortCurve" min="0" max="25" step="0.5" value="10" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400">
+        </div>
+
+        <!-- 2. Curvatura del Bloque Superior (Desde Interior hacia Exterior manteniendo grosor) -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-cyan-500/40">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Curvatura Pestaña Superior (Int. → Ext.)
+            </span>
+            <span id="valTopCurve" class="font-mono font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/50">1.5 mm</span>
+          </div>
+          <p class="text-[10px] text-slate-400 mb-1.5">Curva todo el bloque superior desde el interior hacia el exterior manteniendo constante su grosor.</p>
+          <input type="range" id="slTopCurve" min="0.0" max="6.0" step="0.2" value="1.5" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+        </div>
+
+        <!-- 3. Radio de Transición / Filete de Unión entre Pared y Pestaña -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Radio Fusión en Codo (Refuerzo Unión)
+            </span>
+            <span id="valFillet" class="font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/50">3.0 mm</span>
+          </div>
+          <input type="range" id="slFillet" min="0.5" max="6.0" step="0.25" value="3.0" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400">
+        </div>
+
+        <!-- 4. Inclinación de la Pared (Draft Angle) -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-teal-400"></span> Inclinación Pared Interior (Draft)
+            </span>
+            <span id="valDraft" class="font-mono font-bold text-teal-400 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-800/50">5.0°</span>
+          </div>
+          <input type="range" id="slDraft" min="0" max="20" step="0.5" value="5" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+        </div>
+
+        <!-- 5. Altura de Pared Interior -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200">Profundidad Falda Interior</span>
+            <span id="valWallH" class="font-mono font-bold text-slate-200 bg-slate-800 px-2 py-0.5 rounded">16.0 mm</span>
+          </div>
+          <input type="range" id="slWallH" min="6" max="35" step="1" value="16" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+        </div>
+
+        <!-- 6. Pestaña Superior y Grosor Sólido Base (Mínimo desde 1.0 mm) -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+            <div class="flex justify-between items-center text-xs mb-1">
+              <span class="font-medium text-slate-300">Ancho Pestaña</span>
+              <span id="valLip" class="font-mono text-teal-400 font-bold">8.0 mm</span>
+            </div>
+            <input type="range" id="slLip" min="5" max="16" step="0.5" value="8" 
+                   class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+          </div>
+
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-teal-500/40">
+            <div class="flex justify-between items-center text-xs mb-1">
+              <span class="font-medium text-slate-200">Grosor Sólido Base</span>
+              <span id="valThickness" class="font-mono text-teal-400 font-bold">2.0 mm</span>
+            </div>
+            <input type="range" id="slThickness" min="1.0" max="6.0" step="0.1" value="2.0" 
+                   class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+          </div>
+        </div>
+
+        <!-- 7. Grosor de Falda Vertical -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200">Grosor Pared Vertical (Falda)</span>
+            <span id="valWallThick" class="font-mono font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded">2.8 mm</span>
+          </div>
+          <input type="range" id="slWallThick" min="1.2" max="6.0" step="0.2" value="2.8" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400">
+        </div>
+
+        <!-- 8. Radio de Esquinas -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-200">Radio de Esquinas Exterior</span>
+            <span id="valRadius" class="font-mono font-bold text-slate-200 bg-slate-800 px-2 py-0.5 rounded">20 mm</span>
+          </div>
+          <input type="range" id="slRadius" min="12" max="35" step="1" value="20" 
+                 class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+        </div>
+
+      </div>
+
+      <!-- Zona de Descargas / Exportación CAD -->
+      <div class="mt-5 pt-3.5 border-t border-slate-800 space-y-2">
+        <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Archivos de Fabricación (Sin Fallos de Slicing)</h3>
+
+        <!-- STL 3D Watertight -->
+        <button id="btnExportSTL" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 active:scale-[0.98] text-slate-950 font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-teal-500/20 text-xs transition">
+          <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Descargar STL 3D Sólido (Cura / Prusa / Bambu)</span>
+        </button>
+
+        <!-- SVG Plano Técnico -->
+        <button id="btnExportSVG" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-750 active:scale-[0.98] text-slate-200 hover:text-white font-medium py-2 px-3 rounded-xl border border-slate-700 text-xs transition">
+          <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span>Descargar SVG (Plano 2D con Alzado y Sección)</span>
+        </button>
+
+        <!-- OBJ 3D -->
+        <button id="btnExportOBJ" class="w-full flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-750 active:scale-[0.98] text-slate-300 hover:text-white font-normal py-2 px-3 rounded-xl border border-slate-700/70 text-xs transition">
+          <span>Descargar Malla OBJ 3D (.obj)</span>
+        </button>
+
+        <div id="toastExport" class="h-4 text-[11px] font-medium text-teal-400 text-center opacity-0 transition-opacity">
+          ¡Archivo descargado!
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <script>
+    // Dimensiones nominales en milímetros
+    const FRAME_WIDTH = 140.0;  // Eje X (borde corto)
+    const FRAME_HEIGHT = 180.0; // Eje Y (borde largo)
+
+    // Referencias DOM
+    const slShortCurve = document.getElementById('slShortCurve');
+    const slTopCurve = document.getElementById('slTopCurve');
+    const slFillet = document.getElementById('slFillet');
+    const slDraft = document.getElementById('slDraft');
+    const slWallH = document.getElementById('slWallH');
+    const slLip = document.getElementById('slLip');
+    const slThickness = document.getElementById('slThickness');
+    const slWallThick = document.getElementById('slWallThick');
+    const slRadius = document.getElementById('slRadius');
+
+    const valShortCurve = document.getElementById('valShortCurve');
+    const valTopCurve = document.getElementById('valTopCurve');
+    const valFillet = document.getElementById('valFillet');
+    const valDraft = document.getElementById('valDraft');
+    const valWallH = document.getElementById('valWallH');
+    const valLip = document.getElementById('valLip');
+    const valThickness = document.getElementById('valThickness');
+    const valWallThick = document.getElementById('valWallThick');
+    const valRadius = document.getElementById('valRadius');
+
+    const statDim = document.getElementById('statDim');
+    const statSagitta = document.getElementById('statSagitta');
+    const statTopCurve = document.getElementById('statTopCurve');
+    const statDraft = document.getElementById('statDraft');
+    const statFillet = document.getElementById('statFillet');
+    const toastExport = document.getElementById('toastExport');
+
+    // Botones de cámara y corte
+    const camIso = document.getElementById('camIso');
+    const camSideCurve = document.getElementById('camSideCurve');
+    const camRearCorner = document.getElementById('camRearCorner');
+    const camTop = document.getElementById('camTop');
+    const btnClipPlane = document.getElementById('btnClipPlane');
+    const btnSlicerSim = document.getElementById('btnSlicerSim');
+    const slicerSliderContainer = document.getElementById('slicerSliderContainer');
+    const slLayerHeight = document.getElementById('slLayerHeight');
+    const lblLayerHeight = document.getElementById('lblLayerHeight');
+
+    // Botones de material
+    const matChrome = document.getElementById('matChrome');
+    const matMatte = document.getElementById('matMatte');
+    const matWire = document.getElementById('matWire');
+
+    // Botones de exportación
+    const btnExportSTL = document.getElementById('btnExportSTL');
+    const btnExportSVG = document.getElementById('btnExportSVG');
+    const btnExportOBJ = document.getElementById('btnExportOBJ');
+
+    // Inicialización del entorno Three.js
+    const container = document.getElementById('viewport3D');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 1, 2000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    renderer.localClippingEnabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    // Plano de corte para inspección de sólidos
+    const clipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+    let isClippingActive = false;
+
+    // Plano horizontal para simulación de capas Slicer
+    const slicerPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+    let isSlicerActive = false;
+
+    btnClipPlane.addEventListener('click', () => {
+      isClippingActive = !isClippingActive;
+      isSlicerActive = false;
+      slicerSliderContainer.classList.add('hidden');
+      updateClippingPlanes();
+      btnClipPlane.className = isClippingActive
+        ? "px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs border border-amber-400 transition flex items-center gap-1.5"
+        : "px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium text-xs border border-amber-500/40 transition flex items-center gap-1.5";
+      btnSlicerSim.className = "px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium text-xs border border-emerald-500/40 transition flex items-center gap-1.5";
+    });
+
+    btnSlicerSim.addEventListener('click', () => {
+      isSlicerActive = !isSlicerActive;
+      isClippingActive = false;
+      if (isSlicerActive) {
+        slicerSliderContainer.classList.remove('hidden');
+        slLayerHeight.value = 0;
+        slicerPlane.constant = 0;
+        lblLayerHeight.textContent = `Z = 0.0 mm`;
+      } else {
+        slicerSliderContainer.classList.add('hidden');
+      }
+      updateClippingPlanes();
+      btnSlicerSim.className = isSlicerActive
+        ? "px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs border border-emerald-400 transition flex items-center gap-1.5"
+        : "px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium text-xs border border-emerald-500/40 transition flex items-center gap-1.5";
+      btnClipPlane.className = "px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium text-xs border border-amber-500/40 transition flex items-center gap-1.5";
+    });
+
+    slLayerHeight.addEventListener('input', () => {
+      const zVal = parseFloat(slLayerHeight.value);
+      slicerPlane.constant = zVal;
+      lblLayerHeight.textContent = `Z = ${zVal.toFixed(1)} mm`;
+    });
+
+    function updateClippingPlanes() {
+      const planes = [];
+      if (isClippingActive) planes.push(clipPlane);
+      if (isSlicerActive) planes.push(slicerPlane);
+      activeMaterial.clippingPlanes = planes.length > 0 ? planes : null;
+      activeMaterial.clipShadows = true;
+      activeMaterial.needsUpdate = true;
+    }
+
+    // Entorno HDR reflectante procedural
+    function createStudioEnvironment() {
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+      const envScene = new THREE.Scene();
+      envScene.background = new THREE.Color(0x0a101d);
+
+      const geoLight = new THREE.PlaneGeometry(120, 30);
+      const matLight = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+      const l1 = new THREE.Mesh(geoLight, matLight);
+      l1.position.set(0, 100, 80);
+      l1.rotation.x = Math.PI / 3;
+      envScene.add(l1);
+
+      const l2 = new THREE.Mesh(geoLight, matLight);
+      l2.position.set(100, -80, 50);
+      l2.rotation.y = -Math.PI / 3;
+      envScene.add(l2);
+
+      const l3 = new THREE.Mesh(geoLight, new THREE.MeshBasicMaterial({ color: 0x93c5fd }));
+      l3.position.set(-90, -40, -40);
+      envScene.add(l3);
+
+      const renderTarget = pmremGenerator.fromScene(envScene);
+      return renderTarget.texture;
+    }
+
+    const envMapTexture = createStudioEnvironment();
+    scene.environment = envMapTexture;
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.1);
+    scene.add(hemiLight);
+
+    const mainKeyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    mainKeyLight.position.set(150, -180, 200);
+    scene.add(mainKeyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.0);
+    rimLight.position.set(-150, 180, -100);
+    scene.add(rimLight);
+
+    const groundGrid = new THREE.GridHelper(300, 30, 0x0ea5e9, 0x1e293b);
+    groundGrid.rotation.x = Math.PI / 2;
+    groundGrid.position.z = -25;
+    scene.add(groundGrid);
+
+    const chromeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xeeeeee,
+      metalness: 0.98,
+      roughness: 0.08,
+      envMap: envMapTexture,
+      envMapIntensity: 1.8,
+      side: THREE.DoubleSide
+    });
+
+    const matteMaterial = new THREE.MeshStandardMaterial({
+      color: 0xef4444, // Rojo idéntico a las capas sólidas de Cura
+      metalness: 0.15,
+      roughness: 0.5,
+      side: THREE.DoubleSide
+    });
+
+    // ABS Slicer por defecto para ver las capas rojas como en Cura
+    let activeMaterial = matteMaterial;
+    let currentMesh = null;
+    let currentGeometry = null;
+
+    function setCameraIso() {
+      camera.position.set(160, -210, 140);
+      camera.up.set(0, 0, 1);
+      controls.target.set(0, 0, -5);
+      controls.update();
+    }
+
+    function setCameraSideCurve() {
+      camera.position.set(0, -320, 2);
+      camera.up.set(0, 0, 1);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function setCameraRearCorner() {
+      camera.position.set(-70, -70, -120);
+      camera.up.set(0, 0, -1);
+      controls.target.set(-45, -60, -8);
+      controls.update();
+    }
+
+    function setCameraTop() {
+      camera.position.set(0, 0, 360);
+      camera.up.set(0, 1, 0);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    setCameraIso();
+
+    camIso.addEventListener('click', setCameraIso);
+    camSideCurve.addEventListener('click', setCameraSideCurve);
+    camRearCorner.addEventListener('click', setCameraRearCorner);
+    camTop.addEventListener('click', setCameraTop);
+
+    matChrome.addEventListener('click', () => {
+      activeMaterial = chromeMaterial;
+      activeMaterial.wireframe = false;
+      updateClippingPlanes();
+      if (currentMesh) currentMesh.material = activeMaterial;
+      matChrome.className = "px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 font-medium border border-teal-500/40 transition";
+      matMatte.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+      matWire.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+    });
+
+    matMatte.addEventListener('click', () => {
+      activeMaterial = matteMaterial;
+      activeMaterial.wireframe = false;
+      updateClippingPlanes();
+      if (currentMesh) currentMesh.material = activeMaterial;
+      matMatte.className = "px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 font-medium border border-teal-500/40 transition";
+      matChrome.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+      matWire.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+    });
+
+    matWire.addEventListener('click', () => {
+      activeMaterial.wireframe = !activeMaterial.wireframe;
+      if (currentMesh) currentMesh.material = activeMaterial;
+      matWire.className = activeMaterial.wireframe 
+        ? "px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 font-medium border border-teal-500/40 transition" 
+        : "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+    });
+
+    /**
+     * Traza el perímetro base 2D en sentido horario con normales hacia afuera (nx, ny).
+     */
+    function getSpinePath(w, h, r, cornerSteps = 16, edgeSteps = 36) {
+      const hw = w / 2;
+      const hh = h / 2;
+      const rad = Math.max(1.0, Math.min(r, hw - 2, hh - 2));
+      const spine = [];
+
+      // 1. Borde superior corto: de x = +(hw-rad) a -(hw-rad), y = hh
+      for (let i = 0; i < edgeSteps; i++) {
+        const t = i / edgeSteps;
+        const x = (hw - rad) - t * (2 * (hw - rad));
+        spine.push({ x: x, y: hh, nx: 0, ny: 1, isShortEdge: true });
+      }
+
+      // Esquina Superior Izquierda (x = -hw+rad, y = hh-rad), ángulo de PI/2 a PI
+      const cx1 = -hw + rad, cy1 = hh - rad;
+      for (let i = 0; i < cornerSteps; i++) {
+        const th = Math.PI / 2 + (i / cornerSteps) * (Math.PI / 2);
+        spine.push({
+          x: cx1 + rad * Math.cos(th),
+          y: cy1 + rad * Math.sin(th),
+          nx: Math.cos(th),
+          ny: Math.sin(th),
+          isShortEdge: false
+        });
+      }
+
+      // 2. Borde izquierdo largo: de y = +(hh-rad) a -(hh-rad), x = -hw
+      for (let i = 0; i < edgeSteps; i++) {
+        const t = i / edgeSteps;
+        const y = (hh - rad) - t * (2 * (hh - rad));
+        spine.push({ x: -hw, y: y, nx: -1, ny: 0, isShortEdge: false });
+      }
+
+      // Esquina Inferior Izquierda, ángulo de PI a 3PI/2
+      const cx2 = -hw + rad, cy2 = -hh + rad;
+      for (let i = 0; i < cornerSteps; i++) {
+        const th = Math.PI + (i / cornerSteps) * (Math.PI / 2);
+        spine.push({
+          x: cx2 + rad * Math.cos(th),
+          y: cy2 + rad * Math.sin(th),
+          nx: Math.cos(th),
+          ny: Math.sin(th),
+          isShortEdge: false
+        });
+      }
+
+      // 3. Borde inferior corto: de x = -(hw-rad) a +(hw-rad), y = -hh
+      for (let i = 0; i < edgeSteps; i++) {
+        const t = i / edgeSteps;
+        const x = (-hw + rad) + t * (2 * (hw - rad));
+        spine.push({ x: x, y: -hh, nx: 0, ny: -1, isShortEdge: true });
+      }
+
+      // Esquina Inferior Derecha, ángulo de 3PI/2 a 2PI
+      const cx3 = hw - rad, cy3 = -hh + rad;
+      for (let i = 0; i < cornerSteps; i++) {
+        const th = 1.5 * Math.PI + (i / cornerSteps) * (Math.PI / 2);
+        spine.push({
+          x: cx3 + rad * Math.cos(th),
+          y: cy3 + rad * Math.sin(th),
+          nx: Math.cos(th),
+          ny: Math.sin(th),
+          isShortEdge: false
+        });
+      }
+
+      // 4. Borde derecho largo: de y = -(hh-rad) a +(hh-rad), x = hw
+      for (let i = 0; i < edgeSteps; i++) {
+        const t = i / edgeSteps;
+        const y = (-hh + rad) + t * (2 * (hh - rad));
+        spine.push({ x: hw, y: y, nx: 1, ny: 0, isShortEdge: false });
+      }
+
+      // Esquina Superior Derecha, ángulo de 0 a PI/2
+      const cx4 = hw - rad, cy4 = hh - rad;
+      for (let i = 0; i < cornerSteps; i++) {
+        const th = (i / cornerSteps) * (Math.PI / 2);
+        spine.push({
+          x: cx4 + rad * Math.cos(th),
+          y: cy4 + rad * Math.sin(th),
+          nx: Math.cos(th),
+          ny: Math.sin(th),
+          isShortEdge: false
+        });
+      }
+
+      return spine;
+    }
+
+    /**
+     * Construye un polígono 2D CERRADO MONOLÍTICO donde TODO EL BLOQUE SUPERIOR
+     * describe una curva continua desde el interior (u = safeLip) hacia el exterior (u = 0)
+     * manteniendo constante el grosor sólido base (tBase >= 1.0 mm).
+     */
+    function buildSolidClosedProfile(lipWidth, wallHeight, baseThickness, wallThickness, filletR, topCurveDrop, draftAngleDeg) {
+      const profile = [];
+      const draftRad = (draftAngleDeg * Math.PI) / 180;
+
+      // Grosor sólido base permitido desde 1.0 mm
+      const tBase = Math.max(1.0, baseThickness);
+      const tWall = Math.max(1.2, wallThickness);
+      const safeLip = Math.max(lipWidth, tWall + 2.5);
+      const curveDrop = Math.max(0.0, topCurveDrop);
+
+      // Radio de acuerdo en el codo entre la pestaña superior y la falda interior
+      const safeFillet = Math.min(filletR, safeLip * 0.55, (wallHeight - 1.5) * 0.55);
+      const filletStartU = safeLip - safeFillet;
+
+      // Función de elevación vertical de la cara superior de la pestaña:
+      // En el interior (u = safeLip) es v = 0, y cae suavemente en arco parabólico hacia el exterior (u = 0) hasta v = -curveDrop
+      function getTopSurfaceV(u) {
+        const normFromInner = Math.max(0, Math.min(1, (safeLip - u) / safeLip));
+        return -curveDrop * Math.pow(normFromInner, 1.85);
+      }
+
+      // 1. CARA SUPERIOR CURVA DE LA PESTAÑA (Desde el borde exterior u = 0 hasta el inicio del filete interior u = filletStartU)
+      const topCurveSteps = 16;
+      for (let i = 0; i <= topCurveSteps; i++) {
+        const t = i / topCurveSteps;
+        const u = t * filletStartU;
+        const v = getTopSurfaceV(u);
+        profile.push({ u: u, v: v });
+      }
+
+      // 2. FILETE DE TRANSICIÓN EN EL CODO HACIA LA FALDA INTERIOR
+      const vAtFilletStart = getTopSurfaceV(filletStartU);
+      const filletEndV = -safeFillet;
+      const filletSteps = 7;
+      for (let i = 1; i <= filletSteps; i++) {
+        const t = i / filletSteps;
+        const a = t * (Math.PI / 2);
+        const u = filletStartU + safeFillet * Math.sin(a);
+        const v = vAtFilletStart + (filletEndV - vAtFilletStart) * (1 - Math.cos(a));
+        profile.push({ u: u, v: v });
+      }
+
+      // 3. PARED INTERIOR DESCENDENTE CON ÁNGULO DE DESMOLDEO (Draft hacia el interior)
+      const wallStraightDepth = Math.max(2.0, wallHeight - safeFillet);
+      const frontBottomU = safeLip + wallStraightDepth * Math.tan(draftRad);
+      const bottomV = -wallHeight;
+      profile.push({ u: frontBottomU, v: bottomV });
+
+      // 4. BASE PLANA INFERIOR DE LA FALDA (espesor sólido tWall)
+      const backBottomU = frontBottomU + tWall;
+      profile.push({ u: backBottomU, v: bottomV });
+
+      // 5. CARA TRASERA ASCENDENTE DE LA FALDA HASTA EL CODO INFERIOR
+      const backTopU = safeLip + tWall;
+      const innerUnderV = getTopSurfaceV(safeLip) - tBase; // = -tBase
+      profile.push({ u: backTopU, v: innerUnderV });
+
+      // 6. UNIÓN INTERNA SÓLIDA EN EL CODO INFERIOR (u = safeLip)
+      profile.push({ u: safeLip, v: innerUnderV });
+
+      // 7. CARA INFERIOR PARALELA DEL BLOQUE SUPERIOR (De u = safeLip de vuelta hasta u = 0 manteniendo el grosor constante tBase)
+      const bottomCurveSteps = 16;
+      for (let i = 1; i <= bottomCurveSteps; i++) {
+        const t = i / bottomCurveSteps;
+        const u = safeLip * (1 - t);
+        const v = getTopSurfaceV(u) - tBase;
+        profile.push({ u: u, v: v });
+      }
+
+      return {
+        points: profile,
+        safeFillet: safeFillet,
+        curveDrop: curveDrop
+      };
+    }
+
+    /**
+     * Motor de Generación CAD por barrido toroidal cerrado.
+     */
+    function generateBezelGeometry(shortCurveDeg, topCurveDrop, filletR, draftAngleDeg, wallHeight, lipWidth, baseThickness, wallThickness, cornerRadius) {
+      const hw = FRAME_WIDTH / 2;
+      const radCurv = (shortCurveDeg * Math.PI) / 180;
+      const R_curve = shortCurveDeg > 0.05 ? (FRAME_WIDTH / radCurv) : Infinity;
+      const maxSagitta = shortCurveDeg > 0.05 ? R_curve * (1 - Math.cos(hw / R_curve)) : 0;
+
+      // Generar trayectoria perimetral
+      const spine = getSpinePath(FRAME_WIDTH, FRAME_HEIGHT, cornerRadius, 14, 32);
+      const numSpine = spine.length;
+
+      // Generar perfil 2D cerrado con pestaña superior curvada de grosor constante
+      const profileData = buildSolidClosedProfile(lipWidth, wallHeight, baseThickness, wallThickness, filletR, topCurveDrop, draftAngleDeg);
+      const profile = profileData.points;
+      const numProfile = profile.length;
+
+      // Curvatura continua de esquina a esquina en borde corto
+      function getZElevation(x, y) {
+        if (shortCurveDeg <= 0.05) return 0;
+        const clampedX = Math.max(-hw, Math.min(hw, x));
+        const th = clampedX / R_curve;
+        const zLift = R_curve * (Math.cos(th) - Math.cos(hw / R_curve));
+        return Math.max(0, zLift);
+      }
+
+      // Matriz de vértices 3D
+      const grid = [];
+
+      for (let i = 0; i < numSpine; i++) {
+        const sp = spine[i];
+        const inX = -sp.nx;
+        const inY = -sp.ny;
+
+        const ring = [];
+        for (let j = 0; j < numProfile; j++) {
+          const pt = profile[j];
+          const px = sp.x + inX * pt.u;
+          const py = sp.y + inY * pt.u;
+          const pz = pt.v + getZElevation(px, py);
+
+          ring.push(new THREE.Vector3(px, py, pz));
+        }
+        grid.push(ring);
+      }
+
+      // Enmallado triangular cerrado (Watertight)
+      const vertices = [];
+      const indices = [];
+
+      function addTriangle(pA, pB, pC) {
+        const base = vertices.length / 3;
+        vertices.push(pA.x, pA.y, pA.z);
+        vertices.push(pB.x, pB.y, pB.z);
+        vertices.push(pC.x, pC.y, pC.z);
+        indices.push(base, base + 1, base + 2);
+      }
+
+      for (let i = 0; i < numSpine; i++) {
+        const nextI = (i + 1) % numSpine;
+        for (let j = 0; j < numProfile; j++) {
+          const nextJ = (j + 1) % numProfile;
+
+          const p00 = grid[i][j];
+          const p10 = grid[nextI][j];
+          const p11 = grid[nextI][nextJ];
+          const p01 = grid[i][nextJ];
+
+          addTriangle(p00, p10, p11);
+          addTriangle(p00, p11, p01);
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geom.setIndex(indices);
+      geom.computeVertexNormals();
+
+      const draftRad = (draftAngleDeg * Math.PI) / 180;
+      return {
+        geometry: geom,
+        sagitta: maxSagitta,
+        draftOffset: wallHeight * Math.tan(draftRad),
+        fillet: profileData.safeFillet,
+        curveDrop: profileData.curveDrop
+      };
+    }
+
+    function refreshModel() {
+      const shortCurve = parseFloat(slShortCurve.value);
+      const topCurve = parseFloat(slTopCurve.value);
+      const fillet = parseFloat(slFillet.value);
+      const draft = parseFloat(slDraft.value);
+      const wallH = parseFloat(slWallH.value);
+      const lip = parseFloat(slLip.value);
+      const thickness = parseFloat(slThickness.value);
+      const wallThick = parseFloat(slWallThick.value);
+      const radius = parseFloat(slRadius.value);
+
+      valShortCurve.textContent = `${shortCurve.toFixed(1)}°`;
+      valTopCurve.textContent = `${topCurve.toFixed(1)} mm`;
+      valFillet.textContent = `${fillet.toFixed(2)} mm`;
+      valDraft.textContent = `${draft.toFixed(1)}°`;
+      valWallH.textContent = `${wallH.toFixed(1)} mm`;
+      valLip.textContent = `${lip.toFixed(1)} mm`;
+      valThickness.textContent = `${thickness.toFixed(1)} mm`;
+      valWallThick.textContent = `${wallThick.toFixed(1)} mm`;
+      valRadius.textContent = `${radius.toFixed(0)} mm`;
+
+      if (currentMesh) {
+        scene.remove(currentMesh);
+        if (currentGeometry) currentGeometry.dispose();
+      }
+
+      const result = generateBezelGeometry(shortCurve, topCurve, fillet, draft, wallH, lip, thickness, wallThick, radius);
+      currentGeometry = result.geometry;
+
+      currentMesh = new THREE.Mesh(currentGeometry, activeMaterial);
+      scene.add(currentMesh);
+
+      statSagitta.textContent = `h = ${result.sagitta.toFixed(2)} mm`;
+      statTopCurve.textContent = `Δv = ${result.curveDrop.toFixed(1)} mm (Grosor ${thickness.toFixed(1)} mm)`;
+      statDraft.textContent = `${draft.toFixed(1)}° (Δ = ${result.draftOffset.toFixed(2)} mm)`;
+      statFillet.textContent = `R = ${result.fillet.toFixed(1)} mm`;
+
+      updateClippingPlanes();
+    }
+
+    [slShortCurve, slTopCurve, slFillet, slDraft, slWallH, slLip, slThickness, slWallThick, slRadius].forEach(slider => {
+      slider.addEventListener('input', refreshModel);
+    });
+
+    // Exportador STL Binario estanco con verificación de normales para Cura / Bambu
+    function exportBinarySTL(geometry, filename = 'bisel_solido_140x180.stl') {
+      const geom = geometry.index ? geometry.toNonIndexed() : geometry;
+      const pos = geom.attributes.position;
+      const triangles = pos.count / 3;
+
+      const bufferSize = 84 + (50 * triangles);
+      const arrayBuffer = new ArrayBuffer(bufferSize);
+      const dataView = new DataView(arrayBuffer);
+
+      const headerText = "AutoBezel CAD - Constant Thickness Curved Top Flange Solid";
+      for (let i = 0; i < 80; i++) {
+        dataView.setUint8(i, i < headerText.length ? headerText.charCodeAt(i) : 32);
+      }
+      dataView.setUint32(80, triangles, true);
+
+      let offset = 84;
+      const vA = new THREE.Vector3();
+      const vB = new THREE.Vector3();
+      const vC = new THREE.Vector3();
+      const cb = new THREE.Vector3();
+      const ab = new THREE.Vector3();
+      const normal = new THREE.Vector3();
+
+      for (let i = 0; i < pos.count; i += 3) {
+        vA.fromBufferAttribute(pos, i);
+        vB.fromBufferAttribute(pos, i + 1);
+        vC.fromBufferAttribute(pos, i + 2);
+
+        cb.subVectors(vC, vB);
+        ab.subVectors(vA, vB);
+        normal.crossVectors(cb, ab).normalize();
+
+        dataView.setFloat32(offset, normal.x, true); offset += 4;
+        dataView.setFloat32(offset, normal.y, true); offset += 4;
+        dataView.setFloat32(offset, normal.z, true); offset += 4;
+
+        dataView.setFloat32(offset, vA.x, true); offset += 4;
+        dataView.setFloat32(offset, vA.y, true); offset += 4;
+        dataView.setFloat32(offset, vA.z, true); offset += 4;
+
+        dataView.setFloat32(offset, vB.x, true); offset += 4;
+        dataView.setFloat32(offset, vB.y, true); offset += 4;
+        dataView.setFloat32(offset, vB.z, true); offset += 4;
+
+        dataView.setFloat32(offset, vC.x, true); offset += 4;
+        dataView.setFloat32(offset, vC.y, true); offset += 4;
+        dataView.setFloat32(offset, vC.z, true); offset += 4;
+
+        dataView.setUint16(offset, 0, true); offset += 2;
+      }
+
+      const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+      triggerDownload(blob, filename);
+    }
+
+    function exportOBJ(geometry, filename = 'bisel_solido_140x180.obj') {
+      const geom = geometry.index ? geometry.toNonIndexed() : geometry;
+      const pos = geom.attributes.position;
+      let objText = `# Bisel Automotriz 140x180mm Solido Watertight\no Bisel_Solido\n`;
+
+      for (let i = 0; i < pos.count; i++) {
+        objText += `v ${pos.getX(i).toFixed(4)} ${pos.getY(i).toFixed(4)} ${pos.getZ(i).toFixed(4)}\n`;
+      }
+      for (let i = 1; i <= pos.count; i += 3) {
+        objText += `f ${i} ${i + 1} ${i + 2}\n`;
+      }
+
+      const blob = new Blob([objText], { type: 'text/plain;charset=utf-8' });
+      triggerDownload(blob, filename);
+    }
+
+    function exportTechnicalSVG(filename = 'plano_tecnico_bisel_140x180.svg') {
+      const shortCurve = parseFloat(slShortCurve.value);
+      const topCurve = parseFloat(slTopCurve.value);
+      const draft = parseFloat(slDraft.value);
+      const wallH = parseFloat(slWallH.value);
+      const lip = parseFloat(slLip.value);
+      const thickness = parseFloat(slThickness.value);
+      const rOut = parseFloat(slRadius.value);
+      const rIn = Math.max(1, rOut - lip);
+
+      const W = FRAME_WIDTH;
+      const H = FRAME_HEIGHT;
+      const radCurv = (shortCurve * Math.PI) / 180;
+      const hw = W / 2;
+      const R_curve = shortCurve > 0.05 ? (W / radCurv) : 0;
+      const sagitta = shortCurve > 0.05 ? R_curve * (1 - Math.cos(hw / R_curve)) : 0;
+
+      const svgData = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297" style="background:#ffffff; font-family:sans-serif;">
+  <style>
+    .title { font-size: 5px; font-weight: bold; fill: #0f172a; }
+    .subtitle { font-size: 2.8px; fill: #64748b; }
+    .dim { font-size: 2.8px; fill: #0284c7; font-family: monospace; }
+    .profile-solid { fill: #1e293b; fill-rule: evenodd; stroke: #0f172a; stroke-width: 0.35; }
+  </style>
+
+  <text x="15" y="16" class="title">PLANO TÉCNICO: BISEL SÓLIDO CON PESTAÑA CURVA DE GROSOR CONSTANTE</text>
+  <text x="15" y="21" class="subtitle">Dimensiones: 140.0 × 180.0 mm | Grosor base constante: ${thickness.toFixed(1)} mm | Curva pestaña: ${topCurve.toFixed(1)} mm | Draft: ${draft}°</text>
+
+  <g transform="translate(35, 30)">
+    <text x="0" y="-4" style="font-size:3.5px; font-weight:bold; fill:#334155;">1. VISTA EN PLANTA</text>
+    
+    <path class="profile-solid" d="
+      M ${rOut},0 
+      H ${W - rOut} 
+      A ${rOut},${rOut} 0 0 1 ${W},${rOut} 
+      V ${H - rOut} 
+      A ${rOut},${rOut} 0 0 1 ${W - rOut},${H} 
+      H ${rOut} 
+      A ${rOut},${rOut} 0 0 1 0,${H - rOut} 
+      V ${rOut} 
+      A ${rOut},${rOut} 0 0 1 ${rOut},0 
+      Z 
+
+      M ${lip + rIn},${lip} 
+      A ${rIn},${rIn} 0 0 0 ${lip},${lip + rIn} 
+      V ${H - lip - rIn} 
+      A ${rIn},${rIn} 0 0 0 ${lip + rIn},${H - lip} 
+      H ${W - lip - rIn} 
+      A ${rIn},${rIn} 0 0 0 ${W - lip},${H - lip - rIn} 
+      V ${lip + rIn} 
+      A ${rIn},${rIn} 0 0 0 ${W - lip - rIn},${lip} 
+      H ${lip + rIn} 
+      Z
+    " />
+
+    <line x1="0" y1="-3" x2="${W}" y2="-3" stroke="#0284c7" stroke-width="0.3" />
+    <text x="${W / 2 - 8}" y="-4.5" class="dim">140.0 mm</text>
+
+    <line x1="${W + 3}" y1="0" x2="${W + 3}" y2="${H}" stroke="#0284c7" stroke-width="0.3" />
+    <text x="${W + 5}" y="${H / 2}" class="dim" transform="rotate(90, ${W + 5}, ${H / 2})">180.0 mm</text>
+  </g>
+
+  <g transform="translate(35, 230)">
+    <text x="0" y="-8" style="font-size:3.5px; font-weight:bold; fill:#334155;">2. SECCIÓN SÓLIDA CON ARCO COMPLETO EN BORDE CORTO (140 mm)</text>
+    <path d="M 0,0 Q ${W/2},-${sagitta * 1.5} ${W},0 L ${W},${wallH} Q ${W/2},${wallH - sagitta * 1.5} 0,${wallH} Z" 
+          fill="#f1f5f9" stroke="#0f172a" stroke-width="0.4" />
+    <text x="${W / 2 - 20}" y="-2" class="dim">Arco de luz completa: Flecha Δz = ${sagitta.toFixed(2)} mm</text>
+    <text x="${W + 4}" y="${wallH / 2}" class="dim">H = ${wallH} mm</text>
+  </g>
+</svg>`;
+
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      triggerDownload(blob, filename);
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toastExport.textContent = `¡${filename} descargado!`;
+      toastExport.classList.remove('opacity-0');
+      toastExport.classList.add('opacity-100');
+      setTimeout(() => toastExport.classList.add('opacity-0'), 2500);
+    }
+
+    btnExportSTL.addEventListener('click', () => {
+      if (currentGeometry) exportBinarySTL(currentGeometry);
+    });
+
+    btnExportOBJ.addEventListener('click', () => {
+      if (currentGeometry) exportOBJ(currentGeometry);
+    });
+
+    btnExportSVG.addEventListener('click', () => {
+      exportTechnicalSVG();
+    });
+
+    window.addEventListener('resize', () => {
+      if (!container) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = function() {
+      refreshModel();
+      animate();
+    };
+  </script>
+</body>
+</html>

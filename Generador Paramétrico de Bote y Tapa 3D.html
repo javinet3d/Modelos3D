@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diseñador Paramétrico 3D / SVG - Tarrina y Tapa</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js + OrbitControls + STLExporter -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+    .canvas-container { position: relative; width: 100%; height: 100%; }
+    .dimension-line { stroke: #38bdf8; stroke-dasharray: 2 2; stroke-width: 1; }
+    .dimension-text { fill: #38bdf8; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 flex flex-col h-screen overflow-hidden font-sans select-none">
+
+  <!-- Header -->
+  <header class="h-14 border-b border-zinc-800 bg-zinc-900/90 px-4 flex items-center justify-between shrink-0 backdrop-blur z-20">
+    <div class="flex items-center gap-3">
+      <div class="p-2 bg-rose-600/20 text-rose-400 rounded-lg border border-rose-500/30">
+        <i data-lucide="box" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+          CAD Bote & Tapa Snap-Fit <span class="text-xs px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-mono">Tipo Tarrina</span>
+        </h1>
+        <p class="text-xs text-zinc-400">Modelado paramétrico para impresión 3D FDM/SLA y perfiles vectoriales SVG</p>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="flex items-center gap-2">
+      <button id="btnReset" class="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs flex items-center gap-1.5 transition">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Restaurar Medidas
+      </button>
+      <button id="btnInfoModal" class="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs flex items-center gap-1.5 transition">
+        <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Guía 3D
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- Left Sidebar: Controls & Exports -->
+    <aside class="w-84 md:w-96 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full shrink-0 z-10 shadow-xl overflow-y-auto">
+      
+      <!-- Tab Selector -->
+      <div class="p-3 border-b border-zinc-800 bg-zinc-900/60 sticky top-0 backdrop-blur z-10 flex gap-1">
+        <button id="tabControlsBtn" class="flex-1 py-1.5 text-xs font-semibold rounded-md bg-rose-600 text-white transition flex items-center justify-center gap-1.5">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Parámetros
+        </button>
+        <button id="tabExportBtn" class="flex-1 py-1.5 text-xs font-semibold rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition flex items-center justify-center gap-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar CAD
+        </button>
+      </div>
+
+      <!-- Controls Panel Content -->
+      <div id="panelControls" class="p-4 space-y-5 flex-1">
+        
+        <!-- Vista 3D Display Modes -->
+        <div class="bg-zinc-950/60 p-3 rounded-lg border border-zinc-800 space-y-3">
+          <label class="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i data-lucide="layers" class="w-3.5 h-3.5 text-rose-400"></i> Separación Tapa / Explosión</span>
+            <span id="labelExplode" class="text-rose-400 font-mono text-xs">25 mm</span>
+          </label>
+          <input type="range" id="paramExplode" min="0" max="80" step="1" value="25" class="w-full accent-rose-500">
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+              <input type="checkbox" id="chkShowJar" checked class="rounded border-zinc-700 text-rose-600 focus:ring-rose-500">
+              Ver Frasco / Bote
+            </label>
+            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+              <input type="checkbox" id="chkShowLid" checked class="rounded border-zinc-700 text-rose-600 focus:ring-rose-500">
+              Ver Tapa Snap
+            </label>
+            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+              <input type="checkbox" id="chkWireframe" class="rounded border-zinc-700 text-rose-600 focus:ring-rose-500">
+              Modo Malla (Wire)
+            </label>
+            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+              <input type="checkbox" id="chkCutSection" class="rounded border-zinc-700 text-rose-600 focus:ring-rose-500">
+              Corte Seccional 3D
+            </label>
+          </div>
+        </div>
+
+        <!-- DIMENSIONES DEL BOTE -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+              <i data-lucide="cylinder" class="w-3.5 h-3.5"></i> Frasco Cónico
+            </span>
+            <span class="text-[10px] text-zinc-500">Cuerpo y labio</span>
+          </div>
+
+          <!-- Altura -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-400">Altura Total (H)</span>
+              <span id="valJarHeight" class="font-mono text-zinc-200">95 mm</span>
+            </div>
+            <input type="range" id="paramJarHeight" min="40" max="180" step="1" value="95" class="w-full accent-rose-500">
+          </div>
+
+          <!-- Diámetro Superior -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-400">Diámetro Superior (Borde)</span>
+              <span id="valJarTopDia" class="font-mono text-zinc-200">84 mm</span>
+            </div>
+            <input type="range" id="paramJarTopDia" min="40" max="140" step="1" value="84" class="w-full accent-rose-500">
+          </div>
+
+          <!-- Diámetro Inferior -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-400">Diámetro Base Inferior</span>
+              <span id="valJarBottomDia" class="font-mono text-zinc-200">68 mm</span>
+            </div>
+            <input type="range" id="paramJarBottomDia" min="30" max="130" step="1" value="68" class="w-full accent-rose-500">
+          </div>
+
+          <!-- Espesor Pared -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-400">Grosor de Pared (Shell)</span>
+              <span id="valWallThickness" class="font-mono text-zinc-200">1.8 mm</span>
+            </div>
+            <input type="range" id="paramWallThickness" min="1.0" max="4.5" step="0.1" value="1.8" class="w-full accent-rose-500">
+          </div>
+
+          <!-- Labio Reforzado Superior -->
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-zinc-400">Alt. Labio Snap</span>
+                <span id="valRimHeight" class="font-mono text-zinc-200">9 mm</span>
+              </div>
+              <input type="range" id="paramRimHeight" min="4" max="18" step="0.5" value="9" class="w-full accent-rose-500">
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-zinc-400">Saliente Reborde</span>
+                <span id="valRimOffset" class="font-mono text-zinc-200">2.2 mm</span>
+              </div>
+              <input type="range" id="paramRimOffset" min="0.8" max="4.0" step="0.2" value="2.2" class="w-full accent-rose-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- DIMENSIONES DE LA TAPA -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <i data-lucide="disc" class="w-3.5 h-3.5"></i> Tapa Snap-Fit
+            </span>
+            <span class="text-[10px] text-zinc-500">Ajuste perimetral</span>
+          </div>
+
+          <!-- Tolerancia 3D -->
+          <div class="space-y-1 bg-amber-950/20 p-2 rounded border border-amber-900/40">
+            <div class="flex justify-between text-xs">
+              <span class="text-amber-300 font-medium flex items-center gap-1">
+                <i data-lucide="crosshair" class="w-3 h-3"></i> Holgura / Tolerancia 3D
+              </span>
+              <span id="valTolerance" class="font-mono text-amber-300 font-bold">0.35 mm</span>
+            </div>
+            <input type="range" id="paramTolerance" min="0.10" max="0.90" step="0.05" value="0.35" class="w-full accent-amber-500">
+            <p class="text-[10px] text-amber-400/80">0.2mm para resina; 0.35 - 0.45mm para boquilla 0.4mm FDM (PLA/PETG).</p>
+          </div>
+
+          <!-- Altura Faldón Tapa -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-400">Profundidad Faldón (Skirt)</span>
+              <span id="valLidSkirtHeight" class="font-mono text-zinc-200">9.5 mm</span>
+            </div>
+            <input type="range" id="paramLidSkirtHeight" min="5" max="18" step="0.5" value="9.5" class="w-full accent-amber-500">
+          </div>
+
+          <!-- Pestaña de apertura -->
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-zinc-400">Grosor Placa Tapa</span>
+                <span id="valLidThickness" class="font-mono text-zinc-200">1.6 mm</span>
+              </div>
+              <input type="range" id="paramLidThickness" min="1.0" max="3.5" step="0.1" value="1.6" class="w-full accent-amber-500">
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-zinc-400">Longitud Pestaña</span>
+                <span id="valTabLength" class="font-mono text-zinc-200">12 mm</span>
+              </div>
+              <input type="range" id="paramTabLength" min="0" max="25" step="1" value="12" class="w-full accent-amber-500">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Export Panel Content -->
+      <div id="panelExport" class="p-4 space-y-4 flex-1 hidden">
+        <div class="p-3 bg-zinc-950 rounded-lg border border-zinc-800 space-y-1.5">
+          <h3 class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+            <i data-lucide="file-code-2" class="w-4 h-4 text-emerald-400"></i> Perfiles SVG (Modelado CAD)
+          </h3>
+          <p class="text-[11px] text-zinc-400 leading-relaxed">
+            Descarga los perfiles cerrados de sección transversal en SVG. Puedes importarlos en <b>Fusion 360, FreeCAD o Blender</b> y aplicar la herramienta <code>Revolve / Torneado</code> en 360° para obtener el sólido perfecto.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <button id="btnExportSvgJarProfile" class="w-full py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white flex items-center justify-between border border-zinc-700 transition">
+            <span class="flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4 text-rose-400"></i> SVG Perfil Torneado Bote</span>
+            <span class="text-[10px] bg-rose-950 text-rose-300 px-1.5 py-0.5 rounded">Revolve</span>
+          </button>
+
+          <button id="btnExportSvgLidProfile" class="w-full py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white flex items-center justify-between border border-zinc-700 transition">
+            <span class="flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i> SVG Perfil Torneado Tapa</span>
+            <span class="text-[10px] bg-amber-950 text-amber-300 px-1.5 py-0.5 rounded">Revolve</span>
+          </button>
+
+          <button id="btnExportSvgTechnical" class="w-full py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white flex items-center justify-between border border-zinc-700 transition">
+            <span class="flex items-center gap-2"><i data-lucide="ruler" class="w-4 h-4 text-sky-400"></i> SVG Plano Técnico Acotado</span>
+            <span class="text-[10px] bg-sky-950 text-sky-300 px-1.5 py-0.5 rounded">Cotas 2D</span>
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-zinc-800">
+          <div class="p-3 bg-zinc-950 rounded-lg border border-zinc-800 space-y-1.5 mb-2">
+            <h3 class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+              <i data-lucide="printer" class="w-4 h-4 text-indigo-400"></i> Mallas STL 3D Directas
+            </h3>
+            <p class="text-[11px] text-zinc-400 leading-relaxed">
+              Archivos STL listos para abrir en <b>Bambu Studio, Cura, PrusaSlicer o Anycubic</b>.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <button id="btnExportStlJar" class="w-full py-2 px-3 rounded-lg bg-rose-700 hover:bg-rose-600 text-xs font-semibold text-white flex items-center justify-between shadow-lg shadow-rose-950/40 transition">
+              <span class="flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Descargar Bote.stl</span>
+              <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded font-mono">3D FDM</span>
+            </button>
+
+            <button id="btnExportStlLid" class="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white flex items-center justify-between shadow-lg shadow-amber-950/40 transition">
+              <span class="flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Descargar Tapa.stl</span>
+              <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded font-mono">3D FDM</span>
+            </button>
+
+            <button id="btnExportStlBoth" class="w-full py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 flex items-center justify-between border border-zinc-700 transition">
+              <span class="flex items-center gap-2"><i data-lucide="boxes" class="w-4 h-4 text-emerald-400"></i> Descargar Conjunto Completo (.stl)</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Live Readout / Specs Summary Footer -->
+      <div class="p-3 bg-zinc-950 border-t border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+        <div class="flex justify-between">
+          <span>Volumen Aprox. Bote:</span>
+          <span id="specVolume" class="font-mono text-zinc-200 font-semibold">415 cm³ (ml)</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Ajuste Labio/Tapa:</span>
+          <span id="specSnapFit" class="font-mono text-emerald-400">Ajuste a Presión Activo</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Viewport Area (Tabbed: 3D Render & 2D SVG Blueprint) -->
+    <main class="flex-1 flex flex-col bg-zinc-950 relative overflow-hidden">
+      
+      <!-- View mode switcher bar -->
+      <div class="absolute top-3 left-3 z-10 flex bg-zinc-900/90 p-1 rounded-lg border border-zinc-800 backdrop-blur shadow-md gap-1">
+        <button id="viewBtn3D" class="px-3 py-1 text-xs font-semibold rounded-md bg-rose-600 text-white flex items-center gap-1.5 transition">
+          <i data-lucide="box" class="w-3.5 h-3.5"></i> Vista 3D Interactiva
+        </button>
+        <button id="viewBtn2D" class="px-3 py-1 text-xs font-medium rounded-md text-zinc-400 hover:text-white flex items-center gap-1.5 transition">
+          <i data-lucide="drafting-compass" class="w-3.5 h-3.5"></i> Vista Técnica 2D SVG
+        </button>
+      </div>
+
+      <!-- Camera View Presets (Only visible in 3D) -->
+      <div id="camPresets" class="absolute top-3 right-3 z-10 flex bg-zinc-900/90 p-1 rounded-lg border border-zinc-800 backdrop-blur shadow-md gap-1">
+        <button id="camFront" title="Vista Frontal" class="px-2 py-1 text-xs text-zinc-300 hover:text-white hover:bg-zinc-800 rounded">Frontal</button>
+        <button id="camTop" title="Vista Superior" class="px-2 py-1 text-xs text-zinc-300 hover:text-white hover:bg-zinc-800 rounded">Superior</button>
+        <button id="camIso" title="Vista Isométrica" class="px-2 py-1 text-xs text-zinc-300 hover:text-white hover:bg-zinc-800 rounded font-semibold text-rose-400">Iso</button>
+      </div>
+
+      <!-- 3D Canvas Container -->
+      <div id="container3D" class="canvas-container w-full h-full">
+        <!-- Three.js Canvas injected here -->
+      </div>
+
+      <!-- 2D SVG Blueprint Container (Hidden by default) -->
+      <div id="container2D" class="w-full h-full hidden overflow-auto p-4 flex flex-col items-center justify-center bg-zinc-950">
+        <div id="svgWrapper" class="bg-zinc-900 rounded-xl p-4 border border-zinc-800 shadow-2xl max-w-full max-h-full overflow-auto">
+          <!-- Dynamic Technical SVG will render here -->
+        </div>
+      </div>
+
+      <!-- 3D Navigation Guide Floating Pill -->
+      <div id="navGuide" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-zinc-900/80 px-3 py-1.5 rounded-full border border-zinc-800 backdrop-blur text-[11px] text-zinc-400 flex items-center gap-3 pointer-events-none">
+        <span class="flex items-center gap-1"><i data-lucide="mouse-pointer" class="w-3 h-3 text-rose-400"></i> Rotar: Clic Izquierdo</span>
+        <span class="flex items-center gap-1"><i data-lucide="move" class="w-3 h-3 text-amber-400"></i> Desplazar: Clic Derecho</span>
+        <span class="flex items-center gap-1"><i data-lucide="zoom-in" class="w-3 h-3 text-sky-400"></i> Zoom: Rueda</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- Help & 3D Printing Instructions Modal -->
+  <div id="infoModal" class="fixed inset-0 bg-black/75 z-50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-rose-600/20 text-rose-400 rounded-lg">
+            <i data-lucide="printer" class="w-5 h-5"></i>
+          </div>
+          <h2 class="text-base font-bold text-white">Guía de Impresión 3D y Modelado CAD</h2>
+        </div>
+        <button id="btnCloseModal" class="text-zinc-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-zinc-300 space-y-3 leading-relaxed max-h-[65vh] overflow-y-auto pr-1">
+        <div class="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+          <h3 class="font-bold text-rose-400 mb-1 flex items-center gap-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Cómo usar los archivos en tu Impresora 3D
+          </h3>
+          <p class="text-zinc-400">
+            1. En la pestaña <b>Exportar CAD</b>, haz clic en <b>Descargar Bote.stl</b> y <b>Descargar Tapa.stl</b>.<br>
+            2. Carga los archivos en tu laminador (OrcaSlicer, PrusaSlicer, Bambu Studio o Cura).<br>
+            3. Orientación recomendada:
+          </p>
+          <ul class="list-disc list-inside mt-1 space-y-0.5 text-zinc-300">
+            <li><b>Bote:</b> Con la base apoyada en la cama (no necesita soportes gracias a la conicidad invertida).</li>
+            <li><b>Tapa:</b> Cara plana contra la placa de impresión para máxima adherencia y acabado perfecto sin soportes.</li>
+            <li><b>Holgura:</b> Si queda muy apretada o suelta, ajusta el deslizador de <i>Holgura / Tolerancia 3D</i> (0.35mm es el punto dulce estándar para filamento PLA).</li>
+          </ul>
+        </div>
+
+        <div class="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+          <h3 class="font-bold text-amber-400 mb-1 flex items-center gap-1.5">
+            <i data-lucide="edit-3" class="w-4 h-4"></i> Cómo usar los SVG en Blender / FreeCAD / Fusion 360
+          </h3>
+          <p class="text-zinc-400">
+            Los botones <i>SVG Perfil Torneado</i> descargan un boceto de medio corte ya compensado con el espesor de pared:
+          </p>
+          <ol class="list-decimal list-inside mt-1 space-y-0.5 text-zinc-300">
+            <li>Importa el SVG como curva/boceto en el plano XZ.</li>
+            <li>Selecciona el perfil cerrado y aplica la operación <b>Revolve / Revolución / Torneado</b> 360° sobre el eje vertical central Z.</li>
+            <li>¡Tendrás el sólido exacto paramétrico listo para mecanizado o modificaciones adicionales!</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-zinc-800">
+        <button id="btnDismissModal" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 font-semibold text-xs text-white rounded-lg transition">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-zinc-900 border border-emerald-500/50 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 translate-y-24 opacity-0 transition-all duration-300 pointer-events-none z-50">
+    <div class="p-1 rounded bg-emerald-500/20 text-emerald-400">
+      <i data-lucide="check" class="w-4 h-4"></i>
+    </div>
+    <span id="toastMsg" class="text-xs font-medium">Archivo generado con éxito</span>
+  </div>
+
+  <!-- App Core Script -->
+  <script>
+    // --- Parametric Model State ---
+    const params = {
+      // Bote / Frasco
+      jarHeight: 95,          // Altura total frasco (mm)
+      jarTopDia: 84,          // Diámetro exterior superior del labio (mm)
+      jarBottomDia: 68,       // Diámetro exterior de la base (mm)
+      wallThickness: 1.8,     // Grosor de pared uniforme (mm)
+      rimHeight: 9,           // Altura del collarín/labio superior (mm)
+      rimOffset: 2.2,         // Resalte perimetral del labio donde engancha la tapa (mm)
+
+      // Tapa
+      tolerance: 0.35,        // Holgura radial para encaje 3D (mm)
+      lidSkirtHeight: 9.5,    // Altura del faldón de la tapa (mm)
+      lidThickness: 1.6,      // Grosor del disco superior de la tapa (mm)
+      tabLength: 12,          // Longitud de la pestaña de apertura fácil (mm)
+
+      // Visualización
+      explode: 25,            // Separación vertical de la tapa (mm)
+      showJar: true,
+      showLid: true,
+      wireframe: false,
+      cutSection: false
+    };
+
+    // Three.js instances
+    let scene, camera, renderer, controls;
+    let jarMesh = null, lidMesh = null, jarSectionMesh = null, lidSectionMesh = null;
+    let jarGroup, lidGroup;
+    let gridHelper;
+
+    // --- DOM Elements ---
+    const container3D = document.getElementById('container3D');
+    const container2D = document.getElementById('container2D');
+    const svgWrapper = document.getElementById('svgWrapper');
+    const navGuide = document.getElementById('navGuide');
+    const camPresets = document.getElementById('camPresets');
+
+    // Tabs
+    const tabControlsBtn = document.getElementById('tabControlsBtn');
+    const tabExportBtn = document.getElementById('tabExportBtn');
+    const panelControls = document.getElementById('panelControls');
+    const panelExport = document.getElementById('panelExport');
+
+    // View toggles
+    const viewBtn3D = document.getElementById('viewBtn3D');
+    const viewBtn2D = document.getElementById('viewBtn2D');
+
+    // Initialize Lucide Icons
+    function updateIcons() {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    // --- Toast Message ---
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+
+    // --- Download Helper ---
+    function downloadBlob(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Descargado: ${filename}`);
+    }
+
+    // --- Three.js Initialization ---
+    function init3D() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0c0c0e);
+
+      camera = new THREE.PerspectiveCamera(40, container3D.clientWidth / container3D.clientHeight, 1, 1000);
+      camera.position.set(130, 110, 160);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container3D.clientWidth, container3D.clientHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container3D.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, params.jarHeight * 0.45, 0);
+
+      // Environment & Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      mainLight.position.set(80, 160, 100);
+      mainLight.castShadow = true;
+      mainLight.shadow.mapSize.width = 1024;
+      mainLight.shadow.mapSize.height = 1024;
+      scene.add(mainLight);
+
+      const fillLight = new THREE.DirectionalLight(0xff88aa, 0.4);
+      fillLight.position.set(-90, 40, -80);
+      scene.add(fillLight);
+
+      const rimLight = new THREE.DirectionalLight(0x70a0ff, 0.5);
+      rimLight.position.set(0, -50, -100);
+      scene.add(rimLight);
+
+      // Circular Grid / Ground
+      gridHelper = new THREE.GridHelper(260, 26, 0x3f3f46, 0x27272a);
+      gridHelper.position.y = -0.05;
+      scene.add(gridHelper);
+
+      // Groups
+      jarGroup = new THREE.Group();
+      lidGroup = new THREE.Group();
+      scene.add(jarGroup);
+      scene.add(lidGroup);
+
+      // Rebuild 3D Meshes
+      rebuild3DModels();
+
+      // Window resize
+      window.addEventListener('resize', onWindowResize);
+
+      // Animation Loop
+      animate();
+    }
+
+    function onWindowResize() {
+      if (!renderer || !camera) return;
+      const width = container3D.clientWidth;
+      const height = container3D.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    // --- Profile Curves Generation (for Revolve & SVG) ---
+    // Returns 2D radial profile points (r = x, y = vertical)
+    function getJarProfilePoints() {
+      const H = params.jarHeight;
+      const R_top = params.jarTopDia / 2;
+      const R_bot = params.jarBottomDia / 2;
+      const t = params.wallThickness;
+      const rH = params.rimHeight;
+      const rOff = params.rimOffset;
+
+      // Outer profile (from base center to top lip)
+      const p = [];
+      p.push(new THREE.Vector2(0, 0)); // Center of bottom
+      p.push(new THREE.Vector2(R_bot, 0)); // Bottom outer corner
+      p.push(new THREE.Vector2(R_bot, 2)); // slight bevel
+      
+      // Conical body outer wall up to rim transition
+      const yRimStart = H - rH;
+      const rBeforeRim = R_bot + (R_top - R_bot) * (yRimStart / H);
+      p.push(new THREE.Vector2(rBeforeRim, yRimStart));
+
+      // Stepped rim collar (snap-fit bead as in Onicrust container)
+      p.push(new THREE.Vector2(rBeforeRim + rOff * 0.7, yRimStart + 1.5));
+      p.push(new THREE.Vector2(R_top + rOff, yRimStart + rH * 0.4)); // outer locking bead
+      p.push(new THREE.Vector2(R_top, yRimStart + rH)); // top outer lip
+      p.push(new THREE.Vector2(R_top, H)); // Top rim flat surface
+      p.push(new THREE.Vector2(R_top - t, H)); // Top inner lip
+
+      // Inner wall profile (hollow inside)
+      const rInnerTop = R_top - t;
+      const rInnerBot = Math.max(2, R_bot - t);
+      p.push(new THREE.Vector2(rInnerTop, H - 2));
+      p.push(new THREE.Vector2(rInnerTop - (rBeforeRim - (R_top - t)) * 0.2, yRimStart));
+      p.push(new THREE.Vector2(rInnerBot, t + 1));
+      p.push(new THREE.Vector2(rInnerBot, t)); // Floor inner
+      p.push(new THREE.Vector2(0, t)); // Center of inner floor
+
+      return p;
+    }
+
+    function getLidProfilePoints() {
+      const R_top = params.jarTopDia / 2;
+      const rOff = params.rimOffset;
+      const tol = params.tolerance;
+      const tLid = params.lidThickness;
+      const skH = params.lidSkirtHeight;
+
+      // Inner radius of skirt matches jar rim outer + tolerance
+      const rInnerSkirt = R_top + rOff + tol;
+      const rOuterSkirt = rInnerSkirt + tLid;
+      const rTopDisc = rOuterSkirt + 1.5; // slight edge overhang for seal
+
+      const p = [];
+      p.push(new THREE.Vector2(0, 0)); // Center bottom of lid disc
+      p.push(new THREE.Vector2(rInnerSkirt - 1.2, 0)); // Flat ceiling underside
+      
+      // Underside snap channel (recesses to grip jar rim bead)
+      p.push(new THREE.Vector2(rInnerSkirt - 0.4, -2));
+      p.push(new THREE.Vector2(rInnerSkirt, -3.5)); // internal snap ring
+      p.push(new THREE.Vector2(rInnerSkirt - 0.2, -skH + 1.5));
+      p.push(new THREE.Vector2(rInnerSkirt + 0.8, -skH)); // bottom rim of skirt flare
+      p.push(new THREE.Vector2(rOuterSkirt + 0.8, -skH)); // outer skirt bottom
+      p.push(new THREE.Vector2(rOuterSkirt, -2)); // vertical skirt
+      p.push(new THREE.Vector2(rTopDisc, 0)); // disc outer edge
+      p.push(new THREE.Vector2(rTopDisc, tLid)); // top flat edge
+      p.push(new THREE.Vector2(0, tLid)); // Top center of lid
+
+      return p;
+    }
+
+    // --- 3D Mesh Generation ---
+    function rebuild3DModels() {
+      if (!scene) return;
+
+      // Clear existing
+      while(jarGroup.children.length > 0) jarGroup.remove(jarGroup.children[0]);
+      while(lidGroup.children.length > 0) lidGroup.remove(lidGroup.children[0]);
+
+      const segments = 64;
+      const jarPoints = getJarProfilePoints();
+      const lidPoints = getLidProfilePoints();
+
+      // Materials: Semi-translucent food-grade polypropylene look (like original Onicrust tub)
+      const jarMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x9f1239, // Translucent raspberry / burgundy like Onicrust fried onion tub
+        metalness: 0.05,
+        roughness: 0.35,
+        transmission: 0.4,
+        transparent: true,
+        opacity: 0.92,
+        wireframe: params.wireframe,
+        side: THREE.DoubleSide
+      });
+
+      const lidMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf43f5e, // Lighter snap-cap
+        metalness: 0.1,
+        roughness: 0.25,
+        transmission: 0.35,
+        transparent: true,
+        opacity: 0.94,
+        wireframe: params.wireframe,
+        side: THREE.DoubleSide
+      });
+
+      const phiLength = params.cutSection ? Math.PI * 1.5 : Math.PI * 2;
+
+      // 1. Lathe Jar
+      const jarGeom = new THREE.LatheGeometry(jarPoints, segments, 0, phiLength);
+      jarGeom.computeVertexNormals();
+      jarMesh = new THREE.Mesh(jarGeom, jarMaterial);
+      jarMesh.castShadow = true;
+      jarMesh.receiveShadow = true;
+      jarGroup.add(jarMesh);
+
+      // Add reinforcement ribs to jar rim (distinctive feature on the actual tub)
+      if (!params.cutSection) {
+        addJarRibs(jarGroup);
+      }
+
+      // 2. Lathe Lid
+      const lidGeom = new THREE.LatheGeometry(lidPoints, segments, 0, phiLength);
+      lidGeom.computeVertexNormals();
+      lidMesh = new THREE.Mesh(lidGeom, lidMaterial);
+      lidMesh.castShadow = true;
+      lidMesh.receiveShadow = true;
+      lidGroup.add(lidMesh);
+
+      // Add pull-tab to the lid skirt if tabLength > 0
+      if (params.tabLength > 0 && !params.cutSection) {
+        addLidTab(lidGroup);
+      }
+
+      // Position Lid with explode factor
+      updateLidPosition();
+
+      // Toggle visibilities
+      jarGroup.visible = params.showJar;
+      lidGroup.visible = params.showLid;
+
+      // Adjust controls target height
+      controls.target.set(0, params.jarHeight * 0.45, 0);
+
+      // Calculate approximate capacity
+      updateSpecs();
+      // Update 2D SVG
+      renderTechnicalSVG();
+    }
+
+    // Adds vertical stiffener ribs around the upper rim collar
+    function addJarRibs(parentGroup) {
+      const ribCount = 28;
+      const H = params.jarHeight;
+      const rH = params.rimHeight;
+      const R_top = params.jarTopDia / 2;
+      const yPos = H - rH / 2;
+      
+      const ribGeom = new THREE.BoxGeometry(0.8, rH * 0.8, 1.4);
+      const ribMat = new THREE.MeshStandardMaterial({
+        color: 0x881337,
+        roughness: 0.4,
+        wireframe: params.wireframe
+      });
+
+      for (let i = 0; i < ribCount; i++) {
+        const angle = (i / ribCount) * Math.PI * 2;
+        const rib = new THREE.Mesh(ribGeom, ribMat);
+        const radius = R_top + 0.6;
+        rib.position.set(Math.cos(angle) * radius, yPos, Math.sin(angle) * radius);
+        rib.rotation.y = -angle;
+        parentGroup.add(rib);
+      }
+    }
+
+    // Adds opening tear/snap tab to the lid perimeter
+    function addLidTab(parentGroup) {
+      const R_top = params.jarTopDia / 2;
+      const rOff = params.rimOffset;
+      const tol = params.tolerance;
+      const tLid = params.lidThickness;
+      const tabR = R_top + rOff + tol + tLid + (params.tabLength / 2);
+      
+      const shape = new THREE.Shape();
+      const w = 14;
+      const l = params.tabLength;
+      shape.moveTo(-w/2, 0);
+      shape.lineTo(w/2, 0);
+      shape.quadraticCurveTo(w/2 + 2, l, 0, l + 1);
+      shape.quadraticCurveTo(-w/2 - 2, l, -w/2, 0);
+
+      const extrudeSettings = { depth: 1.4, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.3, bevelThickness: 0.3 };
+      const tabGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      tabGeom.rotateX(Math.PI / 2);
+      
+      const tabMat = new THREE.MeshStandardMaterial({
+        color: 0xe11d48,
+        roughness: 0.3,
+        wireframe: params.wireframe
+      });
+      const tabMesh = new THREE.Mesh(tabGeom, tabMat);
+      tabMesh.position.set(0, -1.2, R_top + rOff + tol + tLid);
+      parentGroup.add(tabMesh);
+    }
+
+    function updateLidPosition() {
+      if (!lidGroup) return;
+      // When explode is 0, lid rests exactly on the jar rim (params.jarHeight)
+      lidGroup.position.y = params.jarHeight + params.explode;
+    }
+
+    function updateSpecs() {
+      // Frustum cone volume formula: V = (1/3) * PI * h * (R1^2 + R2^2 + R1*R2)
+      const hInside = params.jarHeight - params.wallThickness;
+      const r1 = (params.jarBottomDia / 2) - params.wallThickness;
+      const r2 = (params.jarTopDia / 2) - params.wallThickness;
+      const volMm3 = (1 / 3) * Math.PI * hInside * (r1*r1 + r2*r2 + r1*r2);
+      const volMl = Math.round(volMm3 / 1000);
+      
+      const specVol = document.getElementById('specVolume');
+      if (specVol) specVol.textContent = `${volMl} ml (cm³)`;
+    }
+
+    // --- 2D Technical SVG Generator ---
+    function renderTechnicalSVG() {
+      const H = params.jarHeight;
+      const D_top = params.jarTopDia;
+      const D_bot = params.jarBottomDia;
+      const t = params.wallThickness;
+      const rH = params.rimHeight;
+      const tol = params.tolerance;
+
+      const jarPts = getJarProfilePoints();
+      const lidPts = getLidProfilePoints();
+
+      // Viewbox dimensioning
+      const svgW = 760;
+      const svgH = 500;
+      const scale = 2.2;
+      const originX = 220;
+      const originY = 380;
+
+      // Transform point helper
+      const tPt = (x, y) => `${(originX + x * scale).toFixed(1)},${(originY - y * scale).toFixed(1)}`;
+
+      // Build closed path for Jar Half Profile
+      let dJar = "M " + jarPts.map(pt => tPt(pt.x, pt.y)).join(" L ") + " Z";
+      
+      // Mirror for symmetric view
+      const tPtMirror = (x, y) => `${(originX - x * scale).toFixed(1)},${(originY - y * scale).toFixed(1)}`;
+      let dJarMirror = "M " + jarPts.map(pt => tPtMirror(pt.x, pt.y)).join(" L ") + " Z";
+
+      // Build closed path for Lid Profile (Elevated by 20mm in technical drawing)
+      const lidYOffset = H + 20;
+      let dLid = "M " + lidPts.map(pt => tPt(pt.x, pt.y + lidYOffset)).join(" L ") + " Z";
+      let dLidMirror = "M " + lidPts.map(pt => tPtMirror(pt.x, pt.y + lidYOffset)).join(" L ") + " Z";
+
+      // Plant Views (Circles on right side)
+      const plantCenterX = 560;
+      const plantCenterY_Jar = 140;
+      const plantCenterY_Lid = 340;
+
+      const rTopSc = (D_top / 2) * scale * 0.7;
+      const rBotSc = (D_bot / 2) * scale * 0.7;
+      const rLidSc = ((D_top / 2) + params.rimOffset + tol) * scale * 0.7;
+
+      const svgContent = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}" class="w-full h-auto text-zinc-100" style="max-height: 70vh;">
+          <defs>
+            <!-- Engineering Hatching pattern -->
+            <pattern id="hatchJar" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#f43f5e" stroke-width="1.2" opacity="0.4" />
+            </pattern>
+            <pattern id="hatchLid" width="8" height="8" patternTransform="rotate(-45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#fbbf24" stroke-width="1.2" opacity="0.4" />
+            </pattern>
+            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#38bdf8" />
+            </marker>
+          </defs>
+
+          <!-- Background Grid / Axis -->
+          <rect width="100%" height="100%" fill="#121215" rx="8" />
+
+          <!-- Center Axis line -->
+          <line x1="${originX}" y1="20" x2="${originX}" y2="${originY + 20}" stroke="#ef4444" stroke-width="1" stroke-dasharray="8 4 2 4" opacity="0.6" />
+          <text x="${originX + 4}" y="35" fill="#ef4444" font-size="9" font-family="monospace">EJE CENTRAL Z</text>
+
+          <!-- Jar Profile Left & Right (Section Cut) -->
+          <path d="${dJar}" fill="url(#hatchJar)" stroke="#f43f5e" stroke-width="1.8" />
+          <path d="${dJarMirror}" fill="url(#hatchJar)" stroke="#f43f5e" stroke-width="1.8" />
+
+          <!-- Lid Profile Left & Right -->
+          <path d="${dLid}" fill="url(#hatchLid)" stroke="#fbbf24" stroke-width="1.8" />
+          <path d="${dLidMirror}" fill="url(#hatchLid)" stroke="#fbbf24" stroke-width="1.8" />
+
+          <!-- Dimension Lines & Annotations -->
+          <!-- Height H -->
+          <line x1="45" y1="${originY}" x2="45" y2="${originY - H * scale}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+          <line x1="40" y1="${originY}" x2="${originX - (D_bot/2)*scale}" stroke="#52525b" stroke-width="0.8" stroke-dasharray="2 2" />
+          <line x1="40" y1="${originY - H * scale}" x2="${originX - (D_top/2)*scale}" stroke="#52525b" stroke-width="0.8" stroke-dasharray="2 2" />
+          <text x="25" y="${originY - (H * scale)/2}" class="dimension-text" transform="rotate(-90 25 ${originY - (H * scale)/2})" text-anchor="middle">H = ${H} mm</text>
+
+          <!-- Top Dia -->
+          <line x1="${originX - (D_top/2)*scale}" y1="${originY - H * scale - 12}" x2="${originX + (D_top/2)*scale}" y2="${originY - H * scale - 12}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+          <text x="${originX}" y="${originY - H * scale - 16}" class="dimension-text" text-anchor="middle">Ø Sup = ${D_top} mm</text>
+
+          <!-- Bottom Dia -->
+          <line x1="${originX - (D_bot/2)*scale}" y1="${originY + 16}" x2="${originX + (D_bot/2)*scale}" y2="${originY + 16}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+          <text x="${originX}" y="${originY + 28}" class="dimension-text" text-anchor="middle">Ø Base = ${D_bot} mm</text>
+
+          <!-- Wall thickness note -->
+          <text x="${originX - (D_bot/2)*scale - 10}" y="${originY - 20}" fill="#a1a1aa" font-size="9" font-family="monospace">Pared: ${t} mm</text>
+
+          <!-- Tolerancia snap note -->
+          <text x="${originX + (D_top/2)*scale + 15}" y="${originY - lidYOffset * scale + 15}" fill="#fbbf24" font-size="9" font-family="monospace">Holgura Snap: +${tol} mm</text>
+
+          <!-- VISTAS EN PLANTA (CIRCULARES) -->
+          <g>
+            <text x="${plantCenterX}" y="35" fill="#f43f5e" font-size="11" font-weight="bold" font-family="sans-serif" text-anchor="middle">VISTA EN PLANTA: BOTE</text>
+            <!-- Center mark -->
+            <line x1="${plantCenterX - 45}" y1="${plantCenterY_Jar}" x2="${plantCenterX + 45}" y2="${plantCenterY_Jar}" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="4 2" />
+            <line x1="${plantCenterX}" y1="${plantCenterY_Jar - 45}" x2="${plantCenterX}" y2="${plantCenterY_Jar + 45}" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="4 2" />
+            <!-- Circles -->
+            <circle cx="${plantCenterX}" cy="${plantCenterY_Jar}" r="${rTopSc}" fill="none" stroke="#f43f5e" stroke-width="2" />
+            <circle cx="${plantCenterX}" cy="${plantCenterY_Jar}" r="${rTopSc - t*scale*0.7}" fill="none" stroke="#f43f5e" stroke-dasharray="3 2" stroke-width="1" />
+            <circle cx="${plantCenterX}" cy="${plantCenterY_Jar}" r="${rBotSc}" fill="none" stroke="#71717a" stroke-width="1.2" />
+            <text x="${plantCenterX}" y="${plantCenterY_Jar + rTopSc + 16}" fill="#a1a1aa" font-size="9" font-family="monospace" text-anchor="middle">Reborde & Labio Reforzado</text>
+          </g>
+
+          <g>
+            <text x="${plantCenterX}" y="240" fill="#fbbf24" font-size="11" font-weight="bold" font-family="sans-serif" text-anchor="middle">VISTA EN PLANTA: TAPA CON PESTAÑA</text>
+            <!-- Center mark -->
+            <line x1="${plantCenterX - 45}" y1="${plantCenterY_Lid}" x2="${plantCenterX + 45}" y2="${plantCenterY_Lid}" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="4 2" />
+            <line x1="${plantCenterX}" y1="${plantCenterY_Lid - 45}" x2="${plantCenterX}" y2="${plantCenterY_Lid + 45}" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="4 2" />
+            <!-- Lid disc and outer skirt -->
+            <circle cx="${plantCenterX}" cy="${plantCenterY_Lid}" r="${rLidSc}" fill="none" stroke="#fbbf24" stroke-width="2" />
+            <circle cx="${plantCenterX}" cy="${plantCenterY_Lid}" r="${rLidSc - 1.6*scale*0.7}" fill="none" stroke="#fbbf24" stroke-dasharray="2 2" stroke-width="1" />
+            <!-- Tab representation -->
+            <path d="M ${plantCenterX + rLidSc - 2} ${plantCenterY_Lid - 8} 
+                     C ${plantCenterX + rLidSc + 18} ${plantCenterY_Lid - 6}, 
+                       ${plantCenterX + rLidSc + 18} ${plantCenterY_Lid + 6}, 
+                       ${plantCenterX + rLidSc - 2} ${plantCenterY_Lid + 8} Z" 
+                  fill="#f59e0b" stroke="#fbbf24" stroke-width="1.5" />
+            <text x="${plantCenterX}" y="${plantCenterY_Lid + rLidSc + 16}" fill="#a1a1aa" font-size="9" font-family="monospace" text-anchor="middle">Ø Tapa Exterior: ${(D_top + params.rimOffset*2 + tol*2).toFixed(1)} mm</text>
+          </g>
+
+          <!-- Blueprint Title Block Footer -->
+          <rect x="15" y="${svgH - 45}" width="${svgW - 30}" height="32" fill="#18181b" stroke="#27272a" rx="4" />
+          <text x="30" y="${svgH - 25}" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">PLANO TÉCNICO: BOTE Y TAPA SNAP-FIT</text>
+          <text x="${svgW - 40}" y="${svgH - 25}" fill="#38bdf8" font-size="10" font-family="monospace" text-anchor="end">ESCALA REVOLVE 1:1 | TOLERANCIA ${tol} mm</text>
+        </svg>
+      `;
+
+      svgWrapper.innerHTML = svgContent;
+    }
+
+    // --- Export Generators ---
+
+    // 1. Export SVG Profile for Revolve in Fusion 360 / Blender
+    function exportRevolveProfileSVG(type) {
+      const isJar = type === 'jar';
+      const pts = isJar ? getJarProfilePoints() : getLidProfilePoints();
+      const title = isJar ? "Perfil_Bote_Revolve" : "Perfil_Tapa_Revolve";
+      
+      // Calculate bounding box in mm
+      let maxX = 0, maxY = -999, minY = 999;
+      pts.forEach(p => {
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+        if (p.y < minY) minY = p.y;
+      });
+
+      const widthMm = maxX + 5;
+      const heightMm = (maxY - minY) + 5;
+      const margin = 2;
+
+      // SVG path coordinates (1 unit = 1 mm)
+      // Mirror vertically since SVG Y goes down
+      const pathD = "M " + pts.map(p => `${p.x.toFixed(3)},${(maxY - p.y + margin).toFixed(3)}`).join(" L ") + " Z";
+
+      const svgDoc = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${widthMm.toFixed(2)}mm" height="${heightMm.toFixed(2)}mm" viewBox="0 0 ${widthMm.toFixed(2)} ${heightMm.toFixed(2)}">
+  <!-- CAD Closed Profile for Revolve / Torneado 360 Axis at X=0 -->
+  <g id="${title}">
+    <line x1="0" y1="0" x2="0" y2="${heightMm.toFixed(2)}" stroke="red" stroke-width="0.2" id="RevolutionAxis" />
+    <path d="${pathD}" fill="#cccccc" stroke="#000000" stroke-width="0.2" id="ClosedProfile" />
+  </g>
+</svg>`;
+
+      downloadBlob(svgDoc, `${title}.svg`, 'image/svg+xml');
+    }
+
+    // 2. Export Technical Blueprint SVG
+    function exportTechnicalBlueprintSVG() {
+      const svgEl = svgWrapper.querySelector('svg');
+      if (!svgEl) return;
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svgEl);
+      if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      downloadBlob(source, 'Plano_Tecnico_Bote_Tapa.svg', 'image/svg+xml');
+    }
+
+    // 3. Export 3D STL
+    function exportSTL(part) {
+      if (!THREE.STLExporter) {
+        showToast('Error cargando exportador STL');
+        return;
+      }
+      const exporter = new THREE.STLExporter();
+      let meshToExport;
+
+      // Temporary group to reset transforms & section cuts for clean 3D printing
+      const tempGroup = new THREE.Group();
+      const segments = 96; // High fidelity for 3D slicing
+
+      if (part === 'jar' || part === 'both') {
+        const jarPts = getJarProfilePoints();
+        const g = new THREE.LatheGeometry(jarPts, segments, 0, Math.PI * 2);
+        const m = new THREE.Mesh(g);
+        tempGroup.add(m);
+      }
+
+      if (part === 'lid' || part === 'both') {
+        const lidPts = getLidProfilePoints();
+        const g = new THREE.LatheGeometry(lidPts, segments, 0, Math.PI * 2);
+        const m = new THREE.Mesh(g);
+        if (part === 'both') {
+          m.position.y = params.jarHeight + 5; // offset slightly in combined file
+        } else {
+          // Flip lid so flat top rests on bed (best FDM 3D print orientation)
+          m.rotation.x = Math.PI;
+          m.position.y = params.lidThickness;
+        }
+        tempGroup.add(m);
+      }
+
+      const stlString = exporter.parse(tempGroup, { binary: true });
+      const filename = part === 'jar' ? 'Bote_Tarrina.stl' : (part === 'lid' ? 'Tapa_SnapFit.stl' : 'Conjunto_Bote_Y_Tapa.stl');
+      downloadBlob(stlString, filename, 'application/octet-stream');
+    }
+
+    // --- Wire UI Events ---
+    function setupUI() {
+      // Sliders bindings
+      const bindSlider = (id, paramKey, labelId, suffix = ' mm', callback = null) => {
+        const slider = document.getElementById(id);
+        const label = document.getElementById(labelId);
+        slider.addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          params[paramKey] = val;
+          if (label) label.textContent = `${val}${suffix}`;
+          if (callback) callback();
+          else rebuild3DModels();
+        });
+      };
+
+      bindSlider('paramExplode', 'explode', 'labelExplode', ' mm', () => updateLidPosition());
+      bindSlider('paramJarHeight', 'jarHeight', 'valJarHeight');
+      bindSlider('paramJarTopDia', 'jarTopDia', 'valJarTopDia');
+      bindSlider('paramJarBottomDia', 'jarBottomDia', 'valJarBottomDia');
+      bindSlider('paramWallThickness', 'wallThickness', 'valWallThickness');
+      bindSlider('paramRimHeight', 'rimHeight', 'valRimHeight');
+      bindSlider('paramRimOffset', 'rimOffset', 'valRimOffset');
+      bindSlider('paramTolerance', 'tolerance', 'valTolerance');
+      bindSlider('paramLidSkirtHeight', 'lidSkirtHeight', 'valLidSkirtHeight');
+      bindSlider('paramLidThickness', 'lidThickness', 'valLidThickness');
+      bindSlider('paramTabLength', 'tabLength', 'valTabLength');
+
+      // Checkboxes
+      document.getElementById('chkShowJar').addEventListener('change', (e) => {
+        params.showJar = e.target.checked;
+        if (jarGroup) jarGroup.visible = params.showJar;
+      });
+
+      document.getElementById('chkShowLid').addEventListener('change', (e) => {
+        params.showLid = e.target.checked;
+        if (lidGroup) lidGroup.visible = params.showLid;
+      });
+
+      document.getElementById('chkWireframe').addEventListener('change', (e) => {
+        params.wireframe = e.target.checked;
+        rebuild3DModels();
+      });
+
+      document.getElementById('chkCutSection').addEventListener('change', (e) => {
+        params.cutSection = e.target.checked;
+        rebuild3DModels();
+      });
+
+      // View Mode Toggle (3D vs 2D)
+      viewBtn3D.addEventListener('click', () => {
+        viewBtn3D.classList.add('bg-rose-600', 'text-white');
+        viewBtn3D.classList.remove('text-zinc-400');
+        viewBtn2D.classList.remove('bg-rose-600', 'text-white');
+        viewBtn2D.classList.add('text-zinc-400');
+
+        container3D.classList.remove('hidden');
+        container2D.classList.add('hidden');
+        navGuide.classList.remove('hidden');
+        camPresets.classList.remove('hidden');
+        onWindowResize();
+      });
+
+      viewBtn2D.addEventListener('click', () => {
+        viewBtn2D.classList.add('bg-rose-600', 'text-white');
+        viewBtn2D.classList.remove('text-zinc-400');
+        viewBtn3D.classList.remove('bg-rose-600', 'text-white');
+        viewBtn3D.classList.add('text-zinc-400');
+
+        container2D.classList.remove('hidden');
+        container3D.classList.add('hidden');
+        navGuide.classList.add('hidden');
+        camPresets.classList.add('hidden');
+        renderTechnicalSVG();
+      });
+
+      // Sidebar Tab Switching
+      tabControlsBtn.addEventListener('click', () => {
+        tabControlsBtn.classList.add('bg-rose-600', 'text-white');
+        tabControlsBtn.classList.remove('bg-zinc-800', 'text-zinc-300');
+        tabExportBtn.classList.remove('bg-rose-600', 'text-white');
+        tabExportBtn.classList.add('bg-zinc-800', 'text-zinc-300');
+
+        panelControls.classList.remove('hidden');
+        panelExport.classList.add('hidden');
+      });
+
+      tabExportBtn.addEventListener('click', () => {
+        tabExportBtn.classList.add('bg-rose-600', 'text-white');
+        tabExportBtn.classList.remove('bg-zinc-800', 'text-zinc-300');
+        tabControlsBtn.classList.remove('bg-rose-600', 'text-white');
+        tabControlsBtn.classList.add('bg-zinc-800', 'text-zinc-300');
+
+        panelExport.classList.remove('hidden');
+        panelControls.classList.add('hidden');
+      });
+
+      // Camera Presets
+      document.getElementById('camFront').addEventListener('click', () => {
+        controls.reset();
+        camera.position.set(0, params.jarHeight * 0.45, 180);
+        controls.target.set(0, params.jarHeight * 0.45, 0);
+      });
+
+      document.getElementById('camTop').addEventListener('click', () => {
+        controls.reset();
+        camera.position.set(0, 200, 0.1);
+        controls.target.set(0, 0, 0);
+      });
+
+      document.getElementById('camIso').addEventListener('click', () => {
+        controls.reset();
+        camera.position.set(130, 110, 160);
+        controls.target.set(0, params.jarHeight * 0.45, 0);
+      });
+
+      // Reset Button
+      document.getElementById('btnReset').addEventListener('click', () => {
+        params.jarHeight = 95;
+        params.jarTopDia = 84;
+        params.jarBottomDia = 68;
+        params.wallThickness = 1.8;
+        params.rimHeight = 9;
+        params.rimOffset = 2.2;
+        params.tolerance = 0.35;
+        params.lidSkirtHeight = 9.5;
+        params.lidThickness = 1.6;
+        params.tabLength = 12;
+        params.explode = 25;
+
+        // Sync inputs
+        document.getElementById('paramJarHeight').value = 95;
+        document.getElementById('valJarHeight').textContent = '95 mm';
+        document.getElementById('paramJarTopDia').value = 84;
+        document.getElementById('valJarTopDia').textContent = '84 mm';
+        document.getElementById('paramJarBottomDia').value = 68;
+        document.getElementById('valJarBottomDia').textContent = '68 mm';
+        document.getElementById('paramWallThickness').value = 1.8;
+        document.getElementById('valWallThickness').textContent = '1.8 mm';
+        document.getElementById('paramRimHeight').value = 9;
+        document.getElementById('valRimHeight').textContent = '9 mm';
+        document.getElementById('paramRimOffset').value = 2.2;
+        document.getElementById('valRimOffset').textContent = '2.2 mm';
+        document.getElementById('paramTolerance').value = 0.35;
+        document.getElementById('valTolerance').textContent = '0.35 mm';
+        document.getElementById('paramLidSkirtHeight').value = 9.5;
+        document.getElementById('valLidSkirtHeight').textContent = '9.5 mm';
+        document.getElementById('paramLidThickness').value = 1.6;
+        document.getElementById('valLidThickness').textContent = '1.6 mm';
+        document.getElementById('paramTabLength').value = 12;
+        document.getElementById('valTabLength').textContent = '12 mm';
+        document.getElementById('paramExplode').value = 25;
+        document.getElementById('labelExplode').textContent = '25 mm';
+
+        rebuild3DModels();
+        showToast('Medidas restauradas a valores estándar Onicrust');
+      });
+
+      // Export Buttons
+      document.getElementById('btnExportSvgJarProfile').addEventListener('click', () => exportRevolveProfileSVG('jar'));
+      document.getElementById('btnExportSvgLidProfile').addEventListener('click', () => exportRevolveProfileSVG('lid'));
+      document.getElementById('btnExportSvgTechnical').addEventListener('click', () => exportTechnicalBlueprintSVG());
+      document.getElementById('btnExportStlJar').addEventListener('click', () => exportSTL('jar'));
+      document.getElementById('btnExportStlLid').addEventListener('click', () => exportSTL('lid'));
+      document.getElementById('btnExportStlBoth').addEventListener('click', () => exportSTL('both'));
+
+      // Modal info
+      const infoModal = document.getElementById('infoModal');
+      document.getElementById('btnInfoModal').addEventListener('click', () => infoModal.classList.remove('hidden'));
+      document.getElementById('btnCloseModal').addEventListener('click', () => infoModal.classList.add('hidden'));
+      document.getElementById('btnDismissModal').addEventListener('click', () => infoModal.classList.add('hidden'));
+    }
+
+    // --- Onload initialization ---
+    window.onload = function() {
+      init3D();
+      setupUI();
+      updateIcons();
+    };
+  </script>
+</body>
+</html>

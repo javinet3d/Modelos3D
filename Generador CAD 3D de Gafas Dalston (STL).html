@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador CAD 3D & STL - Gafas Modelo Dalston</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            overflow: hidden;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #334155;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 2px solid #eff6ff;
+            transition: transform 0.1s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row select-none">
+
+    <!-- LEFT / TOP PANEL: 3D CANVAS VIEWPORT -->
+    <div class="relative flex-1 h-[50vh] md:h-full bg-slate-950 overflow-hidden flex flex-col">
+        
+        <!-- Top Header Overlay -->
+        <div class="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-4 py-2.5 rounded-xl shadow-xl pointer-events-auto flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
+                <div>
+                    <h1 class="text-sm font-bold tracking-wide text-white flex items-center gap-2">
+                        CAD 3D · GAFAS DALSTON
+                        <span class="text-[10px] font-semibold bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded-md mono">54□17-140</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">Generador paramétrico de malla sólida cerrada (STL)</p>
+                </div>
+            </div>
+
+            <!-- Dimension Summary Pill -->
+            <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3.5 py-2 rounded-xl shadow-xl pointer-events-auto flex items-center gap-4 text-xs">
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Ancho Total Frontal</span>
+                    <span id="statTotalWidth" class="font-bold text-emerald-400 mono">135.0 mm</span>
+                </div>
+                <div class="h-6 w-px bg-slate-700"></div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Largo Patilla</span>
+                    <span id="statTempleLen" class="font-bold text-blue-400 mono">140.0 mm</span>
+                </div>
+                <div class="h-6 w-px bg-slate-700"></div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Peso Est. (PLA)</span>
+                    <span id="statWeight" class="font-bold text-amber-400 mono">~18.4 g</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D Viewport Container -->
+        <div id="canvasContainer" class="w-full h-full relative cursor-grab active:cursor-grabbing"></div>
+
+        <!-- Bottom Viewport Controls Overlay -->
+        <div class="absolute bottom-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <!-- Camera Presets -->
+            <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 p-1.5 rounded-xl shadow-xl pointer-events-auto flex items-center gap-1">
+                <button onclick="setCameraView('iso')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white transition">Isométrica</button>
+                <button onclick="setCameraView('front')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-800 text-slate-300 transition">Frontal</button>
+                <button onclick="setCameraView('top')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-800 text-slate-300 transition">Planta (Superior)</button>
+                <button onclick="setCameraView('side')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-800 text-slate-300 transition">Perfil (Patilla)</button>
+            </div>
+
+            <!-- Visual Helpers -->
+            <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 p-1.5 rounded-xl shadow-xl pointer-events-auto flex items-center gap-2">
+                <label class="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="chkShowLenses" checked onchange="rebuildModel()" class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-0">
+                    <span>Cristales (Vista)</span>
+                </label>
+                <label class="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="chkWireframe" onchange="toggleWireframe()" class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-0">
+                    <span>Malla (Wireframe)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toastMsg" class="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 hidden bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-2xl text-xs font-semibold tracking-wide border border-emerald-400/40 transition-all">
+            Acción completada
+        </div>
+    </div>
+
+    <!-- RIGHT / BOTTOM PANEL: PARAMETERS & EXPORT CONTROLS -->
+    <div class="w-full md:w-[430px] lg:w-[460px] h-[50vh] md:h-full bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-20">
+        
+        <!-- Mode & Persistence Bar -->
+        <div class="p-3.5 bg-slate-950/60 border-b border-slate-800 flex flex-col gap-2.5">
+            <!-- Print Layout Selector -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-blue-400 flex items-center justify-between">
+                    <span>Modo de Disposición / Impresión 3D</span>
+                    <span class="text-[10px] text-slate-400 font-normal">Cama Z=0 en modo plano</span>
+                </label>
+                <select id="layoutMode" onchange="onParamChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-white focus:outline-none focus:border-blue-500">
+                    <option value="assembled">🕶️ Vista Ensamblada 3D (Previsualización Real)</option>
+                    <option value="print_plate">🖨️ Placa de Impresión Cama Plana (Frontal + 2 Patillas Z=0)</option>
+                    <option value="single_piece">🔩 Pieza Única Rígida (Frontal y Patillas Fusionadas)</option>
+                    <option value="front_only">👓 Solo Montura Frontal (Plana en cama Z=0)</option>
+                    <option value="left_temple">📏 Solo Patilla Izquierda (Plana en cama Z=0)</option>
+                    <option value="right_temple">📐 Solo Patilla Derecha (Plana en cama Z=0)</option>
+                </select>
+            </div>
+
+            <!-- Save / Load / JSON Persistence Buttons -->
+            <div class="grid grid-cols-4 gap-1.5 pt-1">
+                <button onclick="saveToLocal()" title="Guardar parámetros en el navegador" class="flex items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg py-1.5 px-2 text-[11px] font-medium transition">
+                    💾 Guardar
+                </button>
+                <button onclick="exportJSON()" title="Descargar archivo JSON de parámetros" class="flex items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg py-1.5 px-2 text-[11px] font-medium transition">
+                    📤 JSON
+                </button>
+                <button onclick="document.getElementById('jsonFileInput').click()" title="Cargar archivo JSON de parámetros" class="flex items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg py-1.5 px-2 text-[11px] font-medium transition">
+                    📥 Cargar
+                </button>
+                <button onclick="resetDefaults()" title="Restaurar medidas originales Dalston de las fotos" class="flex items-center justify-center gap-1 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 rounded-lg py-1.5 px-2 text-[11px] font-medium transition">
+                    ↺ Reset
+                </button>
+                <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="importJSON(event)">
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="flex border-b border-slate-800 bg-slate-900/50 text-xs font-semibold">
+            <button onclick="switchTab('tabFront')" id="btn_tabFront" class="flex-1 py-2.5 text-center border-b-2 border-blue-500 text-blue-400 bg-slate-800/40 transition">
+                1. Frontal
+            </button>
+            <button onclick="switchTab('tabBridge')" id="btn_tabBridge" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+                2. Puente
+            </button>
+            <button onclick="switchTab('tabTemples')" id="btn_tabTemples" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+                3. Patillas
+            </button>
+            <button onclick="switchTab('tabHinge')" id="btn_tabHinge" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+                4. Bisagra
+            </button>
+        </div>
+
+        <!-- Scrollable Parameters Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <!-- TAB 1: FRONTAL / MONTURA -->
+            <div id="tabFront" class="space-y-3.5">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-700/60 pb-1.5">Geometría de Lente y Aro</h3>
+                    
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Ancho de Lente (Calibre)</span>
+                            <span id="val_lensWidth" class="mono text-blue-400 font-semibold">54.0 mm</span>
+                        </div>
+                        <input type="range" id="lensWidth" min="42" max="66" step="0.5" value="54" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Altura de Lente</span>
+                            <span id="val_lensHeight" class="mono text-blue-400 font-semibold">35.0 mm</span>
+                        </div>
+                        <input type="range" id="lensHeight" min="24" max="50" step="0.5" value="35" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Grosor del Aro (Borde)</span>
+                            <span id="val_rimThickness" class="mono text-blue-400 font-semibold">3.3 mm</span>
+                        </div>
+                        <input type="range" id="rimThickness" min="1.8" max="6.0" step="0.1" value="3.3" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Profundidad del Frontal (Z)</span>
+                            <span id="val_frameDepth" class="mono text-blue-400 font-semibold">4.2 mm</span>
+                        </div>
+                        <input type="range" id="frameDepth" min="2.5" max="8.0" step="0.1" value="4.2" oninput="onParamChange()" class="w-full">
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-700/60 pb-1.5">Perfil Rectangular y Curvatura</h3>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Estrechamiento Inferior (Trapezoidal)</span>
+                            <span id="val_bottomTaper" class="mono text-blue-400 font-semibold">3.5 mm</span>
+                        </div>
+                        <input type="range" id="bottomTaper" min="0" max="10" step="0.5" value="3.5" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Radio Sup.</span>
+                                <span id="val_topRadius" class="mono text-blue-400 font-semibold">4.0 mm</span>
+                            </div>
+                            <input type="range" id="topRadius" min="1.5" max="12" step="0.5" value="4.0" oninput="onParamChange()" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Radio Inf.</span>
+                                <span id="val_bottomRadius" class="mono text-blue-400 font-semibold">7.5 mm</span>
+                            </div>
+                            <input type="range" id="bottomRadius" min="2.0" max="16" step="0.5" value="7.5" oninput="onParamChange()" class="w-full">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Curvatura Facial (Wrap Angle)</span>
+                            <span id="val_wrapAngle" class="mono text-blue-400 font-semibold">6.0°</span>
+                        </div>
+                        <input type="range" id="wrapAngle" min="0" max="16" step="0.5" value="6.0" oninput="onParamChange()" class="w-full">
+                        <p class="text-[10px] text-slate-400 mt-1">Ponlo a 0° si deseas que el frontal apoye 100% plano sin soportes en la cama.</p>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Saliente Lateral (Talón / Endpiece)</span>
+                            <span id="val_endpieceWidth" class="mono text-blue-400 font-semibold">4.5 mm</span>
+                        </div>
+                        <input type="range" id="endpieceWidth" min="2.0" max="9.0" step="0.5" value="4.5" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Ranura Interior para Lente (Bisel)</span>
+                            <span id="val_lensGroove" class="mono text-blue-400 font-semibold">0.9 mm</span>
+                        </div>
+                        <input type="range" id="lensGroove" min="0" max="2.0" step="0.1" value="0.9" oninput="onParamChange()" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: PUENTE Y APOYO NASAL -->
+            <div id="tabBridge" class="space-y-3.5 hidden">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-700/60 pb-1.5">Puente Central y Plaquetas</h3>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Ancho del Puente (Distancia entre lentes)</span>
+                            <span id="val_bridgeWidth" class="mono text-blue-400 font-semibold">17.0 mm</span>
+                        </div>
+                        <input type="range" id="bridgeWidth" min="12" max="25" step="0.5" value="17" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Grosor Vertical del Puente</span>
+                            <span id="val_bridgeThickness" class="mono text-blue-400 font-semibold">5.2 mm</span>
+                        </div>
+                        <input type="range" id="bridgeThickness" min="2.5" max="10" step="0.2" value="5.2" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Arco / Curvatura del Puente</span>
+                            <span id="val_bridgeArch" class="mono text-blue-400 font-semibold">3.2 mm</span>
+                        </div>
+                        <input type="range" id="bridgeArch" min="0" max="8" step="0.2" value="3.2" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Proyección Frontal del Puente (Z)</span>
+                            <span id="val_bridgeProtrusion" class="mono text-blue-400 font-semibold">1.8 mm</span>
+                        </div>
+                        <input type="range" id="bridgeProtrusion" min="0" max="5" step="0.2" value="1.8" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Relieve de Plaquetas Nasales Integradas</span>
+                            <span id="val_nosePadDepth" class="mono text-blue-400 font-semibold">2.8 mm</span>
+                        </div>
+                        <input type="range" id="nosePadDepth" min="0" max="6.0" step="0.2" value="2.8" oninput="onParamChange()" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: PATILLAS / VARILLAS (DALSTON PROFILE) -->
+            <div id="tabTemples" class="space-y-3.5 hidden">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-700/60 pb-1.5">Perfil Lateral con Escalón (Foto 3)</h3>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Longitud Total de Patilla</span>
+                            <span id="val_templeLength" class="mono text-blue-400 font-semibold">140.0 mm</span>
+                        </div>
+                        <input type="range" id="templeLength" min="115" max="160" step="1" value="140" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Altura Inicial</span>
+                                <span id="val_templeFrontHeight" class="mono text-blue-400 font-semibold">10.2 mm</span>
+                            </div>
+                            <input type="range" id="templeFrontHeight" min="5.0" max="15.0" step="0.2" value="10.2" oninput="onParamChange()" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Altura Tras Escalón</span>
+                                <span id="val_templeNarrowHeight" class="mono text-blue-400 font-semibold">4.8 mm</span>
+                            </div>
+                            <input type="range" id="templeNarrowHeight" min="2.5" max="9.0" step="0.2" value="4.8" oninput="onParamChange()" class="w-full">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Posición del Escalón (Transición Azul)</span>
+                            <span id="val_templeStepPos" class="mono text-blue-400 font-semibold">78.0 mm</span>
+                        </div>
+                        <input type="range" id="templeStepPos" min="45" max="105" step="1" value="78" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Grosor de Patilla</span>
+                            <span id="val_templeThickness" class="mono text-blue-400 font-semibold">3.2 mm</span>
+                        </div>
+                        <input type="range" id="templeThickness" min="1.8" max="5.5" step="0.1" value="3.2" oninput="onParamChange()" class="w-full">
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-700/60 pb-1.5">Terminal Curvo (Apoyo de Oreja)</h3>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Inicio Caída</span>
+                                <span id="val_earDropStart" class="mono text-blue-400 font-semibold">102 mm</span>
+                            </div>
+                            <input type="range" id="earDropStart" min="80" max="125" step="1" value="102" oninput="onParamChange()" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Caída Vertical</span>
+                                <span id="val_earDropHeight" class="mono text-blue-400 font-semibold">23.0 mm</span>
+                            </div>
+                            <input type="range" id="earDropHeight" min="8" max="38" step="1" value="23" oninput="onParamChange()" class="w-full">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Curvatura Interior Tras Cabeza (Vista Planta)</span>
+                            <span id="val_templeToeIn" class="mono text-blue-400 font-semibold">15.0 mm</span>
+                        </div>
+                        <input type="range" id="templeToeIn" min="0" max="30" step="0.5" value="15" oninput="onParamChange()" class="w-full">
+                        <p class="text-[10px] text-slate-400 mt-1">En el modo "Placa de Impresión Cama Plana", puedes ponerlo a 0 mm para imprimir 100% plano y moldear la curva con calor suave tras imprimir.</p>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Ángulo de Plegado (Vista Ensamblada)</span>
+                            <span id="val_foldAngle" class="mono text-blue-400 font-semibold">0° (Abiertas)</span>
+                        </div>
+                        <input type="range" id="foldAngle" min="0" max="90" step="1" value="0" oninput="onParamChange()" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: BISAGRA Y TOLERANCIAS -->
+            <div id="tabHinge" class="space-y-3.5 hidden">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-3 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-slate-700/60 pb-1.5">Articulación de Bisagra</h3>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Diámetro Eje / Pasador (Filamento 1.75mm)</span>
+                            <span id="val_hingePinDia" class="mono text-blue-400 font-semibold">1.95 mm</span>
+                        </div>
+                        <input type="range" id="hingePinDia" min="1.4" max="3.0" step="0.05" value="1.95" oninput="onParamChange()" class="w-full">
+                        <p class="text-[10px] text-slate-400 mt-1">1.95 mm permite usar un trozo de filamento de 1.75 mm como pasador real de bisagra o un tornillo M2.</p>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Holgura / Tolerancia entre Horquilla y Lengüeta</span>
+                            <span id="val_hingeClearance" class="mono text-blue-400 font-semibold">0.25 mm</span>
+                        </div>
+                        <input type="range" id="hingeClearance" min="0.1" max="0.6" step="0.05" value="0.25" oninput="onParamChange()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Longitud del Bloque de Bisagra</span>
+                            <span id="val_hingeExtension" class="mono text-blue-400 font-semibold">5.5 mm</span>
+                        </div>
+                        <input type="range" id="hingeExtension" min="3.5" max="8.5" step="0.5" value="5.5" oninput="onParamChange()" class="w-full">
+                    </div>
+                </div>
+
+                <div class="bg-blue-950/40 border border-blue-800/50 rounded-xl p-3 text-xs text-blue-200 space-y-1.5">
+                    <div class="font-bold text-blue-300 flex items-center gap-1.5">
+                        <span>💡 Consejo de Impresión (Cura / PrusaSlicer)</span>
+                    </div>
+                    <p class="text-[11px] leading-relaxed text-slate-300">
+                        Selecciona <strong>"Placa de Impresión Cama Plana"</strong> arriba para colocar automáticamente el frontal y las dos patillas apoyadas sobre el plano Z=0. Para ensamblar las bisagras, inserta un trozo de filamento de 1.75 mm por el orificio vertical y aplasta ligeramente los extremos con calor.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom STL Action Bar -->
+        <div class="p-4 bg-slate-950 border-t border-slate-800 space-y-2">
+            <button onclick="exportCurrentSTL()" class="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Descargar STL (Vista Actual)</span>
+            </button>
+            <div class="grid grid-cols-3 gap-1.5">
+                <button onclick="exportSpecificPart('front_only')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium border border-slate-700 transition">
+                    ⬇ STL Frontal
+                </button>
+                <button onclick="exportSpecificPart('left_temple')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium border border-slate-700 transition">
+                    ⬇ STL Patilla Izq
+                </button>
+                <button onclick="exportSpecificPart('right_temple')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium border border-slate-700 transition">
+                    ⬇ STL Patilla Der
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DEFAULT DALSTON PARAMETERS (Matched to reference photos) ---
+        const DEFAULT_PARAMS = {
+            layoutMode: 'assembled',
+            lensWidth: 54.0,
+            lensHeight: 35.0,
+            rimThickness: 3.3,
+            frameDepth: 4.2,
+            bottomTaper: 3.5,
+            topRadius: 4.0,
+            bottomRadius: 7.5,
+            wrapAngle: 6.0,
+            endpieceWidth: 4.5,
+            lensGroove: 0.9,
+            bridgeWidth: 17.0,
+            bridgeThickness: 5.2,
+            bridgeArch: 3.2,
+            bridgeProtrusion: 1.8,
+            nosePadDepth: 2.8,
+            templeLength: 140.0,
+            templeFrontHeight: 10.2,
+            templeNarrowHeight: 4.8,
+            templeStepPos: 78.0,
+            templeThickness: 3.2,
+            earDropStart: 102.0,
+            earDropHeight: 23.0,
+            templeToeIn: 15.0,
+            foldAngle: 0,
+            hingePinDia: 1.95,
+            hingeClearance: 0.25,
+            hingeExtension: 5.5
+        };
+
+        const STORAGE_KEY = 'dalston_glasses_cad_params_v1';
+
+        // --- THREE.JS GLOBALS ---
+        let scene, camera, renderer, controls;
+        let modelGroup, exportableMeshes = [];
+        let darkMatteMaterial, blueAccentMaterial, metalPinMaterial, glassLensMaterial;
+
+        // --- INITIALIZATION ---
+        window.addEventListener('load', () => {
+            initThreeJS();
+            loadFromLocalOrDefaults();
+            rebuildModel();
+            animate();
+        });
+
+        function initThreeJS() {
+            const container = document.getElementById('canvasContainer');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x090d16);
+
+            camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 1, 2000);
+            camera.position.set(140, 110, 210);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.target.set(0, 10, -40);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight1.position.set(120, 220, 160);
+            dirLight1.castShadow = true;
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.45);
+            dirLight2.position.set(-150, -80, -120);
+            scene.add(dirLight2);
+
+            // Build Plate Grid (220 x 220 mm like Elegoo Neptune 3 Pro)
+            const gridHelper = new THREE.GridHelper(220, 22, 0x3b82f6, 0x1e293b);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+            // Materials matching the Dalston dark navy/black matte frame and blue accent band
+            darkMatteMaterial = new THREE.MeshStandardMaterial({
+                color: 0x172030,
+                roughness: 0.45,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            });
+
+            blueAccentMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1d4ed8,
+                roughness: 0.35,
+                metalness: 0.15,
+                side: THREE.DoubleSide
+            });
+
+            metalPinMaterial = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8,
+                roughness: 0.25,
+                metalness: 0.8,
+                side: THREE.DoubleSide
+            });
+
+            glassLensMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xdbeafe,
+                transparent: true,
+                opacity: 0.24,
+                roughness: 0.05,
+                metalness: 0.05,
+                reflectivity: 0.9,
+                side: THREE.DoubleSide
+            });
+
+            modelGroup = new THREE.Group();
+            scene.add(modelGroup);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvasContainer');
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- UI & PARAMETER MANAGEMENT ---
+        function switchTab(tabId) {
+            ['tabFront', 'tabBridge', 'tabTemples', 'tabHinge'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                const btn = document.getElementById('btn_' + id);
+                btn.classList.remove('border-blue-500', 'text-blue-400', 'bg-slate-800/40');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn_' + tabId);
+            activeBtn.classList.remove('border-transparent', 'text-slate-400');
+            activeBtn.classList.add('border-blue-500', 'text-blue-400', 'bg-slate-800/40');
+        }
+
+        function getParamsFromUI() {
+            const p = {};
+            for (const key of Object.keys(DEFAULT_PARAMS)) {
+                const el = document.getElementById(key);
+                if (!el) continue;
+                p[key] = (key === 'layoutMode') ? el.value : parseFloat(el.value);
+            }
+            return p;
+        }
+
+        function setUIFromParams(p) {
+            for (const [key, val] of Object.entries(p)) {
+                const el = document.getElementById(key);
+                if (el) el.value = val;
+            }
+            updateValueLabels(p);
+        }
+
+        function updateValueLabels(p) {
+            const fmt = (v, unit = ' mm', dec = 1) => Number(v).toFixed(dec) + unit;
+            document.getElementById('val_lensWidth').textContent = fmt(p.lensWidth);
+            document.getElementById('val_lensHeight').textContent = fmt(p.lensHeight);
+            document.getElementById('val_rimThickness').textContent = fmt(p.rimThickness);
+            document.getElementById('val_frameDepth').textContent = fmt(p.frameDepth);
+            document.getElementById('val_bottomTaper').textContent = fmt(p.bottomTaper);
+            document.getElementById('val_topRadius').textContent = fmt(p.topRadius);
+            document.getElementById('val_bottomRadius').textContent = fmt(p.bottomRadius);
+            document.getElementById('val_wrapAngle').textContent = fmt(p.wrapAngle, '°', 1);
+            document.getElementById('val_endpieceWidth').textContent = fmt(p.endpieceWidth);
+            document.getElementById('val_lensGroove').textContent = fmt(p.lensGroove);
+
+            document.getElementById('val_bridgeWidth').textContent = fmt(p.bridgeWidth);
+            document.getElementById('val_bridgeThickness').textContent = fmt(p.bridgeThickness);
+            document.getElementById('val_bridgeArch').textContent = fmt(p.bridgeArch);
+            document.getElementById('val_bridgeProtrusion').textContent = fmt(p.bridgeProtrusion);
+            document.getElementById('val_nosePadDepth').textContent = fmt(p.nosePadDepth);
+
+            document.getElementById('val_templeLength').textContent = fmt(p.templeLength);
+            document.getElementById('val_templeFrontHeight').textContent = fmt(p.templeFrontHeight);
+            document.getElementById('val_templeNarrowHeight').textContent = fmt(p.templeNarrowHeight);
+            document.getElementById('val_templeStepPos').textContent = fmt(p.templeStepPos);
+            document.getElementById('val_templeThickness').textContent = fmt(p.templeThickness);
+            document.getElementById('val_earDropStart').textContent = fmt(p.earDropStart, ' mm', 0);
+            document.getElementById('val_earDropHeight').textContent = fmt(p.earDropHeight);
+            document.getElementById('val_templeToeIn').textContent = fmt(p.templeToeIn);
+            document.getElementById('val_foldAngle').textContent = p.foldAngle === 0 ? '0° (Abiertas)' : `${p.foldAngle}°`;
+
+            document.getElementById('val_hingePinDia').textContent = fmt(p.hingePinDia, ' mm', 2);
+            document.getElementById('val_hingeClearance').textContent = fmt(p.hingeClearance, ' mm', 2);
+            document.getElementById('val_hingeExtension').textContent = fmt(p.hingeExtension, ' mm', 1);
+
+            const totalW = (p.lensWidth * 2) + p.bridgeWidth + (p.rimThickness * 4) + (p.endpieceWidth * 2);
+            document.getElementById('statTotalWidth').textContent = totalW.toFixed(1) + ' mm';
+            document.getElementById('statTempleLen').textContent = p.templeLength.toFixed(1) + ' mm';
+
+            // Approximate volume & PLA weight
+            const approxVolCm3 = ((totalW * p.rimThickness * p.frameDepth * 2.1) + (2 * p.templeLength * 6.5 * p.templeThickness)) / 1000;
+            const weightG = approxVolCm3 * 1.24;
+            document.getElementById('statWeight').textContent = '~' + weightG.toFixed(1) + ' g';
+        }
+
+        function onParamChange() {
+            const p = getParamsFromUI();
+            updateValueLabels(p);
+            rebuildModel();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toastMsg');
+            t.textContent = msg;
+            t.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => t.classList.add('hidden'), 2600);
+        }
+
+        function saveToLocal() {
+            const p = getParamsFromUI();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+            showToast('Parámetros guardados en la memoria del navegador');
+        }
+
+        function loadFromLocalOrDefaults() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const saved = JSON.parse(raw);
+                    setUIFromParams({ ...DEFAULT_PARAMS, ...saved });
+                    return;
+                }
+            } catch (e) {
+                console.warn('Error loading saved params:', e);
+            }
+            setUIFromParams(DEFAULT_PARAMS);
+        }
+
+        function resetDefaults() {
+            setUIFromParams(DEFAULT_PARAMS);
+            localStorage.removeItem(STORAGE_KEY);
+            rebuildModel();
+            showToast('Medidas originales Dalston restauradas');
+        }
+
+        function exportJSON() {
+            const p = getParamsFromUI();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(p, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `gafas_dalston_parametros.json`;
+            a.click();
+            showToast('Archivo JSON de parámetros exportado');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const loaded = JSON.parse(e.target.result);
+                    setUIFromParams({ ...DEFAULT_PARAMS, ...loaded });
+                    rebuildModel();
+                    showToast('Parámetros cargados desde JSON');
+                } catch (err) {
+                    showToast('Error al leer el archivo JSON');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function toggleWireframe() {
+            const wf = document.getElementById('chkWireframe').checked;
+            darkMatteMaterial.wireframe = wf;
+            blueAccentMaterial.wireframe = wf;
+            metalPinMaterial.wireframe = wf;
+        }
+
+        function setCameraView(view) {
+            const mode = document.getElementById('layoutMode').value;
+            const targetY = (mode === 'assembled' || mode === 'single_piece') ? 15 : 0;
+            const targetZ = (mode === 'assembled' || mode === 'single_piece') ? -45 : 0;
+            controls.target.set(0, targetY, targetZ);
+
+            if (view === 'front') {
+                camera.position.set(0, targetY + 10, 195);
+            } else if (view === 'top') {
+                camera.position.set(0, 240, targetZ + 0.01);
+            } else if (view === 'side') {
+                camera.position.set(220, targetY + 10, targetZ);
+            } else {
+                camera.position.set(140, 110, 190);
+            }
+            controls.update();
+        }
+
+        // --- PARAMETRIC 2D & 3D GEOMETRY HELPERS ---
+
+        /**
+         * Creates a rounded trapezoidal rectangle THREE.Shape for the lens aperture or outer rim
+         */
+        function createRoundedTrapezoidPath(wTop, wBot, h, rTop, rBot, isPath = false) {
+            const shape = isPath ? new THREE.Path() : new THREE.Shape();
+            const hwTop = wTop / 2;
+            const hwBot = wBot / 2;
+            const hh = h / 2;
+
+            const rt = Math.min(rTop, hwTop - 1, hh - 1);
+            const rb = Math.min(rBot, hwBot - 1, hh - 1);
+
+            // Start top-center and go clockwise or counter-clockwise
+            shape.moveTo(0, hh);
+            // Top-right corner
+            shape.lineTo(hwTop - rt, hh);
+            shape.quadraticCurveTo(hwTop, hh, hwTop, hh - rt);
+            // Bottom-right corner (tapered inward)
+            shape.lineTo(hwBot, -hh + rb);
+            shape.quadraticCurveTo(hwBot, -hh, hwBot - rb, -hh);
+            // Bottom-left corner
+            shape.lineTo(-hwBot + rb, -hh);
+            shape.quadraticCurveTo(-hwBot, -hh, -hwBot, -hh + rb);
+            // Top-left corner
+            shape.lineTo(-hwTop, hh - rt);
+            shape.quadraticCurveTo(-hwTop, hh, -hwTop + rt, hh);
+            shape.lineTo(0, hh);
+
+            return shape;
+        }
+
+        /**
+         * Applies facial wrap curvature (base curve) around the vertical Y axis
+         * to any BufferGeometry in the front frame
+         */
+        function applyWrapCurvature(geometry, wrapDeg, totalSpanX, bridgeCenterOffsetZ = 0) {
+            geometry.computeVertexNormals();
+            if (Math.abs(wrapDeg) < 0.1) return geometry;
+
+            const pos = geometry.attributes.position;
+            const rad = THREE.MathUtils.degToRad(wrapDeg);
+            // Radius of cylinder matching the wrap angle across half span
+            const halfSpan = Math.max(totalSpanX * 0.5, 50);
+            const R = halfSpan / Math.sin(rad);
+
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                const y = pos.getY(i);
+                const z = pos.getZ(i);
+
+                const theta = x / R;
+                const newX = R * Math.sin(theta);
+                const deltaZ = R * (1 - Math.cos(theta));
+                pos.setXYZ(i, newX, y, z - deltaZ + bridgeCenterOffsetZ);
+            }
+            pos.needsUpdate = true;
+            geometry.computeVertexNormals();
+            return geometry;
+        }
+
+        /**
+         * Builds a closed watertight BufferGeometry for a single Rim (with interior lens groove)
+         * by constructing two concentric extruded rings (front/back walls + middle groove)
+         */
+        function buildSingleRimGroup(p, sideSign) {
+            const group = new THREE.Group();
+
+            const wInTop = p.lensWidth;
+            const wInBot = Math.max(20, p.lensWidth - p.bottomTaper * 2);
+            const hIn = p.lensHeight;
+
+            const wOutTop = wInTop + p.rimThickness * 2;
+            const wOutBot = wInBot + p.rimThickness * 2;
+            const hOut = hIn + p.rimThickness * 2;
+
+            const rInTop = p.topRadius;
+            const rInBot = p.bottomRadius;
+            const rOutTop = p.topRadius + p.rimThickness * 0.85;
+            const rOutBot = p.bottomRadius + p.rimThickness * 0.85;
+
+            const depth = p.frameDepth;
+            const groove = p.lensGroove;
+
+            if (groove <= 0.05) {
+                // Single solid extrusion
+                const outerShape = createRoundedTrapezoidPath(wOutTop, wOutBot, hOut, rOutTop, rOutBot, false);
+                const innerHole = createRoundedTrapezoidPath(wInTop, wInBot, hIn, rInTop, rInBot, true);
+                outerShape.holes.push(innerHole);
+
+                const geo = new THREE.ExtrudeGeometry(outerShape, {
+                    depth: depth,
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 1,
+                    bevelSize: 0.35,
+                    bevelThickness: 0.35,
+                    curveSegments: 24
+                });
+                geo.translate(0, 0, -depth / 2);
+                const mesh = new THREE.Mesh(geo, darkMatteMaterial);
+                group.add(mesh);
+            } else {
+                // 3-layer sandwich for a real V/U interior lens groove (front lip, groove recessed ring, back lip)
+                const lipDepth = depth * 0.34;
+                const midDepth = depth * 0.32;
+
+                // Front & Back lips (narrower hole = holds lens)
+                const lipShape = createRoundedTrapezoidPath(wOutTop, wOutBot, hOut, rOutTop, rOutBot, false);
+                const lipHole = createRoundedTrapezoidPath(wInTop, wInBot, hIn, rInTop, rInBot, true);
+                lipShape.holes.push(lipHole);
+
+                // Middle groove layer (wider hole by 2*groove)
+                const midShape = createRoundedTrapezoidPath(wOutTop, wOutBot, hOut, rOutTop, rOutBot, false);
+                const midHole = createRoundedTrapezoidPath(
+                    wInTop + groove * 2,
+                    wInBot + groove * 2,
+                    hIn + groove * 2,
+                    rInTop + groove * 0.5,
+                    rInBot + groove * 0.5,
+                    true
+                );
+                midShape.holes.push(midHole);
+
+                const frontGeo = new THREE.ExtrudeGeometry(lipShape, {
+                    depth: lipDepth,
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 1,
+                    bevelSize: 0.3,
+                    bevelThickness: 0.3,
+                    curveSegments: 24
+                });
+                frontGeo.translate(0, 0, midDepth / 2);
+
+                const midGeo = new THREE.ExtrudeGeometry(midShape, {
+                    depth: midDepth + 0.2,
+                    bevelEnabled: false,
+                    steps: 1,
+                    curveSegments: 24
+                });
+                midGeo.translate(0, 0, -(midDepth + 0.2) / 2);
+
+                const backGeo = new THREE.ExtrudeGeometry(lipShape, {
+                    depth: lipDepth,
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 1,
+                    bevelSize: 0.3,
+                    bevelThickness: 0.3,
+                    curveSegments: 24
+                });
+                backGeo.translate(0, 0, -midDepth / 2 - lipDepth);
+
+                group.add(new THREE.Mesh(frontGeo, darkMatteMaterial));
+                group.add(new THREE.Mesh(midGeo, darkMatteMaterial));
+                group.add(new THREE.Mesh(backGeo, darkMatteMaterial));
+            }
+
+            // Optional translucent lens preview
+            if (document.getElementById('chkShowLenses').checked && p.layoutMode === 'assembled') {
+                const lensShape = createRoundedTrapezoidPath(
+                    wInTop + groove * 1.2,
+                    wInBot + groove * 1.2,
+                    hIn + groove * 1.2,
+                    rInTop,
+                    rInBot,
+                    false
+                );
+                const lensGeo = new THREE.ExtrudeGeometry(lensShape, {
+                    depth: 1.8,
+                    bevelEnabled: false,
+                    curveSegments: 24
+                });
+                lensGeo.translate(0, 0, -0.9);
+                const lensMesh = new THREE.Mesh(lensGeo, glassLensMaterial);
+                lensMesh.userData.isLensPreview = true;
+                group.add(lensMesh);
+            }
+
+            return group;
+        }
+
+        /**
+         * Builds the complete Front Frame (Left & Right Rims, Arched Bridge, Integrated Nose Pads, Endpieces, and Female Hinge Forks)
+         */
+        function buildFrontFrameAssembly(p) {
+            const frontGroup = new THREE.Group();
+            const rimCenterOffsetX = (p.bridgeWidth / 2) + (p.lensWidth / 2) + p.rimThickness;
+            const totalSpanX = (rimCenterOffsetX + p.lensWidth / 2 + p.rimThickness + p.endpieceWidth) * 2;
+
+            // 1. Left & Right Rims
+            const leftRim = buildSingleRimGroup(p, -1);
+            leftRim.position.set(-rimCenterOffsetX, 0, 0);
+            frontGroup.add(leftRim);
+
+            const rightRim = buildSingleRimGroup(p, 1);
+            rightRim.position.set(rimCenterOffsetX, 0, 0);
+            frontGroup.add(rightRim);
+
+            // 2. Curved Bridge connecting the upper-inner rims
+            const bridgeSpan = p.bridgeWidth + p.rimThickness * 1.6;
+            const bridgeY = (p.lensHeight / 2) - (p.bridgeThickness / 2) + p.rimThickness * 0.45;
+            const bridgeShape = new THREE.Shape();
+            const hwB = bridgeSpan / 2;
+            const hhB = p.bridgeThickness / 2;
+            const arch = p.bridgeArch;
+
+            bridgeShape.moveTo(-hwB, -hhB);
+            bridgeShape.quadraticCurveTo(0, -hhB + arch, hwB, -hhB);
+            bridgeShape.lineTo(hwB, hhB);
+            bridgeShape.quadraticCurveTo(0, hhB + arch * 0.55, -hwB, hhB);
+            bridgeShape.closePath();
+
+            const bridgeGeo = new THREE.ExtrudeGeometry(bridgeShape, {
+                depth: p.frameDepth + p.bridgeProtrusion,
+                bevelEnabled: true,
+                bevelSegments: 2,
+                bevelSize: 0.35,
+                bevelThickness: 0.35,
+                curveSegments: 20
+            });
+            bridgeGeo.translate(0, bridgeY, -p.frameDepth / 2);
+            frontGroup.add(new THREE.Mesh(bridgeGeo, darkMatteMaterial));
+
+            // 3. Integrated Ergonomic Nose Pads (Back of inner rims)
+            if (p.nosePadDepth > 0.1) {
+                [-1, 1].forEach(sign => {
+                    const padShape = new THREE.Shape();
+                    padShape.moveTo(0, 6);
+                    padShape.quadraticCurveTo(sign * 3.2, 0, 0, -7);
+                    padShape.lineTo(-sign * 2.2, -6);
+                    padShape.lineTo(-sign * 2.2, 5);
+                    padShape.closePath();
+
+                    const padGeo = new THREE.ExtrudeGeometry(padShape, {
+                        depth: p.nosePadDepth + p.frameDepth * 0.5,
+                        bevelEnabled: true,
+                        bevelSegments: 2,
+                        bevelSize: 0.5,
+                        bevelThickness: 0.5
+                    });
+                    const padX = sign * (p.bridgeWidth / 2 + p.rimThickness * 0.45);
+                    const padY = -2.0;
+                    padGeo.translate(padX, padY, -p.frameDepth / 2 - p.nosePadDepth);
+                    frontGroup.add(new THREE.Mesh(padGeo, darkMatteMaterial));
+                });
+            }
+
+            // 4. Outer Endpieces (Talones laterales) & Female Hinge Knuckles
+            const outerRimEdgeX = rimCenterOffsetX + (p.lensWidth / 2) + p.rimThickness;
+            const endH = p.templeFrontHeight;
+            const endY = (p.lensHeight / 2) + p.rimThickness - (endH / 2) - 1.2;
+
+            [-1, 1].forEach(sign => {
+                // Solid Endpiece Block on outer rim top
+                const epGeo = new THREE.BoxGeometry(p.endpieceWidth + 1.2, endH, p.frameDepth);
+                const epX = sign * (outerRimEdgeX + p.endpieceWidth / 2 - 0.6);
+                epGeo.translate(epX, endY, 0);
+                frontGroup.add(new THREE.Mesh(epGeo, darkMatteMaterial));
+
+                // Rearward Female Hinge Lugs (Top and Bottom fork prongs with vertical hole for filament pin)
+                const outerMostX = outerRimEdgeX + p.endpieceWidth;
+                const lugWidthX = p.templeThickness;
+                const lugCenterX = sign * (outerMostX - lugWidthX / 2);
+
+                const middleSlotH = (endH * 0.36) + (p.hingeClearance * 2);
+                const prongH = (endH - middleSlotH) / 2;
+
+                if (p.layoutMode !== 'single_piece') {
+                    // Create 2D horizontal lug profile with pinhole in XZ plane, then extrude along Y
+                    const lugLengthZ = p.hingeExtension;
+                    const rHole = p.hingePinDia / 2;
+                    const holeCenterZ = -p.frameDepth / 2 - lugLengthZ * 0.58;
+
+                    const lugShape = new THREE.Shape();
+                    const hwL = lugWidthX / 2;
+                    const zStart = 0;
+                    const zEnd = -p.frameDepth / 2 - lugLengthZ;
+
+                    lugShape.moveTo(-hwL, zStart);
+                    lugShape.lineTo(hwL, zStart);
+                    lugShape.lineTo(hwL, zEnd + 1.2);
+                    lugShape.quadraticCurveTo(hwL, zEnd, 0, zEnd);
+                    lugShape.quadraticCurveTo(-hwL, zEnd, -hwL, zEnd + 1.2);
+                    lugShape.closePath();
+
+                    const pinHole = new THREE.Path();
+                    pinHole.absarc(0, holeCenterZ, rHole, 0, Math.PI * 2, false);
+                    lugShape.holes.push(pinHole);
+
+                    // Extrude along Z then rotate to XZ
+                    [1, -1].forEach(prongSign => {
+                        const prongGeo = new THREE.ExtrudeGeometry(lugShape, {
+                            depth: prongH,
+                            bevelEnabled: false,
+                            curveSegments: 20
+                        });
+                        // Rotate so shape (X, Y) maps to (X, Z) and extrusion depth maps to Y
+                        prongGeo.rotateX(-Math.PI / 2);
+                        const prongY = endY + prongSign * (middleSlotH / 2 + prongH / 2);
+                        prongGeo.translate(lugCenterX, prongY - prongH / 2, 0);
+                        frontGroup.add(new THREE.Mesh(prongGeo, darkMatteMaterial));
+                    });
+                }
+            });
+
+            // Apply wrap curvature to all geometries inside frontGroup
+            frontGroup.traverse(child => {
+                if (child.isMesh && child.geometry) {
+                    child.geometry = child.geometry.clone();
+                    applyWrapCurvature(child.geometry, p.wrapAngle, totalSpanX, 0);
+                }
+            });
+
+            return {
+                group: frontGroup,
+                hingePivotX: outerRimEdgeX + p.endpieceWidth - p.templeThickness / 2,
+                hingePivotY: endY,
+                hingePivotZ: -p.frameDepth / 2 - p.hingeExtension * 0.58,
+                totalSpanX
+            };
+        }
+
+        /**
+         * Builds a single Temple (Varilla) matching photo 3:
+         * - Starts with a male hinge tongue with vertical pinhole
+         * - Wide matte dark front section (Dalston)
+         * - Angled bottom step down to a narrower section
+         * - Blue accent ring right after the step
+         * - Curved ear drop with rounded anatomical tip
+         */
+        function buildSingleTemple(p, sideSign, forceFlatToeIn = false) {
+            const templeGroup = new THREE.Group();
+
+            const L = p.templeLength;
+            const hFront = p.templeFrontHeight;
+            const hNarrow = p.templeNarrowHeight;
+            const stepX = p.templeStepPos;
+            const dropStart = Math.min(p.earDropStart, L - 15);
+            const dropH = p.earDropHeight;
+            const thick = p.templeThickness;
+            const toeIn = forceFlatToeIn ? 0 : p.templeToeIn;
+
+            const topY = hFront / 2;
+            const botFrontY = -hFront / 2;
+            const botNarrowY = topY - hNarrow;
+
+            // 1. Male Hinge Tongue (Fits inside the front frame's female fork)
+            if (p.layoutMode !== 'single_piece') {
+                const tongueH = hFront * 0.36;
+                const rHole = p.hingePinDia / 2;
+                const tongueLen = p.hingeExtension * 0.95;
+
+                const tShape = new THREE.Shape();
+                const hwT = (thick - p.hingeClearance * 0.5) / 2;
+                tShape.moveTo(-hwT, -tongueLen * 0.45);
+                tShape.lineTo(hwT, -tongueLen * 0.45);
+                tShape.lineTo(hwT, tongueLen * 0.55 - 1.0);
+                tShape.quadraticCurveTo(hwT, tongueLen * 0.55, 0, tongueLen * 0.55);
+                tShape.quadraticCurveTo(-hwT, tongueLen * 0.55, -hwT, tongueLen * 0.55 - 1.0);
+                tShape.closePath();
+
+                const holePath = new THREE.Path();
+                holePath.absarc(0, 0, rHole, 0, Math.PI * 2, false);
+                tShape.holes.push(holePath);
+
+                const tongueGeo = new THREE.ExtrudeGeometry(tShape, {
+                    depth: tongueH,
+                    bevelEnabled: false,
+                    curveSegments: 20
+                });
+                tongueGeo.rotateX(-Math.PI / 2);
+                // Center tongue at origin (pivot = 0,0,0), pointing forward along +Z
+                tongueGeo.translate(0, -tongueH / 2, 0);
+                templeGroup.add(new THREE.Mesh(tongueGeo, darkMatteMaterial));
+            }
+
+            // 2. Main Temple Side Profile (Drawn in Z-Y plane, where s goes from hinge to ear tip)
+            // We build it in 3 segments along length so the blue ring accent is a distinct mesh
+            const shoulderZ = p.layoutMode === 'single_piece' ? 0 : p.hingeExtension * 0.48;
+            const accentStart = stepX + 3.0;
+            const accentEnd = stepX + 7.5;
+
+            // Helper to sample top and bottom Y coordinates at distance `s` along temple (0 to L)
+            function getProfileY(s) {
+                let yTop = topY;
+                let yBot = botFrontY;
+
+                // Bottom step transition (smooth bevel step like Dalston photo 3)
+                const stepTransitionLen = 7.0;
+                if (s <= stepX - stepTransitionLen / 2) {
+                    yBot = botFrontY;
+                } else if (s < stepX + stepTransitionLen / 2) {
+                    const t = (s - (stepX - stepTransitionLen / 2)) / stepTransitionLen;
+                    const smoothT = t * t * (3 - 2 * t);
+                    yBot = THREE.MathUtils.lerp(botFrontY, botNarrowY, smoothT);
+                } else {
+                    yBot = botNarrowY;
+                }
+
+                // Ear drop curve after dropStart
+                if (s > dropStart) {
+                    const u = (s - dropStart) / (L - dropStart);
+                    // Smooth downward curve + slight flare at the very end tip
+                    const dropOffset = -dropH * Math.pow(u, 1.65);
+                    const tipFlare = (u > 0.7) ? Math.sin(((u - 0.7) / 0.3) * Math.PI) * 1.6 : 0;
+                    yTop += dropOffset;
+                    yBot += dropOffset - tipFlare;
+                }
+
+                return { yTop, yBot };
+            }
+
+            // Function to generate a solid segment mesh between sStart and sEnd
+            function buildTempleSegment(sStart, sEnd, stepsCount, material) {
+                const shape = new THREE.Shape();
+                const ptsTop = [];
+                const ptsBot = [];
+
+                for (let i = 0; i <= stepsCount; i++) {
+                    const s = THREE.MathUtils.lerp(sStart, sEnd, i / stepsCount);
+                    const { yTop, yBot } = getProfileY(s);
+                    ptsTop.push(new THREE.Vector2(s, yTop));
+                    ptsBot.push(new THREE.Vector2(s, yBot));
+                }
+
+                shape.moveTo(ptsTop[0].x, ptsTop[0].y);
+                for (let i = 1; i < ptsTop.length; i++) {
+                    shape.lineTo(ptsTop[i].x, ptsTop[i].y);
+                }
+                // If this is the very end tip, round it off smoothly
+                if (Math.abs(sEnd - L) < 0.1) {
+                    const lastTop = ptsTop[ptsTop.length - 1];
+                    const lastBot = ptsBot[ptsBot.length - 1];
+                    const midY = (lastTop.y + lastBot.y) / 2;
+                    shape.quadraticCurveTo(L + 2.2, midY, lastBot.x, lastBot.y);
+                } else {
+                    const lastBot = ptsBot[ptsBot.length - 1];
+                    shape.lineTo(lastBot.x, lastBot.y);
+                }
+
+                for (let i = ptsBot.length - 2; i >= 0; i--) {
+                    shape.lineTo(ptsBot[i].x, ptsBot[i].y);
+                }
+                shape.closePath();
+
+                const segGeo = new THREE.ExtrudeGeometry(shape, {
+                    depth: thick,
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 1,
+                    bevelSize: 0.25,
+                    bevelThickness: 0.25,
+                    curveSegments: 16
+                });
+
+                // Center thickness on X=0 and orient so s runs along -Z (rearward)
+                segGeo.translate(0, 0, -thick / 2);
+                segGeo.rotateY(Math.PI / 2);
+
+                // Apply anatomical inward toe-in curve after the step
+                if (toeIn > 0.1) {
+                    const pos = segGeo.attributes.position;
+                    for (let i = 0; i < pos.count; i++) {
+                        const x = pos.getX(i);
+                        const y = pos.getY(i);
+                        const z = pos.getZ(i); // z is negative distance (-s)
+                        const sDist = -z;
+                        if (sDist > stepX * 0.75) {
+                            const ratio = (sDist - stepX * 0.75) / (L - stepX * 0.75);
+                            const inwardShift = -sideSign * toeIn * Math.pow(Math.max(0, ratio), 1.8);
+                            pos.setXYZ(i, x + inwardShift, y, z);
+                        }
+                    }
+                    pos.needsUpdate = true;
+                    segGeo.computeVertexNormals();
+                }
+
+                return new THREE.Mesh(segGeo, material);
+            }
+
+            // Segment 1: Main front body up to blue accent band
+            templeGroup.add(buildTempleSegment(shoulderZ, accentStart, 28, darkMatteMaterial));
+            // Segment 2: Dalston Blue Accent Band
+            templeGroup.add(buildTempleSegment(accentStart - 0.1, accentEnd + 0.1, 6, blueAccentMaterial));
+            // Segment 3: Rear curved ear tip
+            templeGroup.add(buildTempleSegment(accentEnd, L, 32, darkMatteMaterial));
+
+            return templeGroup;
+        }
+
+        /**
+         * Rebuilds the entire 3D scene according to the selected Layout Mode and parameters
+         */
+        function rebuildModel() {
+            const p = getParamsFromUI();
+
+            // Clear previous model
+            while (modelGroup.children.length > 0) {
+                const obj = modelGroup.children[0];
+                modelGroup.remove(obj);
+            }
+            exportableMeshes = [];
+
+            const frontData = buildFrontFrameAssembly(p);
+            const leftTemple = buildSingleTemple(p, -1, false);
+            const rightTemple = buildSingleTemple(p, 1, false);
+
+            // Calculate wrap-adjusted hinge pivot coordinates on the front frame
+            const radWrap = THREE.MathUtils.degToRad(p.wrapAngle);
+            const halfSpan = Math.max(frontData.totalSpanX * 0.5, 50);
+            let pivotX = frontData.hingePivotX;
+            let pivotY = frontData.hingePivotY;
+            let pivotZ = frontData.hingePivotZ;
+
+            if (Math.abs(p.wrapAngle) >= 0.1) {
+                const R = halfSpan / Math.sin(radWrap);
+                const theta = pivotX / R;
+                pivotX = R * Math.sin(theta);
+                pivotZ = pivotZ - R * (1 - Math.cos(theta));
+            }
+
+            // Position parts based on Layout Mode
+            if (p.layoutMode === 'assembled' || p.layoutMode === 'single_piece') {
+                // Raise glasses so bottom of rims sits on the Y=0 build grid
+                const yLift = (p.lensHeight / 2) + p.rimThickness;
+                frontData.group.position.set(0, yLift, 0);
+                modelGroup.add(frontData.group);
+
+                const foldRad = THREE.MathUtils.degToRad(p.foldAngle);
+
+                // Left Temple positioned at left hinge
+                leftTemple.position.set(-pivotX, yLift + pivotY, pivotZ);
+                leftTemple.rotation.y = -foldRad;
+                modelGroup.add(leftTemple);
+
+                // Right Temple positioned at right hinge
+                rightTemple.position.set(pivotX, yLift + pivotY, pivotZ);
+                rightTemple.rotation.y = foldRad;
+                modelGroup.add(rightTemple);
+
+                // Visual Hinge Pins in Assembled mode
+                if (p.layoutMode === 'assembled') {
+                    [-1, 1].forEach(sign => {
+                        const pinGeo = new THREE.CylinderGeometry(p.hingePinDia * 0.45, p.hingePinDia * 0.45, p.templeFrontHeight + 0.4, 16);
+                        const pinMesh = new THREE.Mesh(pinGeo, metalPinMaterial);
+                        pinMesh.position.set(sign * pivotX, yLift + pivotY, pivotZ);
+                        pinMesh.userData.isLensPreview = true; // Exclude hardware pin from STL
+                        modelGroup.add(pinMesh);
+                    });
+                }
+            } else if (p.layoutMode === 'print_plate') {
+                // 1. Front Frame laid flat on build plate (Y=0 in Three.js is Z=0 in STL)
+                frontData.group.rotation.x = -Math.PI / 2;
+                frontData.group.position.set(0, p.frameDepth / 2, -35);
+                modelGroup.add(frontData.group);
+
+                // 2. Left & Right Temples laid flat on their flat inner/outer side on Y=0
+                const flatLeft = buildSingleTemple(p, -1, true);
+                flatLeft.rotation.z = -Math.PI / 2; // Lay flat on Y=0
+                flatLeft.rotation.y = Math.PI / 2;  // Orient along X axis
+                flatLeft.position.set(-p.templeLength / 2, p.templeThickness / 2, 22);
+                modelGroup.add(flatLeft);
+
+                const flatRight = buildSingleTemple(p, 1, true);
+                flatRight.rotation.z = Math.PI / 2; // Lay flat on Y=0
+                flatRight.rotation.y = Math.PI / 2;
+                flatRight.position.set(-p.templeLength / 2, p.templeThickness / 2, 58);
+                modelGroup.add(flatRight);
+            } else if (p.layoutMode === 'front_only') {
+                frontData.group.rotation.x = -Math.PI / 2;
+                frontData.group.position.set(0, p.frameDepth / 2, 0);
+                modelGroup.add(frontData.group);
+            } else if (p.layoutMode === 'left_temple') {
+                const flatLeft = buildSingleTemple(p, -1, true);
+                flatLeft.rotation.z = -Math.PI / 2;
+                flatLeft.rotation.y = Math.PI / 2;
+                flatLeft.position.set(-p.templeLength / 2, p.templeThickness / 2, 0);
+                modelGroup.add(flatLeft);
+            } else if (p.layoutMode === 'right_temple') {
+                const flatRight = buildSingleTemple(p, 1, true);
+                flatRight.rotation.z = Math.PI / 2;
+                flatRight.rotation.y = Math.PI / 2;
+                flatRight.position.set(-p.templeLength / 2, p.templeThickness / 2, 0);
+                modelGroup.add(flatRight);
+            }
+
+            // Collect meshes for STL export (excluding translucent preview lenses)
+            modelGroup.updateMatrixWorld(true);
+            modelGroup.traverse(obj => {
+                if (obj.isMesh && !obj.userData.isLensPreview) {
+                    exportableMeshes.push(obj);
+                }
+            });
+        }
+
+        // --- BINARY STL GENERATOR (Converts Three.js Y-up to CAD/Cura Z-up) ---
+        function generateBinarySTL(meshes) {
+            let totalTriangles = 0;
+            const preparedGeometries = [];
+
+            meshes.forEach(mesh => {
+                let geom = mesh.geometry.clone();
+                geom.applyMatrix4(mesh.matrixWorld);
+
+                // Convert from Three.js (X, Y-up, Z) to Slicer/Cura (X, -Z, Y-up -> Z-up)
+                const rotMat = new THREE.Matrix4().makeRotationX(Math.PI / 2);
+                geom.applyMatrix4(rotMat);
+
+                if (geom.index) {
+                    geom = geom.toNonIndexed();
+                }
+                const posAttr = geom.attributes.position;
+                if (posAttr) {
+                    totalTriangles += posAttr.count / 3;
+                    preparedGeometries.push(geom);
+                }
+            });
+
+            // Shift all vertices so minimum Z is strictly 0.0 on the slicer bed
+            let minZ = Infinity;
+            preparedGeometries.forEach(geom => {
+                const pos = geom.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const z = pos.getZ(i);
+                    if (z < minZ) minZ = z;
+                }
+            });
+
+            const bufferLength = 80 + 4 + totalTriangles * 50;
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
+
+            // 80-byte header
+            const headerText = "Binary STL generated by Dalston Parametric Eyewear CAD";
+            for (let i = 0; i < 80; i++) {
+                view.setUint8(i, i < headerText.length ? headerText.charCodeAt(i) : 32);
+            }
+
+            // Triangle count
+            view.setUint32(80, totalTriangles, true);
+
+            let offset = 84;
+            const vA = new THREE.Vector3();
+            const vB = new THREE.Vector3();
+            const vC = new THREE.Vector3();
+            const cb = new THREE.Vector3();
+            const ab = new THREE.Vector3();
+
+            preparedGeometries.forEach(geom => {
+                const pos = geom.attributes.position;
+                for (let i = 0; i < pos.count; i += 3) {
+                    vA.fromBufferAttribute(pos, i);
+                    vB.fromBufferAttribute(pos, i + 1);
+                    vC.fromBufferAttribute(pos, i + 2);
+
+                    vA.z -= minZ;
+                    vB.z -= minZ;
+                    vC.z -= minZ;
+
+                    cb.subVectors(vC, vB);
+                    ab.subVectors(vA, vB);
+                    cb.cross(ab).normalize();
+
+                    // Normal
+                    view.setFloat32(offset, cb.x, true); offset += 4;
+                    view.setFloat32(offset, cb.y, true); offset += 4;
+                    view.setFloat32(offset, cb.z, true); offset += 4;
+
+                    // Vertex 1
+                    view.setFloat32(offset, vA.x, true); offset += 4;
+                    view.setFloat32(offset, vA.y, true); offset += 4;
+                    view.setFloat32(offset, vA.z, true); offset += 4;
+
+                    // Vertex 2
+                    view.setFloat32(offset, vB.x, true); offset += 4;
+                    view.setFloat32(offset, vB.y, true); offset += 4;
+                    view.setFloat32(offset, vB.z, true); offset += 4;
+
+                    // Vertex 3
+                    view.setFloat32(offset, vC.x, true); offset += 4;
+                    view.setFloat32(offset, vC.y, true); offset += 4;
+                    view.setFloat32(offset, vC.z, true); offset += 4;
+
+                    // Attribute byte count
+                    view.setUint16(offset, 0, true); offset += 2;
+                }
+            });
+
+            return new Blob([arrayBuffer], { type: 'application/octet-stream' });
+        }
+
+        function triggerSTLDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportCurrentSTL() {
+            const mode = document.getElementById('layoutMode').value;
+            const blob = generateBinarySTL(exportableMeshes);
+            triggerSTLDownload(blob, `gafas_dalston_${mode}.stl`);
+            showToast(`STL exportado: gafas_dalston_${mode}.stl`);
+        }
+
+        function exportSpecificPart(partMode) {
+            const select = document.getElementById('layoutMode');
+            const prevMode = select.value;
+            select.value = partMode;
+            rebuildModel();
+
+            const blob = generateBinarySTL(exportableMeshes);
+            triggerSTLDownload(blob, `gafas_dalston_${partMode}.stl`);
+
+            select.value = prevMode;
+            rebuildModel();
+            showToast(`STL exportado: gafas_dalston_${partMode}.stl`);
+        }
+    </script>
+</body>
+</html>
