@@ -1,0 +1,2238 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audi A3 Sedán 8Y (2025) - Estudio CAD 3D & Exportador STL</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0c0f17; }
+    ::-webkit-scrollbar-thumb { background: #2a3245; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #1b2232;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      border: 2px solid #090d16;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.55);
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #7dd3fc;
+    }
+
+    #sidebar-panel {
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+    #sidebar-panel.collapsed {
+      transform: translateX(-108%);
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-[#080a0f] text-slate-200 overflow-hidden select-none">
+
+  <!-- Lienzo 3D a pantalla completa -->
+  <div id="canvas-container" class="fixed inset-0 w-full h-full z-0"></div>
+
+  <!-- Barra Superior HUD -->
+  <header class="fixed top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+    
+    <!-- Izquierda: Botón Ocultar/Mostrar Menú + Identidad Audi A3 8Y -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="toggle-panel-btn" class="flex items-center gap-2 bg-[#111623]/95 hover:bg-[#1a2236] backdrop-blur-md text-sky-400 border border-sky-500/40 px-3.5 py-2 rounded-xl shadow-lg shadow-black/40 text-xs font-semibold transition active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/>
+        </svg>
+        <span id="toggle-text">Ocultar Parámetros</span>
+      </button>
+
+      <div class="hidden xl:flex items-center gap-3 bg-[#111623]/90 backdrop-blur-md border border-slate-800/90 px-3.5 py-1.5 rounded-xl shadow-lg">
+        <!-- 4 Aros Audi -->
+        <svg class="w-8 h-3.5 text-slate-200" viewBox="0 0 88 32" fill="none" stroke="currentColor" stroke-width="2.4">
+          <circle cx="16" cy="16" r="11"/>
+          <circle cx="34" cy="16" r="11"/>
+          <circle cx="52" cy="16" r="11"/>
+          <circle cx="70" cy="16" r="11"/>
+        </svg>
+        <div class="h-4 w-[1px] bg-slate-700"></div>
+        <div>
+          <h1 class="text-[11px] font-bold tracking-wide text-white leading-tight">AUDI A3 SEDÁN 8Y <span class="text-sky-400 font-medium">2025 ADVANCED</span></h1>
+          <p class="text-[10px] text-slate-400 font-mono-code">Lofting C2 • <span id="hud-plate" class="text-slate-200">1853 NJH</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Centro: Vistas Rápidas de Cámara + Modos de Visualización -->
+    <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+      <!-- Vistas de cámara -->
+      <div class="hidden md:flex items-center gap-0.5 bg-[#111623]/90 backdrop-blur-md border border-slate-800/90 p-1 rounded-xl shadow-lg">
+        <button data-cam="frontLeft" class="cam-btn text-slate-300 hover:text-white hover:bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-medium transition">3/4 Frontal Izq</button>
+        <button data-cam="frontRight" class="cam-btn text-slate-300 hover:text-white hover:bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-medium transition">3/4 Frontal Der</button>
+        <button data-cam="front" class="cam-btn text-slate-300 hover:text-white hover:bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-medium transition">Frontal</button>
+        <button data-cam="side" class="cam-btn text-slate-300 hover:text-white hover:bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-medium transition">Perfil</button>
+        <button data-cam="rear" class="cam-btn text-slate-300 hover:text-white hover:bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-medium transition">Trasera</button>
+        <button data-cam="top" class="cam-btn text-slate-300 hover:text-white hover:bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-medium transition">Planta</button>
+      </div>
+
+      <!-- Modos de visualización -->
+      <div class="flex items-center gap-0.5 bg-[#111623]/90 backdrop-blur-md border border-slate-800/90 p-1 rounded-xl shadow-lg">
+        <button data-view="metallic" class="view-mode-btn active bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2.5 py-1 rounded-lg text-[11px] font-medium transition">Pintura Metalizada</button>
+        <button data-view="clay" class="view-mode-btn text-slate-400 hover:text-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-medium transition">Resina / STL Mate</button>
+        <button data-view="wireframe" class="view-mode-btn text-slate-400 hover:text-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-medium transition">Malla Topológica</button>
+        <button data-view="xray" class="view-mode-btn text-slate-400 hover:text-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-medium transition">Rayos X</button>
+      </div>
+    </div>
+
+    <!-- Derecha: Rejilla CAD + Descargar STL -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="toggle-grid-btn" title="Mostrar / Ocultar Rejilla CAD" class="bg-[#111623]/90 hover:bg-[#1a2234] backdrop-blur-md border border-slate-700/80 text-sky-300 p-2 rounded-xl shadow-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16M6 4v16M12 4v16M18 4v16"/>
+        </svg>
+      </button>
+
+      <button id="export-stl-top-btn" class="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold px-4 py-2 rounded-xl shadow-lg shadow-sky-500/25 text-xs transition active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        <span>Exportar .STL</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Panel Lateral Desplegable con 4 Pestañas -->
+  <aside id="sidebar-panel" class="fixed top-16 bottom-12 left-3 w-[360px] max-w-[calc(100vw-24px)] z-10 flex flex-col bg-[#0e131e]/94 backdrop-blur-xl border border-slate-800/90 rounded-2xl shadow-2xl overflow-hidden">
+    
+    <!-- Selector de 4 Pestañas -->
+    <div class="grid grid-cols-4 gap-1 p-2 bg-[#131927] border-b border-slate-800/90 text-[11px] font-semibold">
+      <button data-tab="tab-dims" class="tab-btn active bg-sky-500/20 text-sky-300 border border-sky-500/40 py-2 px-1 rounded-xl transition truncate">Dimensiones</button>
+      <button data-tab="tab-curves" class="tab-btn text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 py-2 px-1 rounded-xl transition truncate">Curvaturas</button>
+      <button data-tab="tab-details" class="tab-btn text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 py-2 px-1 rounded-xl transition truncate">Detalles</button>
+      <button data-tab="tab-export" class="tab-btn text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 py-2 px-1 rounded-xl transition truncate">Guardar y STL</button>
+    </div>
+
+    <!-- Contenedor Scrolleable de Pestañas -->
+    <div class="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs">
+
+      <!-- PESTAÑA 1: DIMENSIONES Y ESCALA STL -->
+      <div id="tab-dims" class="tab-content space-y-4">
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-100">Escala de Impresión 3D</span>
+            <span id="badge-scale" class="font-mono-code text-sky-400 font-bold bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/30">1:43</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5">
+            <button data-scale-preset="18" class="scale-preset-btn bg-slate-800/90 hover:bg-slate-700 border border-slate-700/70 py-1.5 rounded-lg font-mono-code text-[11px] transition">1:18</button>
+            <button data-scale-preset="24" class="scale-preset-btn bg-slate-800/90 hover:bg-slate-700 border border-slate-700/70 py-1.5 rounded-lg font-mono-code text-[11px] transition">1:24</button>
+            <button data-scale-preset="32" class="scale-preset-btn bg-slate-800/90 hover:bg-slate-700 border border-slate-700/70 py-1.5 rounded-lg font-mono-code text-[11px] transition">1:32</button>
+            <button data-scale-preset="43" class="scale-preset-btn active bg-sky-500/20 border border-sky-500/50 text-sky-300 py-1.5 rounded-lg font-mono-code text-[11px] transition">1:43</button>
+            <button data-scale-preset="64" class="scale-preset-btn bg-slate-800/90 hover:bg-slate-700 border border-slate-700/70 py-1.5 rounded-lg font-mono-code text-[11px] transition">1:64</button>
+            <button data-scale-preset="custom" class="scale-preset-btn bg-slate-800/90 hover:bg-slate-700 border border-slate-700/70 py-1.5 rounded-lg text-[11px] transition">Personal.</button>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Factor de Escala Personalizado (1:X)</label>
+              <span class="font-mono-code text-slate-200" id="val-scale">43</span>
+            </div>
+            <input type="range" id="param-scale" min="10" max="87" step="1" value="43">
+          </div>
+        </div>
+
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <span class="font-semibold text-slate-100 block">Cotas Oficiales Audi A3 Sedán 8Y (mm)</span>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Longitud Total</label>
+              <span class="font-mono-code text-slate-200" id="val-length">4504 mm</span>
+            </div>
+            <input type="range" id="param-length" min="4300" max="4700" step="2" value="4504">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Anchura (sin retrovisores)</label>
+              <span class="font-mono-code text-slate-200" id="val-width">1816 mm</span>
+            </div>
+            <input type="range" id="param-width" min="1720" max="1940" step="2" value="1816">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Altura Total</label>
+              <span class="font-mono-code text-slate-200" id="val-height">1425 mm</span>
+            </div>
+            <input type="range" id="param-height" min="1320" max="1520" step="1" value="1425">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Distancia entre Ejes (Batalla)</label>
+              <span class="font-mono-code text-slate-200" id="val-wheelbase">2630 mm</span>
+            </div>
+            <input type="range" id="param-wheelbase" min="2500" max="2760" step="2" value="2630">
+          </div>
+        </div>
+
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-2">
+          <label class="font-semibold text-slate-100 block">Resolución de Curvatura Lofting C2</label>
+          <select id="param-resolution" class="w-full bg-[#0d111b] border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-sky-500">
+            <option value="standard">Estándar (150 × 80 estaciones — Fluida)</option>
+            <option value="high" selected>Alta (180 × 96 estaciones — Recomendada)</option>
+            <option value="ultra">Ultra (230 × 116 estaciones — Máxima precisión)</option>
+          </select>
+          <p class="text-[10px] text-slate-400 leading-relaxed">Controla la densidad de secciones longitudinales y puntos de contorno transversal para suavizar reflejos y curvas.</p>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 2: CURVATURAS Y AERODINÁMICA -->
+      <div id="tab-curves" class="tab-content hidden space-y-4">
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <span class="font-semibold text-slate-100 block">Superficies Superiores y Perfil Coupé</span>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Curvatura Transversal (Camber) Techo/Capó</label>
+              <span class="font-mono-code text-sky-400" id="val-camber">1.00</span>
+            </div>
+            <input type="range" id="param-camber" min="0.40" max="1.65" step="0.05" value="1.00">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Relieve 4 Nervios Capó (Power-Dome)</label>
+              <span class="font-mono-code text-sky-400" id="val-powerdome">14 mm</span>
+            </div>
+            <input type="range" id="param-powerdome" min="0" max="30" step="1" value="14">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Labio Spoiler Trasero (Ducktail)</label>
+              <span class="font-mono-code text-sky-400" id="val-spoiler">16 mm</span>
+            </div>
+            <input type="range" id="param-spoiler" min="0" max="36" step="1" value="16">
+          </div>
+        </div>
+
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <span class="font-semibold text-slate-100 block">Escultura Lateral y Pasos de Rueda</span>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Inclinación Ventanillas (Tumblehome)</label>
+              <span class="font-mono-code text-sky-400" id="val-tumblehome">1.00</span>
+            </div>
+            <input type="range" id="param-tumblehome" min="0.60" max="1.45" step="0.05" value="1.00">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Ensanche Pasos de Rueda Quattro</label>
+              <span class="font-mono-code text-sky-400" id="val-blisters">26 mm</span>
+            </div>
+            <input type="range" id="param-blisters" min="6" max="50" step="1" value="26">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Escultura Cóncava Inferior Puertas</label>
+              <span class="font-mono-code text-sky-400" id="val-concavity">22 mm</span>
+            </div>
+            <input type="range" id="param-concavity" min="0" max="42" step="1" value="22">
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 3: DETALLES Y ACABADO ADVANCED -->
+      <div id="tab-details" class="tab-content hidden space-y-4">
+        
+        <!-- Matrícula Europea -->
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-100">Matrícula Europea (Delantera y Trasera)</span>
+            <input type="checkbox" id="param-plate-enable" checked class="accent-sky-500 w-4 h-4 rounded cursor-pointer">
+          </div>
+          <input type="text" id="param-plate-text" maxlength="10" value="1853 NJH" placeholder="1853 NJH"
+            class="w-full bg-[#0c101a] border border-slate-700 focus:border-sky-500 rounded-xl px-3 py-2 text-xs font-mono-code uppercase text-white tracking-widest outline-none">
+        </div>
+
+        <!-- Frontal Singleframe y Acabado Advanced -->
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <span class="font-semibold text-slate-100 block">Frontal 2025 Facelift & Molduras</span>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Relieve Parrilla Singleframe y 4 Aros</label>
+              <span class="font-mono-code text-sky-400" id="val-grille">16 mm</span>
+            </div>
+            <input type="range" id="param-grille" min="6" max="32" step="1" value="16">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Molduras Plateadas Advanced (Paragolpes)</label>
+              <span class="font-mono-code text-sky-400" id="val-trim">14 mm</span>
+            </div>
+            <input type="range" id="param-trim" min="0" max="28" step="1" value="14">
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <label class="text-slate-300">Marco Cromado Ventanillas (Hofmeister)</label>
+            <input type="checkbox" id="param-chrome-window" checked class="accent-sky-500 w-4 h-4 rounded cursor-pointer">
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label class="text-slate-300">Retrovisores Aerodinámicos en Puerta</label>
+            <input type="checkbox" id="param-mirrors" checked class="accent-sky-500 w-4 h-4 rounded cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Llantas y Dirección -->
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <span class="font-semibold text-slate-100 block">Llantas 5 Radios Dobles y Dirección</span>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Diámetro Exterior Rueda</label>
+              <span class="font-mono-code text-sky-400" id="val-wheeldiam">650 mm</span>
+            </div>
+            <input type="range" id="param-wheeldiam" min="610" max="690" step="2" value="650">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="text-slate-400">Ángulo de Giro Ruedas Delanteras</label>
+              <span class="font-mono-code text-sky-400" id="val-steer">0°</span>
+            </div>
+            <input type="range" id="param-steer" min="-32" max="32" step="1" value="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 4: GUARDAR Y EXPORTACIÓN STL -->
+      <div id="tab-export" class="tab-content hidden space-y-4">
+        
+        <!-- Selección de Piezas y Preparación FDM/SLA -->
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-3">
+          <span class="font-semibold text-slate-100 block">Opciones de Malla STL</span>
+
+          <div>
+            <label class="text-slate-400 block mb-1">Conjunto a Exportar</label>
+            <select id="param-export-part" class="w-full bg-[#0d111b] border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-sky-500">
+              <option value="all">Coche completo (Carrocería + Ruedas + Ejes)</option>
+              <option value="body">Solo carrocería y detalles</option>
+              <option value="wheels">Solo juego de 4 ruedas (5 radios dobles)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between bg-[#0d111b] p-2.5 rounded-xl border border-slate-800">
+            <div>
+              <span class="text-slate-200 font-medium block">Base Plana en Neumáticos</span>
+              <span class="text-slate-500 text-[10px]">Adhesión óptima en cama FDM sin soportes</span>
+            </div>
+            <input type="checkbox" id="param-flatbottom" checked class="accent-sky-500 w-4 h-4 rounded cursor-pointer">
+          </div>
+
+          <button id="export-stl-panel-btn" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-lg shadow-sky-500/20 text-xs transition active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span>Descargar Archivo .STL Binario</span>
+          </button>
+        </div>
+
+        <!-- Telemetría en Tiempo Real -->
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-2 font-mono-code text-[11px]">
+          <span class="font-sans font-semibold text-slate-100 text-xs block mb-1">Telemetría del Modelo STL</span>
+          <div class="flex justify-between text-slate-400">
+            <span>Dimensiones (X×Y×Z):</span>
+            <span id="panel-stat-dims" class="text-sky-400 font-semibold">104.7 × 46.2 × 33.1 mm</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Triángulos de malla:</span>
+            <span id="panel-stat-tris" class="text-slate-200">0</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Volumen estimado:</span>
+            <span id="panel-stat-vol" class="text-emerald-400">0.0 cm³</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Orientación STL:</span>
+            <span class="text-slate-300">Z-Arriba (Base Z = 0.00 mm)</span>
+          </div>
+        </div>
+
+        <!-- Persistencia LocalStorage y JSON -->
+        <div class="bg-[#141b2b] p-3 rounded-xl border border-slate-800/80 space-y-2.5">
+          <span class="font-semibold text-slate-100 block">Guardar / Cargar Parámetros</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-save-local" class="bg-slate-800 hover:bg-slate-700 text-sky-300 py-2 px-3 rounded-xl text-[11px] font-medium transition">Guardar en Navegador</button>
+            <button id="btn-load-local" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-3 rounded-xl text-[11px] font-medium transition">Cargar Guardado</button>
+            <button id="btn-export-json" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-3 rounded-xl text-[11px] font-medium transition">Exportar .JSON ↓</button>
+            <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-3 rounded-xl text-[11px] font-medium transition text-center cursor-pointer">
+              Importar .JSON ↑
+              <input id="input-import-json" type="file" accept=".json" class="hidden" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Pie del Panel -->
+    <div class="p-2.5 bg-[#111623] border-t border-slate-800/90 flex items-center justify-between text-[11px]">
+      <span class="text-slate-500">Audi A3 8Y • Malla Sólida</span>
+      <button id="btn-reset-defaults" class="text-slate-400 hover:text-rose-400 transition underline">Restaurar Valores</button>
+    </div>
+  </aside>
+
+  <!-- Barra de Telemetría Inferior -->
+  <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+    <div class="bg-[#111623]/92 backdrop-blur-md border border-slate-800/90 px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-4 text-[11px] font-mono-code pointer-events-auto">
+      <div class="flex items-center gap-1.5">
+        <span class="text-slate-400">Cotas STL:</span>
+        <span id="stat-dims" class="text-sky-400 font-semibold">104.7 × 46.2 × 33.1 mm</span>
+      </div>
+      <div class="hidden sm:block h-3 w-[1px] bg-slate-700"></div>
+      <div class="hidden sm:flex items-center gap-1.5">
+        <span class="text-slate-400">Triángulos:</span>
+        <span id="stat-tris" class="text-slate-200">0</span>
+      </div>
+      <div class="hidden md:block h-3 w-[1px] bg-slate-700"></div>
+      <div class="hidden md:flex items-center gap-1.5">
+        <span class="text-slate-400">Volumen:</span>
+        <span id="stat-vol" class="text-emerald-400">0.0 cm³</span>
+      </div>
+    </div>
+
+    <div class="hidden lg:flex items-center gap-2 bg-[#111623]/88 backdrop-blur-md border border-slate-800/90 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 pointer-events-auto">
+      <span>🖱️ Izq: Rotar</span>
+      <span>•</span>
+      <span>Der: Desplazar</span>
+      <span>•</span>
+      <span>Rueda: Zoom</span>
+    </div>
+  </footer>
+
+  <!-- Notificación Toast Flotante -->
+  <div id="toast-box" class="fixed top-16 right-4 z-50 transform translate-x-full opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-[#141c2c] border border-sky-500/50 text-slate-100 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs">
+      <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+      <span id="toast-msg">Listo</span>
+    </div>
+  </div>
+
+  <!-- Módulo Three.js & Generador Paramétrico -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+    import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+    // =========================================================================
+    // 1. PARÁMETROS OFICIALES DEL AUDI A3 SEDÁN 8Y (2025 FACELIFT ADVANCED)
+    // =========================================================================
+    const DEFAULT_PARAMS = {
+      scale: 43,
+      length: 4504,
+      width: 1816,
+      height: 1425,
+      wheelbase: 2630,
+      resolution: 'high',       // 'standard' | 'high' | 'ultra'
+      camber: 1.00,             // curvatura transversal techo y capó
+      powerdome: 14,            // mm relieve 4 nervios del capó
+      spoiler: 16,              // mm labio spoiler trasero ducktail
+      tumblehome: 1.00,         // inclinación hacia dentro ventanillas
+      blisters: 26,             // mm ensanche pasos de rueda Quattro
+      concavity: 22,            // mm concavidad inferior puertas
+      plateEnable: true,
+      plateText: '1853 NJH',
+      grille: 16,               // mm relieve parrilla Singleframe y 4 aros
+      trim: 14,                 // mm relieve molduras plateadas Advanced
+      chromeWindow: true,       // marco cromado ventanillas + Hofmeister kink
+      mirrors: true,            // retrovisores anclados en puerta
+      wheeldiam: 650,           // mm diámetro exterior rueda
+      steer: 0,                 // grados giro ruedas delanteras
+      exportPart: 'all',        // 'all' | 'body' | 'wheels'
+      flatbottom: true          // base plana en neumáticos para impresión FDM
+    };
+
+    let params = loadFromStorage() || { ...DEFAULT_PARAMS };
+    let viewMode = 'metallic';
+
+    // =========================================================================
+    // 2. ESCENA THREE.JS, ILUMINACIÓN DE ESTUDIO Y ENTORNO DE REFLEJOS PBR
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x090c12);
+    scene.fog = new THREE.FogExp2(0x090c12, 0.0020);
+
+    const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 1, 5000);
+    camera.position.set(148, 66, 152);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
+    container.appendChild(renderer.domElement);
+
+    // Entorno HDRI procedural de estudio para reflejos reales sobre pintura Negro Mito Metalizado
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    const roomEnv = new RoomEnvironment();
+    const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = 0.72;
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.maxPolarAngle = Math.PI / 2 - 0.01;
+    controls.minDistance = 22;
+    controls.maxDistance = 850;
+    controls.target.set(0, 15, 0);
+
+    // Luces de Estudio Automotriz
+    const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 0.55);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
+    keyLight.position.set(130, 190, 120);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.near = 10;
+    keyLight.shadow.camera.far = 520;
+    const d = 140;
+    keyLight.shadow.camera.left = -d;
+    keyLight.shadow.camera.right = d;
+    keyLight.shadow.camera.top = d;
+    keyLight.shadow.camera.bottom = -d;
+    keyLight.shadow.bias = -0.0004;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.1);
+    rimLight.position.set(-150, 85, -120);
+    scene.add(rimLight);
+
+    // Rejilla CAD milimetrada y suelo receptor de sombras
+    const gridGroup = new THREE.Group();
+    const mainGrid = new THREE.GridHelper(320, 32, 0x38bdf8, 0x1e293b);
+    mainGrid.material.opacity = 0.35;
+    mainGrid.material.transparent = true;
+    gridGroup.add(mainGrid);
+
+    const subGrid = new THREE.GridHelper(320, 160, 0x1e293b, 0x101622);
+    subGrid.position.y = -0.02;
+    gridGroup.add(subGrid);
+    scene.add(gridGroup);
+
+    const groundPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(700, 700),
+      new THREE.MeshStandardMaterial({ color: 0x080b10, roughness: 0.85, metalness: 0.1 })
+    );
+    groundPlane.rotation.x = -Math.PI / 2;
+    groundPlane.position.y = -0.04;
+    groundPlane.receiveShadow = true;
+    scene.add(groundPlane);
+
+    // =========================================================================
+    // 3. MATERIALES PBR (NEGRO MITO METALIZADO, ALUMINIO SATINADO, CRISTAL)
+    // =========================================================================
+    const materials = {
+      body: new THREE.MeshPhysicalMaterial({
+        color: 0x14171d,          // Negro Mito Metalizado profundo
+        roughness: 0.22,
+        metalness: 0.72,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.08,
+        reflectivity: 0.9
+      }),
+      silverTrim: new THREE.MeshStandardMaterial({
+        color: 0xd8dee9,          // Aluminio satinado Advanced y 4 aros
+        roughness: 0.24,
+        metalness: 0.88
+      }),
+      chrome: new THREE.MeshStandardMaterial({
+        color: 0xf1f5f9,          // Marco cromado ventanillas
+        roughness: 0.12,
+        metalness: 0.96
+      }),
+      grilleBlack: new THREE.MeshStandardMaterial({
+        color: 0x0b0d11,          // Parrilla Singleframe y pilares B Piano Black
+        roughness: 0.28,
+        metalness: 0.45
+      }),
+      glass: new THREE.MeshPhysicalMaterial({
+        color: 0x090e17,          // Lunas tintadas oscuras
+        roughness: 0.08,
+        metalness: 0.15,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.05
+      }),
+      headlight: new THREE.MeshStandardMaterial({
+        color: 0xe0f2fe,
+        emissive: 0x38bdf8,
+        emissiveIntensity: 0.55,
+        roughness: 0.12,
+        metalness: 0.6
+      }),
+      taillight: new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        emissive: 0xb91c1c,
+        emissiveIntensity: 0.5,
+        roughness: 0.18,
+        metalness: 0.4
+      }),
+      reflectorRed: new THREE.MeshStandardMaterial({
+        color: 0xdc2626,
+        emissive: 0x7f1d1d,
+        emissiveIntensity: 0.3,
+        roughness: 0.3
+      }),
+      tire: new THREE.MeshStandardMaterial({
+        color: 0x16181c,
+        roughness: 0.82,
+        metalness: 0.06
+      }),
+      alloyRim: new THREE.MeshStandardMaterial({
+        color: 0xcbd5e1,
+        roughness: 0.22,
+        metalness: 0.90
+      }),
+      brakeDisc: new THREE.MeshStandardMaterial({
+        color: 0x64748b,
+        roughness: 0.42,
+        metalness: 0.82
+      }),
+      brakeCaliper: new THREE.MeshStandardMaterial({
+        color: 0x334155,
+        roughness: 0.45,
+        metalness: 0.5
+      }),
+      plateWhite: new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        roughness: 0.35,
+        metalness: 0.08
+      }),
+      plateBlue: new THREE.MeshStandardMaterial({
+        color: 0x1d4ed8,
+        roughness: 0.35,
+        metalness: 0.08
+      }),
+      claySTL: new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        roughness: 0.46,
+        metalness: 0.10
+      }),
+      xray: new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.25
+      })
+    };
+
+    const carGroup = new THREE.Group();
+    scene.add(carGroup);
+
+    // =========================================================================
+    // 4. FUNCIONES MATEMÁTICAS DE SUPERFICIE C2 DEL AUDI A3 SEDÁN 8Y
+    // =========================================================================
+
+    function smoothstep(edge0, edge1, x) {
+      const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function smootherstep(edge0, edge1, x) {
+      const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+      return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    // Evalúa los parámetros geométricos de la sección transversal en cualquier estación t in [0..1]
+    // t = 0: punta trasera (-halfL) | t = 1: punta delantera (+halfL)
+    function evaluateStationMetrics(t, S) {
+      const L = params.length * S;
+      const W = params.width * S;
+      const H = params.height * S;
+      const WB = params.wheelbase * S;
+      const wheelR = (params.wheeldiam * 0.5) * S;
+      const clearance = wheelR * 0.42; // altura libre realista del faldón
+      const halfL = L * 0.5;
+      const halfW = W * 0.5;
+
+      const x = -halfL + t * L;
+      const frontAxleX = WB * 0.515;
+      const rearAxleX = -WB * 0.485;
+
+      // 1. Envoltura elíptica en planta (vista superior) para morro y zaga redondeados en 3D
+      let planformWidthFactor = 1.0;
+      if (t > 0.82) {
+        // Morro elíptico redondeado del Audi A3 8Y (t: 0.82 -> 1.00)
+        const u = (1.0 - t) / 0.18; // 1 en 0.82, 0 en 1.00
+        planformWidthFactor = Math.pow(Math.max(0, 1 - Math.pow(1 - u, 2.25)), 0.45);
+      } else if (t < 0.09) {
+        // Zaga redondeada del sedán (t: 0.00 -> 0.09)
+        const u = t / 0.09; // 0 en 0.00, 1 en 0.09
+        planformWidthFactor = Math.pow(Math.max(0, 1 - Math.pow(1 - u, 2.4)), 0.44);
+      } else {
+        // Ligero estrechamiento aerodinámico central en puertas ("cintura") y ahusamiento hacia atrás
+        const midWaist = Math.sin(((t - 0.09) / 0.73) * Math.PI) * 0.018;
+        const rearTaper = smoothstep(0.32, 0.09, t) * 0.045;
+        planformWidthFactor = 1.0 - midWaist - rearTaper;
+      }
+
+      // 2. Ensanchamiento muscular en pasos de rueda (Quattro blisters)
+      const archR = wheelR * 1.15;
+      const blisterMax = params.blisters * S;
+      const dFront = Math.abs(x - frontAxleX);
+      const dRear = Math.abs(x - rearAxleX);
+
+      let blisterBoost = 0;
+      if (dFront < archR * 1.35) {
+        const u = dFront / (archR * 1.35);
+        blisterBoost += Math.pow(Math.cos(u * Math.PI * 0.5), 1.6) * blisterMax;
+      }
+      if (dRear < archR * 1.35) {
+        const u = dRear / (archR * 1.35);
+        blisterBoost += Math.pow(Math.cos(u * Math.PI * 0.5), 1.6) * (blisterMax * 1.08);
+      }
+
+      // 3. Alzado longitudinal: línea de suelo, línea de cintura (Tornado) y línea de techo
+      let yFloor = clearance;
+      let yBelt = H * 0.65;
+      let yRoof = yBelt;
+      let cabinWidthRatio = 0.76;
+      let hoodFactor = 0.0; // peso para los 4 nervios del capó (power-dome)
+
+      const spoilerH = params.spoiler * S;
+      const tumble = params.tumblehome;
+
+      if (t < 0.045) {
+        // Paragolpes trasero curvo y difusor
+        const u = t / 0.045;
+        const su = smootherstep(0, 1, u);
+        yFloor = clearance + (1 - su) * (H * 0.13);
+        yBelt = H * (0.44 + 0.27 * Math.pow(su, 0.65)) + spoilerH * su;
+        yRoof = yBelt;
+        cabinWidthRatio = 0.88;
+      } else if (t < 0.175) {
+        // Tapa de maletero corta sedán con labio spoiler integrado (ducktail)
+        const u = (t - 0.045) / 0.13;
+        yBelt = H * (0.71 - 0.015 * u) + spoilerH * (1 - smoothstep(0, 0.45, u));
+        yRoof = yBelt + smoothstep(0.4, 1.0, u) * (H * 0.025);
+        cabinWidthRatio = 0.84 - 0.05 * u;
+      } else if (t < 0.35) {
+        // Luneta trasera muy tendida / Pilar C fastback
+        const u = (t - 0.175) / 0.175;
+        const su = smootherstep(0, 1, u);
+        yBelt = H * (0.695 - 0.015 * u);
+        yRoof = yBelt + su * (H * 0.315);
+        cabinWidthRatio = 0.79 - 0.065 * su * tumble;
+      } else if (t < 0.56) {
+        // Arco de techo continuo de doble curvatura
+        const u = (t - 0.35) / 0.21;
+        const crown = Math.sin(u * Math.PI) * (H * 0.022);
+        yBelt = H * (0.68 - 0.028 * u);
+        yRoof = H * (0.685 + 0.315) + crown;
+        cabinWidthRatio = 0.725 - 0.015 * Math.sin(u * Math.PI) * tumble;
+      } else if (t < 0.74) {
+        // Parabrisas aerodinámico inclinado
+        const u = (t - 0.56) / 0.18;
+        const su = smootherstep(0, 1, u);
+        yBelt = H * (0.652 - 0.022 * u);
+        yRoof = yBelt + (1 - su) * (H * 0.348);
+        cabinWidthRatio = (0.725 + 0.145 * su) - (tumble - 1) * 0.05 * (1 - su);
+      } else {
+        // Capó esculpido y caída curva hacia el morro Singleframe (t: 0.74 -> 1.00)
+        const u = (t - 0.74) / 0.26;
+        hoodFactor = Math.sin(Math.min(1, u / 0.88) * Math.PI);
+        // Caída suave del capó y curva elíptica final en la punta del paragolpes
+        const hoodSlope = Math.pow(u, 1.75) * (H * 0.19);
+        const noseTipDrop = u > 0.82 ? Math.pow((u - 0.82) / 0.18, 1.8) * (H * 0.22) : 0;
+        const noseBottomLift = u > 0.84 ? Math.pow((u - 0.84) / 0.16, 2.0) * (H * 0.11) : 0;
+
+        yFloor = clearance + noseBottomLift;
+        yBelt = H * 0.63 - hoodSlope - noseTipDrop;
+        yRoof = yBelt;
+        cabinWidthRatio = 0.87 + 0.06 * u;
+      }
+
+      const wBelt = halfW * planformWidthFactor + blisterBoost;
+      const wFloor = wBelt * 0.94;
+      const wRoof = wBelt * Math.max(0.55, Math.min(0.95, cabinWidthRatio));
+
+      return {
+        x, t, yFloor, yBelt, yRoof, wFloor, wBelt, wRoof,
+        frontAxleX, rearAxleX, wheelR, archR, hoodFactor,
+        camberScale: params.camber,
+        powerdomeH: params.powerdome * S,
+        concavityD: params.concavity * S,
+        tireW: 225 * S
+      };
+    }
+
+    // Evalúa un punto 3D (x, y, z) en la mitad derecha (z >= 0) dado t in [0..1] y s in [0..1]
+    // s = 0: centro inferior | s = 0.48: línea de cintura/hombro | s = 1.0: centro techo/capó
+    function evaluateHalfSectionPoint(st, s) {
+      const {
+        x, t, yFloor, yBelt, yRoof, wFloor, wBelt, wRoof,
+        frontAxleX, rearAxleX, wheelR, archR, hoodFactor,
+        camberScale, powerdomeH, concavityD, tireW
+      } = st;
+
+      let y = 0;
+      let z = 0;
+
+      if (s <= 0.14) {
+        // 1. Suelo / bajos del chasis (s: 0.00 -> 0.14)
+        const u = s / 0.14;
+        z = u * (wFloor * 0.95);
+        y = yFloor + (1 - u * u) * (wheelR * 0.06);
+      } else if (s <= 0.48) {
+        // 2. Flanco lateral: talonera, concavidad esculpida de puertas y hombro Tornado (s: 0.14 -> 0.48)
+        const u = (s - 0.14) / 0.34;
+        const su = smoothstep(0, 1, u);
+        y = yFloor + u * (yBelt - yFloor);
+
+        // Perfil lateral convexo con concavidad esculpida en la parte media-baja de las puertas
+        const doorZone = smoothstep(0.18, 0.28, t) * smoothstep(0.76, 0.66, t);
+        const scoopWave = Math.sin(u * Math.PI);
+        const lowerConcave = Math.sin(Math.pow(u, 0.75) * Math.PI) * concavityD * doorZone;
+
+        // Línea de hombro marcada (Tornado crease) cerca de u = 0.88
+        const shoulderCrease = Math.exp(-Math.pow((u - 0.88) / 0.14, 2)) * (wBelt * 0.025);
+
+        z = (wFloor * 0.95) * (1 - su) + wBelt * su + scoopWave * (wBelt * 0.03) - lowerConcave + shoulderCrease;
+      } else if (s <= 0.76) {
+        // 3. Ventanillas laterales con Tumblehome y curvatura de cristal (s: 0.48 -> 0.76)
+        const u = (s - 0.48) / 0.28;
+        const su = smoothstep(0, 1, u);
+        const hasCabin = (yRoof - yBelt) > 0.2;
+
+        if (hasCabin) {
+          y = yBelt + Math.pow(u, 0.94) * (yRoof - yBelt);
+          const glassBow = Math.sin(u * Math.PI) * (wBelt * 0.038);
+          z = wBelt * (1 - su) + wRoof * su + glassBow;
+        } else {
+          // En capó y maletero, este tramo transita suavemente hacia la superficie superior
+          y = yBelt + su * ((yRoof - yBelt) + (wBelt * 0.02 * camberScale));
+          z = wBelt * (1 - su * 0.35);
+        }
+      } else {
+        // 4. Techo / Capó / Maletero con Camber transversal y 4 nervios Power-Dome (s: 0.76 -> 1.00)
+        const u = (s - 0.76) / 0.24; // 0 en canto techo, 1 en línea central z = 0
+        const hasCabin = (yRoof - yBelt) > 0.2;
+        const zStart = hasCabin ? wRoof : (wBelt * 0.65);
+        z = zStart * (1 - u);
+
+        // Curvatura transversal (camber) suave hacia el centro z = 0
+        const transverseArch = Math.sin(u * Math.PI * 0.5);
+        const baseCamberLift = (hasCabin ? (wRoof * 0.055) : (wBelt * 0.048)) * camberScale * transverseArch;
+
+        // 4 nervios longitudinales esculpidos en el capó (power-dome)
+        let domeLift = 0;
+        if (hoodFactor > 0.01 && powerdomeH > 0) {
+          const zNorm = z / Math.max(0.01, wBelt);
+          // Pareja interior de nervios (nace en bordes superiores parrilla) y pareja exterior (hacia faros)
+          const ribInner = Math.exp(-Math.pow((zNorm - 0.24) / 0.09, 2));
+          const ribOuter = Math.exp(-Math.pow((zNorm - 0.56) / 0.11, 2)) * 0.75;
+          domeLift = hoodFactor * powerdomeH * (ribInner + ribOuter);
+        }
+
+        const edgeHeight = hasCabin ? yRoof : (yBelt + wBelt * 0.02 * camberScale);
+        y = edgeHeight + baseCamberLift + domeLift;
+      }
+
+      // 5. Cavidad interna cerrada de los pasos de rueda (Wheel Wells) para alojamiento real de neumáticos
+      const wheelCenterY = wheelR;
+      const distFront = Math.hypot(x - frontAxleX, y - wheelCenterY);
+      const distRear = Math.hypot(x - rearAxleX, y - wheelCenterY);
+      const minWheelDist = Math.min(distFront, distRear);
+
+      if (minWheelDist < archR && s > 0.10 && s < 0.55 && z > wBelt * 0.55) {
+        // Hundimiento radial suave hacia el interior del paso de rueda manteniendo la malla cerrada
+        const radialFactor = smootherstep(archR, archR * 0.80, minWheelDist);
+        const targetWellZ = Math.max(wBelt * 0.52, wBelt - tireW * 1.15);
+        z = z * (1 - radialFactor) + targetWellZ * radialFactor;
+      }
+
+      return [x, y, z];
+    }
+
+    // Construcción de la Malla Monocasco Completa (Lofting Longitudinal × Transversal C2)
+    function buildMonocoqueBody(S) {
+      const resMap = {
+        standard: { stations: 150, ringHalf: 40 }, // 150 x 80
+        high:     { stations: 184, ringHalf: 48 }, // 184 x 96
+        ultra:    { stations: 230, ringHalf: 58 }  // 230 x 116
+      };
+      const cfg = resMap[params.resolution] || resMap.high;
+      const N_x = cfg.stations;
+      const N_half = cfg.ringHalf;
+      const ringSize = N_half * 2; // contorno cerrado simétrico
+
+      const positions = [];
+      const indices = [];
+
+      for (let i = 0; i <= N_x; i++) {
+        const t = i / N_x;
+        const st = evaluateStationMetrics(t, S);
+
+        // Generar mitad derecha (s: 0 -> 1)
+        const rightPts = [];
+        for (let j = 0; j <= N_half; j++) {
+          const s = j / N_half;
+          rightPts.push(evaluateHalfSectionPoint(st, s));
+        }
+
+        // Construir anillo completo en sentido antihorario mirando desde +X:
+        // Empieza en s=0 (centro abajo), sube por +Z hasta s=1 (centro arriba),
+        // y baja por -Z desde s=(N_half-1)/N_half hasta s=1/N_half.
+        for (let j = 0; j <= N_half; j++) {
+          const p = rightPts[j];
+          positions.push(p[0], p[1], p[2]);
+        }
+        for (let j = N_half - 1; j >= 1; j--) {
+          const p = rightPts[j];
+          positions.push(p[0], p[1], -p[2]);
+        }
+      }
+
+      // Conectar anillos adyacentes con triángulos orientados hacia el exterior
+      for (let i = 0; i < N_x; i++) {
+        const rowA = i * ringSize;
+        const rowB = (i + 1) * ringSize;
+
+        for (let j = 0; j < ringSize; j++) {
+          const jNext = (j + 1) % ringSize;
+          const a = rowA + j;
+          const b = rowB + j;
+          const c = rowB + jNext;
+          const d = rowA + jNext;
+
+          indices.push(a, d, b);
+          indices.push(b, d, c);
+        }
+      }
+
+      // Tapas polares cerradas en la punta trasera (i=0) y punta delantera (i=N_x)
+      const stRear = evaluateStationMetrics(0, S);
+      const rearPoleIdx = positions.length / 3;
+      positions.push(stRear.x, (stRear.yFloor + stRear.yBelt) * 0.5, 0);
+      for (let j = 0; j < ringSize; j++) {
+        const jNext = (j + 1) % ringSize;
+        indices.push(rearPoleIdx, j, jNext);
+      }
+
+      const stFront = evaluateStationMetrics(1, S);
+      const frontPoleIdx = positions.length / 3;
+      const lastRow = N_x * ringSize;
+      positions.push(stFront.x, (stFront.yFloor + stFront.yBelt) * 0.5, 0);
+      for (let j = 0; j < ringSize; j++) {
+        const jNext = (j + 1) % ringSize;
+        indices.push(frontPoleIdx, lastRow + jNext, lastRow + j);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    // Helper para proyectar cualquier coordenada (y, z) sobre la curvatura frontal del morro
+    function getFrontSurfaceX(z, S) {
+      const L = params.length * S;
+      const W = params.width * S;
+      const halfL = L * 0.5;
+      const halfW = W * 0.5;
+      const zNorm = Math.min(0.98, Math.abs(z) / halfW);
+      // Coincide con la ecuación elíptica de planta del morro (t: 0.82 -> 1.00)
+      const u = 1.0 - Math.pow(1.0 - Math.pow(zNorm, 1 / 0.45), 1 / 2.25);
+      const t = 1.0 - u * 0.18;
+      return -halfL + t * L;
+    }
+
+    // Helper para proyectar cualquier coordenada z sobre la curvatura trasera de la zaga
+    function getRearSurfaceX(z, S) {
+      const L = params.length * S;
+      const W = params.width * S;
+      const halfL = L * 0.5;
+      const halfW = W * 0.5;
+      const zNorm = Math.min(0.98, Math.abs(z) / (halfW * 0.955));
+      const u = 1.0 - Math.pow(1.0 - Math.pow(zNorm, 1 / 0.44), 1 / 2.4);
+      const t = u * 0.09;
+      return -halfL + t * L;
+    }
+
+    // =========================================================================
+    // 5. DETALLES EXTERIORES CURVADOS (FRONTAL 2025, CRISTALES, ZAGA, RUEDAS)
+    // =========================================================================
+
+    // Utilidad para texto 3D extruido limpio
+    function createVectorTextGeometry(text, charHeight, depth) {
+      const clean = (text || '1853 NJH').toUpperCase().trim();
+      const charWidth = charHeight * 0.60;
+      const spacing = charHeight * 0.18;
+      const stroke = Math.max(charHeight * 0.14, 0.32);
+
+      const FONT = {
+        '0': [[0.15,0, 0.85,0], [0.85,0, 0.85,1], [0.85,1, 0.15,1], [0.15,1, 0.15,0]],
+        '1': [[0.5,0, 0.5,1], [0.25,0.82, 0.5,1], [0.2,0, 0.8,0]],
+        '2': [[0.15,0.85, 0.85,0.85], [0.85,0.85, 0.85,0.5], [0.85,0.5, 0.15,0.5], [0.15,0.5, 0.15,0], [0.15,0, 0.85,0]],
+        '3': [[0.15,0.92, 0.85,0.92], [0.85,0.92, 0.85,0.08], [0.25,0.5, 0.85,0.5], [0.15,0.08, 0.85,0.08]],
+        '4': [[0.15,1, 0.15,0.48], [0.15,0.48, 0.88,0.48], [0.72,1, 0.72,0]],
+        '5': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0.52], [0.15,0.52, 0.85,0.52], [0.85,0.52, 0.85,0.08], [0.85,0.08, 0.15,0.08]],
+        '6': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0.08], [0.15,0.08, 0.85,0.08], [0.85,0.08, 0.85,0.5], [0.85,0.5, 0.15,0.5]],
+        '7': [[0.15,0.92, 0.85,0.92], [0.85,0.92, 0.42,0]],
+        '8': [[0.15,0, 0.85,0], [0.85,0, 0.85,1], [0.85,1, 0.15,1], [0.15,1, 0.15,0], [0.15,0.5, 0.85,0.5]],
+        '9': [[0.85,0.5, 0.15,0.5], [0.15,0.5, 0.15,0.92], [0.15,0.92, 0.85,0.92], [0.85,0.92, 0.85,0.08], [0.85,0.08, 0.15,0.08]],
+        'A': [[0.1,0, 0.5,1], [0.5,1, 0.9,0], [0.24,0.36, 0.76,0.36]],
+        'B': [[0.15,0, 0.15,1], [0.15,1, 0.78,1], [0.78,1, 0.78,0.52], [0.15,0.52, 0.85,0.52], [0.85,0.52, 0.85,0], [0.85,0, 0.15,0]],
+        'C': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0.08], [0.15,0.08, 0.85,0.08]],
+        'D': [[0.15,0, 0.15,1], [0.15,1, 0.72,1], [0.72,1, 0.88,0.5], [0.88,0.5, 0.72,0], [0.72,0, 0.15,0]],
+        'E': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0.08], [0.15,0.08, 0.85,0.08], [0.15,0.5, 0.72,0.5]],
+        'F': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0], [0.15,0.5, 0.72,0.5]],
+        'G': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0.08], [0.15,0.08, 0.85,0.08], [0.85,0.08, 0.85,0.48], [0.52,0.48, 0.85,0.48]],
+        'H': [[0.15,0, 0.15,1], [0.85,0, 0.85,1], [0.15,0.5, 0.85,0.5]],
+        'I': [[0.5,0, 0.5,1], [0.25,1, 0.75,1], [0.25,0, 0.75,0]],
+        'J': [[0.78,1, 0.78,0.12], [0.78,0.12, 0.45,0.05], [0.45,0.05, 0.15,0.22]],
+        'K': [[0.15,0, 0.15,1], [0.85,1, 0.15,0.48], [0.35,0.62, 0.85,0]],
+        'L': [[0.15,1, 0.15,0.08], [0.15,0.08, 0.85,0.08]],
+        'M': [[0.1,0, 0.1,1], [0.1,1, 0.5,0.38], [0.5,0.38, 0.9,1], [0.9,1, 0.9,0]],
+        'N': [[0.15,0, 0.15,1], [0.15,1, 0.85,0], [0.85,0, 0.85,1]],
+        'O': [[0.15,0, 0.85,0], [0.85,0, 0.85,1], [0.85,1, 0.15,1], [0.15,1, 0.15,0]],
+        'P': [[0.15,0, 0.15,1], [0.15,1, 0.85,1], [0.85,1, 0.85,0.5], [0.85,0.5, 0.15,0.5]],
+        'R': [[0.15,0, 0.15,1], [0.15,1, 0.85,1], [0.85,1, 0.85,0.52], [0.85,0.52, 0.15,0.52], [0.48,0.52, 0.88,0]],
+        'S': [[0.85,0.92, 0.15,0.92], [0.15,0.92, 0.15,0.5], [0.15,0.5, 0.85,0.5], [0.85,0.5, 0.85,0.08], [0.85,0.08, 0.15,0.08]],
+        'T': [[0.1,0.92, 0.9,0.92], [0.5,0.92, 0.5,0]],
+        'U': [[0.15,1, 0.15,0.08], [0.15,0.08, 0.85,0.08], [0.85,0.08, 0.85,1]],
+        'V': [[0.1,1, 0.5,0], [0.5,0, 0.9,1]],
+        'W': [[0.08,1, 0.28,0], [0.28,0, 0.5,0.58], [0.5,0.58, 0.72,0], [0.72,0, 0.92,1]],
+        'X': [[0.15,1, 0.85,0], [0.85,1, 0.15,0]],
+        'Y': [[0.12,1, 0.5,0.48], [0.88,1, 0.5,0.48], [0.5,0.48, 0.5,0]],
+        'Z': [[0.15,0.92, 0.85,0.92], [0.85,0.92, 0.15,0.08], [0.15,0.08, 0.85,0.08]],
+        '-': [[0.2,0.5, 0.8,0.5]]
+      };
+
+      const totalWidth = clean.length * charWidth + Math.max(0, clean.length - 1) * spacing;
+      const startX = -totalWidth * 0.5;
+      const boxes = [];
+
+      for (let i = 0; i < clean.length; i++) {
+        const segs = FONT[clean[i]];
+        if (!segs) continue;
+        const ox = startX + i * (charWidth + spacing);
+        for (const [x1, y1, x2, y2] of segs) {
+          const ax = ox + x1 * charWidth;
+          const ay = (y1 - 0.5) * charHeight;
+          const bx = ox + x2 * charWidth;
+          const by = (y2 - 0.5) * charHeight;
+          const len = Math.hypot(bx - ax, by - ay) + stroke * 0.65;
+          const ang = Math.atan2(by - ay, bx - ax);
+
+          const g = new THREE.BoxGeometry(len, stroke, depth);
+          g.rotateZ(ang);
+          g.translate((ax + bx) * 0.5, (ay + by) * 0.5, depth * 0.5);
+          boxes.push(g);
+        }
+      }
+      return boxes.length ? mergeGeometries(boxes, false) : null;
+    }
+
+    // Proyecta los vértices Z de una geometría frontal sobre la curvatura real del morro
+    function bendGeometryToFrontNose(geo, S, xOffset = 0, verticalTilt = -0.14) {
+      const pos = geo.attributes.position;
+      const noseCenterX = getFrontSurfaceX(0, S);
+      const H = params.height * S;
+      const refY = H * 0.28;
+
+      for (let i = 0; i < pos.count; i++) {
+        const vx = pos.getX(i);
+        const vy = pos.getY(i);
+        const vz = pos.getZ(i);
+        const surfaceX = getFrontSurfaceX(vz, S);
+        const deltaCurveX = surfaceX - noseCenterX;
+        const tiltX = (vy - refY) * verticalTilt;
+        pos.setX(i, vx + deltaCurveX + tiltX + xOffset);
+      }
+      pos.needsUpdate = true;
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    // Proyecta una geometría trasera sobre la curvatura real de la zaga
+    function bendGeometryToRearTail(geo, S, xOffset = 0) {
+      const pos = geo.attributes.position;
+      const tailCenterX = getRearSurfaceX(0, S);
+
+      for (let i = 0; i < pos.count; i++) {
+        const vx = pos.getX(i);
+        const vz = pos.getZ(i);
+        const surfaceX = getRearSurfaceX(vz, S);
+        const deltaCurveX = surfaceX - tailCenterX;
+        pos.setX(i, vx + deltaCurveX + xOffset);
+      }
+      pos.needsUpdate = true;
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    // 5A. Frontal 2025 Facelift: Singleframe Hexagonal Curvado + 4 Aros + Faros LED + Molduras Advanced
+    function buildFrontEndCurved(S, parts) {
+      const W = params.width * S;
+      const H = params.height * S;
+      const wheelR = (params.wheeldiam * 0.5) * S;
+      const C = wheelR * 0.42;
+
+      const grilleDepth = params.grille * S;
+      const trimDepth = params.trim * S;
+      const noseX = getFrontSurfaceX(0, S);
+
+      // 1. Parrilla Singleframe Hexagonal Ancha y Baja (curvada en 3D)
+      const gW = W * 0.54;
+      const gH = H * 0.245;
+      const gCenterY = C + H * 0.195;
+
+      const hexShape = new THREE.Shape();
+      hexShape.moveTo(-gW * 0.43, gH * 0.50);
+      hexShape.lineTo(gW * 0.43, gH * 0.50);
+      hexShape.lineTo(gW * 0.52, gH * 0.04);
+      hexShape.lineTo(gW * 0.34, -gH * 0.50);
+      hexShape.lineTo(-gW * 0.34, -gH * 0.50);
+      hexShape.lineTo(-gW * 0.52, gH * 0.04);
+      hexShape.closePath();
+
+      const grilleGeo = new THREE.ExtrudeGeometry(hexShape, {
+        depth: grilleDepth,
+        bevelEnabled: true,
+        bevelThickness: grilleDepth * 0.18,
+        bevelSize: grilleDepth * 0.14,
+        bevelSegments: 3,
+        curveSegments: 16
+      });
+      grilleGeo.rotateY(Math.PI / 2);
+      grilleGeo.translate(noseX - grilleDepth * 0.35, gCenterY, 0);
+      bendGeometryToFrontNose(grilleGeo, S, 0, -0.15);
+      parts.grille.push(grilleGeo);
+
+      // Entramado interno en panal hexagonal 3D curvado sobre la parrilla
+      const rows = 5;
+      const cols = 8;
+      for (let r = -rows; r <= rows; r++) {
+        for (let c = -cols; c <= cols; c++) {
+          const zPos = (c + (r % 2) * 0.5) * (gW * 0.056);
+          const yPos = gCenterY + r * (gH * 0.088);
+          const normY = (yPos - gCenterY) / (gH * 0.5);
+          const maxZAtY = normY > 0
+            ? gW * (0.50 - 0.08 * normY)
+            : gW * (0.50 + 0.16 * normY);
+
+          if (Math.abs(zPos) < maxZAtY * 0.86 && Math.abs(normY) < 0.86) {
+            const cell = new THREE.CylinderGeometry(gH * 0.038, gH * 0.038, grilleDepth * 0.5, 6);
+            cell.rotateZ(Math.PI / 2);
+            cell.translate(noseX + grilleDepth * 0.62, yPos, zPos);
+            bendGeometryToFrontNose(cell, S, 0, -0.15);
+            parts.grille.push(cell);
+          }
+        }
+      }
+
+      // 2. Los 4 Aros de Audi en relieve situados en el borde superior central (facelift 2025)
+      const ringRadius = H * 0.025;
+      const ringTube = ringRadius * 0.21;
+      const ringSpacing = ringRadius * 1.38;
+      const ringsY = gCenterY + gH * 0.43;
+
+      for (let i = 0; i < 4; i++) {
+        const zOffset = (i - 1.5) * ringSpacing;
+        const torus = new THREE.TorusGeometry(ringRadius, ringTube, 12, 28);
+        torus.rotateY(Math.PI / 2);
+        torus.scale((grilleDepth * 0.55) / (ringTube * 2), 1, 1);
+        torus.translate(noseX + grilleDepth * 0.72, ringsY, zOffset);
+        bendGeometryToFrontNose(torus, S, 0, -0.15);
+        parts.silver.push(torus);
+      }
+
+      // 3. Faros LED afilados envolventes con firma diurna superior segmentada
+      for (const side of [-1, 1]) {
+        // Carcasa oscura del faro
+        const hlShape = new THREE.Shape();
+        const hw = W * 0.185;
+        const hh = H * 0.066;
+        hlShape.moveTo(0, 0);
+        hlShape.lineTo(hw, hh * 0.48);
+        hlShape.lineTo(hw * 0.94, hh);
+        hlShape.lineTo(-hw * 0.06, hh * 0.68);
+        hlShape.closePath();
+
+        const hlHousing = new THREE.ExtrudeGeometry(hlShape, {
+          depth: grilleDepth * 0.65,
+          bevelEnabled: true,
+          bevelThickness: grilleDepth * 0.12,
+          bevelSize: grilleDepth * 0.10,
+          bevelSegments: 2
+        });
+        hlHousing.rotateY(Math.PI / 2);
+        if (side === -1) hlHousing.scale(1, 1, -1);
+        hlHousing.translate(noseX - grilleDepth * 0.2, C + H * 0.295, side * (W * 0.245));
+        bendGeometryToFrontNose(hlHousing, S, 0, -0.18);
+        parts.grille.push(hlHousing);
+
+        // Firma luminosa LED diurna superior (ceja LED afilada)
+        const drlGeo = new THREE.BoxGeometry(grilleDepth * 0.55, hh * 0.26, hw * 0.92);
+        drlGeo.rotateX(side * -0.14);
+        drlGeo.translate(noseX + grilleDepth * 0.22, C + H * 0.335, side * (W * 0.33));
+        bendGeometryToFrontNose(drlGeo, S, 0, -0.18);
+        parts.headlights.push(drlGeo);
+      }
+
+      // 4. Molduras plateadas satinadas en forma de L / ala en esquinas inferiores (Acabado Advanced)
+      if (trimDepth > 0.05) {
+        for (const side of [-1, 1]) {
+          // Toma lateral oscura
+          const intakeShape = new THREE.Shape();
+          const iw = W * 0.15;
+          const ih = H * 0.12;
+          intakeShape.moveTo(0, 0);
+          intakeShape.lineTo(iw, 0.02 * ih);
+          intakeShape.lineTo(iw * 0.85, ih);
+          intakeShape.lineTo(iw * 0.18, ih * 0.55);
+          intakeShape.closePath();
+
+          const intakeGeo = new THREE.ExtrudeGeometry(intakeShape, {
+            depth: trimDepth * 0.7,
+            bevelEnabled: true,
+            bevelThickness: trimDepth * 0.12,
+            bevelSize: trimDepth * 0.1,
+            bevelSegments: 2
+          });
+          intakeGeo.rotateY(Math.PI / 2);
+          if (side === -1) intakeGeo.scale(1, 1, -1);
+          intakeGeo.translate(noseX - trimDepth * 0.25, C + H * 0.06, side * (W * 0.26));
+          bendGeometryToFrontNose(intakeGeo, S, 0, -0.05);
+          parts.grille.push(intakeGeo);
+
+          // Ala plateada satinada Advanced en forma de L envolviendo la toma
+          const wingShape = new THREE.Shape();
+          wingShape.moveTo(-iw * 0.05, -ih * 0.08);
+          wingShape.lineTo(iw * 1.04, -ih * 0.04);
+          wingShape.lineTo(iw * 0.96, ih * 0.78);
+          wingShape.lineTo(iw * 0.78, ih * 0.78);
+          wingShape.lineTo(iw * 0.82, ih * 0.16);
+          wingShape.lineTo(-iw * 0.05, ih * 0.12);
+          wingShape.closePath();
+
+          const wingGeo = new THREE.ExtrudeGeometry(wingShape, {
+            depth: trimDepth,
+            bevelEnabled: true,
+            bevelThickness: trimDepth * 0.16,
+            bevelSize: trimDepth * 0.12,
+            bevelSegments: 2
+          });
+          wingGeo.rotateY(Math.PI / 2);
+          if (side === -1) wingGeo.scale(1, 1, -1);
+          wingGeo.translate(noseX - trimDepth * 0.15, C + H * 0.055, side * (W * 0.26));
+          bendGeometryToFrontNose(wingGeo, S, 0, -0.05);
+          parts.silver.push(wingGeo);
+        }
+
+        // Labio splitter central inferior plateado curvado
+        const lipGeo = new THREE.BoxGeometry(trimDepth * 1.3, H * 0.018, W * 0.48, 1, 1, 16);
+        lipGeo.translate(noseX + trimDepth * 0.1, C + H * 0.046, 0);
+        bendGeometryToFrontNose(lipGeo, S, 0, 0);
+        parts.silver.push(lipGeo);
+      }
+    }
+
+    // 5B. Matrícula Europea Delantera y Trasera Curvada ('1853 NJH')
+    function buildLicensePlatesCurved(S, parts) {
+      if (!params.plateEnable) return;
+
+      const H = params.height * S;
+      const wheelR = (params.wheeldiam * 0.5) * S;
+      const C = wheelR * 0.42;
+
+      const pW = 520 * S;
+      const pH = 110 * S;
+      const baseThick = Math.max(8 * S, 0.45);
+      const reliefThick = Math.max(6 * S, 0.35);
+
+      const noseX = getFrontSurfaceX(0, S) + (params.grille * S) * 0.78;
+      const frontY = C + H * 0.18;
+
+      // Placa blanca delantera subdividida en Z para adaptarse a la curvatura del morro
+      const frontBase = new THREE.BoxGeometry(baseThick, pH, pW, 1, 1, 16);
+      frontBase.translate(noseX, frontY, 0);
+      bendGeometryToFrontNose(frontBase, S, 0, -0.15);
+      parts.plateBase.push(frontBase);
+
+      // Banda azul europea izquierda
+      const frontBand = new THREE.BoxGeometry(baseThick * 0.35, pH * 0.94, pW * 0.095, 1, 1, 2);
+      frontBand.translate(noseX + baseThick * 0.45, frontY, -pW * 0.435);
+      bendGeometryToFrontNose(frontBand, S, 0, -0.15);
+      parts.plateBlue.push(frontBand);
+
+      const textGeo = createVectorTextGeometry(params.plateText, pH * 0.62, reliefThick);
+      if (textGeo) {
+        const frontTxt = textGeo.clone();
+        frontTxt.rotateY(Math.PI / 2);
+        frontTxt.translate(noseX + baseThick * 0.46, frontY, pW * 0.045);
+        bendGeometryToFrontNose(frontTxt, S, 0, -0.15);
+        parts.grille.push(frontTxt);
+      }
+
+      // Matrícula Trasera en el hueco del paragolpes/portón
+      const rearX = getRearSurfaceX(0, S) - baseThick * 0.25;
+      const rearY = C + H * 0.35;
+
+      const rearBase = new THREE.BoxGeometry(baseThick, pH, pW, 1, 1, 16);
+      rearBase.translate(rearX, rearY, 0);
+      bendGeometryToRearTail(rearBase, S, 0);
+      parts.plateBase.push(rearBase);
+
+      if (textGeo) {
+        const rearTxt = textGeo.clone();
+        rearTxt.rotateY(-Math.PI / 2);
+        rearTxt.translate(rearX - baseThick * 0.46, rearY, -pW * 0.045);
+        bendGeometryToRearTail(rearTxt, S, 0);
+        parts.grille.push(rearTxt);
+      }
+    }
+
+    // 5C. Acristalamiento Enrasado, Marco Cromado con Hofmeister Kink, Retrovisores en Puerta y Aleta Tiburón
+    function buildCabinGlassAndTrim(S, parts) {
+      const L = params.length * S;
+      const W = params.width * S;
+      const H = params.height * S;
+
+      // 1. Parabrisas curvo muestreado directamente sobre el lofting (t: 0.565 -> 0.735)
+      const wsPositions = [];
+      const wsIndices = [];
+      const nu = 16, nv = 16;
+      for (let i = 0; i <= nu; i++) {
+        const t = 0.568 + (i / nu) * (0.732 - 0.568);
+        const st = evaluateStationMetrics(t, S);
+        for (let j = 0; j <= nv; j++) {
+          const sideSign = (j / nv) * 2 - 1; // -1 a +1
+          const absSide = Math.abs(sideSign);
+          const s = 1.0 - absSide * 0.21;
+          const pt = evaluateHalfSectionPoint(st, s);
+          wsPositions.push(pt[0] + 0.14, pt[1] + 0.16, pt[2] * Math.sign(sideSign || 1));
+        }
+      }
+      for (let i = 0; i < nu; i++) {
+        for (let j = 0; j < nv; j++) {
+          const a = i * (nv + 1) + j;
+          const b = (i + 1) * (nv + 1) + j;
+          const c = (i + 1) * (nv + 1) + (j + 1);
+          const d = i * (nv + 1) + (j + 1);
+          wsIndices.push(a, b, d);
+          wsIndices.push(b, c, d);
+        }
+      }
+      const wsGeo = new THREE.BufferGeometry();
+      wsGeo.setAttribute('position', new THREE.Float32BufferAttribute(wsPositions, 3));
+      wsGeo.setIndex(wsIndices);
+      wsGeo.computeVertexNormals();
+      parts.glass.push(wsGeo);
+
+      // 2. Luneta trasera curva (t: 0.185 -> 0.345)
+      const rwPositions = [];
+      const rwIndices = [];
+      for (let i = 0; i <= nu; i++) {
+        const t = 0.188 + (i / nu) * (0.342 - 0.188);
+        const st = evaluateStationMetrics(t, S);
+        for (let j = 0; j <= nv; j++) {
+          const sideSign = (j / nv) * 2 - 1;
+          const absSide = Math.abs(sideSign);
+          const s = 1.0 - absSide * 0.20;
+          const pt = evaluateHalfSectionPoint(st, s);
+          rwPositions.push(pt[0] - 0.14, pt[1] + 0.16, pt[2] * Math.sign(sideSign || 1));
+        }
+      }
+      for (let i = 0; i < nu; i++) {
+        for (let j = 0; j < nv; j++) {
+          const a = i * (nv + 1) + j;
+          const b = (i + 1) * (nv + 1) + j;
+          const c = (i + 1) * (nv + 1) + (j + 1);
+          const d = i * (nv + 1) + (j + 1);
+          rwIndices.push(a, d, b);
+          rwIndices.push(b, d, c);
+        }
+      }
+      const rwGeo = new THREE.BufferGeometry();
+      rwGeo.setAttribute('position', new THREE.Float32BufferAttribute(rwPositions, 3));
+      rwGeo.setIndex(rwIndices);
+      rwGeo.computeVertexNormals();
+      parts.glass.push(rwGeo);
+
+      // 3. Ventanillas laterales (con Hofmeister kink en Pilar C) + Marco Cromado Completo + Pilar B
+      const tWinRear = 0.24;
+      const tWinFront = 0.66;
+      const nWin = 24;
+
+      for (const side of [-1, 1]) {
+        const winPtsTop = [];
+        const winPtsBot = [];
+
+        for (let i = 0; i <= nWin; i++) {
+          const u = i / nWin; // 0 = atrás (pilar C), 1 = delante (pilar A)
+          const t = tWinRear + u * (tWinFront - tWinRear);
+          const st = evaluateStationMetrics(t, S);
+
+          // Altura superior e inferior de la ventanilla con quiebre Hofmeister en u < 0.18
+          const hofmeister = u < 0.16 ? Math.sin((1 - u / 0.16) * Math.PI * 0.5) * 0.04 : 0;
+          const sBot = 0.505 + hofmeister;
+          const sTop = 0.735 - (u > 0.72 ? Math.pow((u - 0.72) / 0.28, 1.5) * 0.21 : 0)
+                             - (u < 0.24 ? Math.pow((0.24 - u) / 0.24, 1.5) * 0.21 : 0);
+
+          const pBot = evaluateHalfSectionPoint(st, sBot);
+          const pTop = evaluateHalfSectionPoint(st, Math.max(sBot + 0.01, sTop));
+
+          winPtsBot.push(new THREE.Vector3(pBot[0], pBot[1], side * (pBot[2] + 0.14)));
+          winPtsTop.push(new THREE.Vector3(pTop[0], pTop[1], side * (pTop[2] + 0.14)));
+        }
+
+        // Superficie de cristal lateral
+        const gPos = [];
+        const gIdx = [];
+        for (let i = 0; i <= nWin; i++) {
+          gPos.push(winPtsBot[i].x, winPtsBot[i].y, winPtsBot[i].z);
+          gPos.push(winPtsTop[i].x, winPtsTop[i].y, winPtsTop[i].z);
+        }
+        for (let i = 0; i < nWin; i++) {
+          const a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+          if (side === 1) {
+            gIdx.push(a, c, b);
+            gIdx.push(b, c, d);
+          } else {
+            gIdx.push(a, b, c);
+            gIdx.push(b, d, c);
+          }
+        }
+        const sideGlass = new THREE.BufferGeometry();
+        sideGlass.setAttribute('position', new THREE.Float32BufferAttribute(gPos, 3));
+        sideGlass.setIndex(gIdx);
+        sideGlass.computeVertexNormals();
+        parts.glass.push(sideGlass);
+
+        // Pilar B en negro brillante (en u = 0.50)
+        const midIdx = Math.floor(nWin * 0.48);
+        const pbBot = winPtsBot[midIdx];
+        const pbTop = winPtsTop[midIdx];
+        const pbLen = pbBot.distanceTo(pbTop);
+        const pbGeo = new THREE.BoxGeometry(75 * S, pbLen, 14 * S);
+        const pbMid = new THREE.Vector3().addVectors(pbBot, pbTop).multiplyScalar(0.5);
+        pbGeo.translate(pbMid.x, pbMid.y, pbMid.z + side * 0.05);
+        parts.grille.push(pbGeo);
+
+        // Marco cromado completo alrededor de las ventanillas (Hofmeister kink incluido)
+        if (params.chromeWindow) {
+          const loopPts = [...winPtsBot, ...winPtsTop.slice().reverse()];
+          const loopCurve = new THREE.CatmullRomCurve3(loopPts, true);
+          const tubeR = Math.max(9 * S, 0.24);
+          const chromeTube = new THREE.TubeGeometry(loopCurve, 72, tubeR, 8, true);
+          parts.chrome.push(chromeTube);
+        }
+      }
+
+      // 4. Retrovisores aerodinámicos anclados SOBRE EL HOMBRO DE LA PUERTA (característica A3 8Y)
+      if (params.mirrors) {
+        const tMirror = 0.61;
+        const stM = evaluateStationMetrics(tMirror, S);
+        const shoulderPt = evaluateHalfSectionPoint(stM, 0.475);
+
+        for (const side of [-1, 1]) {
+          // Brazo anclado en la chapa de la puerta debajo de la ventanilla
+          const armGeo = new THREE.BoxGeometry(55 * S, 36 * S, 110 * S);
+          armGeo.rotateY(side * -0.22);
+          armGeo.rotateX(side * 0.25);
+          armGeo.translate(shoulderPt[0], shoulderPt[1] + 18 * S, side * (shoulderPt[2] + 35 * S));
+          parts.body.push(armGeo);
+
+          // Carcasa aerodinámica esculpida
+          const capGeo = new THREE.SphereGeometry(62 * S, 18, 14);
+          capGeo.scale(1.45, 0.72, 1.18);
+          capGeo.translate(shoulderPt[0] - 12 * S, shoulderPt[1] + 42 * S, side * (shoulderPt[2] + 85 * S));
+          parts.body.push(capGeo);
+
+          // Tira fina de intermitente LED en el retrovisor
+          const blinkGeo = new THREE.BoxGeometry(12 * S, 10 * S, 95 * S);
+          blinkGeo.translate(shoulderPt[0] + 55 * S, shoulderPt[1] + 40 * S, side * (shoulderPt[2] + 88 * S));
+          parts.headlights.push(blinkGeo);
+        }
+      }
+
+      // 5. Manetas de puerta aerodinámicas en las 4 puertas
+      for (const tHandle of [0.35, 0.52]) {
+        const stH = evaluateStationMetrics(tHandle, S);
+        const hPt = evaluateHalfSectionPoint(stH, 0.43);
+        for (const side of [-1, 1]) {
+          const handleGeo = new THREE.BoxGeometry(155 * S, 26 * S, 24 * S);
+          handleGeo.translate(hPt[0], hPt[1], side * (hPt[2] + 4 * S));
+          parts.body.push(handleGeo);
+        }
+      }
+
+      // 6. Antena tipo aleta de tiburón en el techo trasero
+      const stShark = evaluateStationMetrics(0.37, S);
+      const sharkTop = evaluateHalfSectionPoint(stShark, 1.0);
+      const finShape = new THREE.Shape();
+      finShape.moveTo(0, 0);
+      finShape.lineTo(145 * S, 0);
+      finShape.lineTo(35 * S, 58 * S);
+      finShape.lineTo(0, 46 * S);
+      finShape.closePath();
+
+      const finGeo = new THREE.ExtrudeGeometry(finShape, {
+        depth: 22 * S,
+        bevelEnabled: true,
+        bevelThickness: 6 * S,
+        bevelSize: 4 * S,
+        bevelSegments: 2
+      });
+      finGeo.translate(sharkTop[0] - 60 * S, sharkTop[1] - 4 * S, -11 * S);
+      parts.body.push(finGeo);
+    }
+
+    // 5D. Zaga Sedán 8Y: Pilotos LED envolventes, 4 Aros, Difusor Advanced y Catadióptricos
+    function buildRearEndCurved(S, parts) {
+      const W = params.width * S;
+      const H = params.height * S;
+      const wheelR = (params.wheeldiam * 0.5) * S;
+      const C = wheelR * 0.42;
+      const tailX = getRearSurfaceX(0, S);
+      const trimDepth = params.trim * S;
+
+      // 1. Pilotos traseros LED horizontales afilados envolventes
+      for (const side of [-1, 1]) {
+        const tlGeo = new THREE.BoxGeometry(22 * S, H * 0.056, W * 0.27, 1, 1, 10);
+        tlGeo.translate(tailX - 4 * S, C + H * 0.47, side * (W * 0.28));
+        bendGeometryToRearTail(tlGeo, S, 0);
+        parts.taillights.push(tlGeo);
+      }
+
+      // 2. 4 Aros Audi en el portón del maletero
+      const ringRadius = H * 0.021;
+      const ringTube = ringRadius * 0.21;
+      const ringSpacing = ringRadius * 1.38;
+      for (let i = 0; i < 4; i++) {
+        const zOffset = (i - 1.5) * ringSpacing;
+        const torus = new THREE.TorusGeometry(ringRadius, ringTube, 10, 24);
+        torus.rotateY(Math.PI / 2);
+        torus.translate(tailX - 6 * S, C + H * 0.48, zOffset);
+        bendGeometryToRearTail(torus, S, 0);
+        parts.silver.push(torus);
+      }
+
+      // 3. Difusor inferior negro satinado + Inserción horizontal plateada Advanced
+      const diffuserGeo = new THREE.BoxGeometry(24 * S, H * 0.11, W * 0.68, 1, 1, 14);
+      diffuserGeo.translate(tailX + 2 * S, C + H * 0.10, 0);
+      bendGeometryToRearTail(diffuserGeo, S, 0);
+      parts.grille.push(diffuserGeo);
+
+      if (trimDepth > 0.05) {
+        const rearTrim = new THREE.BoxGeometry(trimDepth * 1.1, H * 0.022, W * 0.62, 1, 1, 14);
+        rearTrim.translate(tailX - trimDepth * 0.4, C + H * 0.125, 0);
+        bendGeometryToRearTail(rearTrim, S, 0);
+        parts.silver.push(rearTrim);
+      }
+
+      // 4. Catadióptricos verticales traseros (característicos del paragolpes A3 8Y)
+      for (const side of [-1, 1]) {
+        const refGeo = new THREE.BoxGeometry(14 * S, H * 0.085, 18 * S);
+        refGeo.translate(tailX + 18 * S, C + H * 0.22, side * (W * 0.40));
+        bendGeometryToRearTail(refGeo, S, 0);
+        parts.reflectors.push(refGeo);
+      }
+    }
+
+    // 5E. Ruedas Detalladas: Neumático LatheGeometry Suave + Llanta 5 Radios Dobles en V + Frenos
+    function buildWheelsDetailed(S, parts) {
+      const WB = params.wheelbase * S;
+      const W = params.width * S;
+      const wheelR = (params.wheeldiam * 0.5) * S;
+      const rimR = wheelR * 0.71;
+      const tireW = 225 * S;
+      const steerRad = THREE.MathUtils.degToRad(params.steer);
+
+      const frontAxleX = WB * 0.515;
+      const rearAxleX = -WB * 0.485;
+      const zTrack = (W * 0.5) - (tireW * 0.44);
+
+      // Perfil de revolución LatheGeometry para neumático con flanco abombado y hombro redondeado
+      const profilePts = [];
+      const halfTW = tireW * 0.5;
+      const stepsLathe = 18;
+      for (let i = 0; i <= stepsLathe; i++) {
+        const u = i / stepsLathe; // 0 = flanco interior, 1 = flanco exterior
+        const zLocal = -halfTW + u * tireW;
+        const normZ = Math.abs(zLocal) / halfTW; // 0 en centro banda rodadura, 1 en borde llanta
+        // Curva redondeada del hombro y abombamiento del flanco
+        const crownDrop = Math.pow(normZ, 3.2) * (wheelR - rimR * 0.94);
+        const rAtZ = wheelR - crownDrop;
+        profilePts.push(new THREE.Vector2(Math.max(rimR * 0.90, rAtZ), zLocal));
+      }
+      // Cerrar perfil hacia el talón de la llanta
+      profilePts.push(new THREE.Vector2(rimR * 0.88, halfTW * 0.85));
+      profilePts.push(new THREE.Vector2(rimR * 0.88, -halfTW * 0.85));
+      profilePts.push(profilePts[0].clone());
+
+      const segsCirc = params.resolution === 'ultra' ? 56 : (params.resolution === 'high' ? 44 : 32);
+      const baseTireLathe = new THREE.LatheGeometry(profilePts, segsCirc);
+      baseTireLathe.rotateX(Math.PI / 2);
+
+      function createWheelAssembly(cx, cy, cz, side, steerAngle) {
+        const tireG = baseTireLathe.clone();
+
+        // Aplicar giro de dirección en ruedas delanteras antes de aplanar base
+        if (steerAngle !== 0) {
+          tireG.rotateY(steerAngle);
+        }
+
+        // Aplanado de la base del neumático en Y = 0 para impresión FDM sin soportes
+        if (params.flatbottom) {
+          const pos = tireG.attributes.position;
+          const flatThreshold = wheelR * 0.055;
+          for (let i = 0; i < pos.count; i++) {
+            const wy = pos.getY(i) + cy;
+            if (wy < flatThreshold) {
+              pos.setY(i, -cy);
+            }
+          }
+          pos.needsUpdate = true;
+          tireG.computeVertexNormals();
+        }
+        tireG.translate(cx, cy, cz);
+        parts.tires.push(tireG);
+
+        // Subgrupo de llanta y freno que rota con la dirección
+        const rimParts = [];
+        const discParts = [];
+        const caliperParts = [];
+
+        // Aro exterior mecanizado
+        const outerLip = new THREE.TorusGeometry(rimR * 0.91, rimR * 0.075, 12, segsCirc);
+        outerLip.translate(0, 0, side * (halfTW * 0.86));
+        rimParts.push(outerLip);
+
+        // Barril interior de la llanta
+        const barrel = new THREE.CylinderGeometry(rimR * 0.89, rimR * 0.89, tireW * 0.78, segsCirc);
+        barrel.rotateX(Math.PI / 2);
+        rimParts.push(barrel);
+
+        // Buje central con 5 tornillos
+        const hub = new THREE.CylinderGeometry(rimR * 0.21, rimR * 0.24, 24 * S, 20);
+        hub.rotateX(Math.PI / 2);
+        hub.translate(0, 0, side * (halfTW * 0.84));
+        rimParts.push(hub);
+
+        for (let b = 0; b < 5; b++) {
+          const ba = (b / 5) * Math.PI * 2;
+          const bolt = new THREE.CylinderGeometry(rimR * 0.032, rimR * 0.032, 26 * S, 8);
+          bolt.rotateX(Math.PI / 2);
+          bolt.translate(Math.cos(ba) * rimR * 0.14, Math.sin(ba) * rimR * 0.14, side * (halfTW * 0.85));
+          rimParts.push(bolt);
+        }
+
+        // 5 Radios Dobles en V (estilo Audi A3 Advanced)
+        for (let p = 0; p < 5; p++) {
+          const baseAng = (p / 5) * Math.PI * 2;
+          for (const twin of [-1, 1]) {
+            const ang = baseAng + twin * 0.17;
+            const spokeLen = rimR * 0.77;
+            const spoke = new THREE.BoxGeometry(spokeLen, rimR * 0.075, 18 * S);
+            spoke.translate(spokeLen * 0.5, 0, 0);
+            spoke.rotateZ(ang - twin * 0.05); // ligera apertura en V
+            spoke.translate(0, 0, side * (halfTW * 0.82));
+            rimParts.push(spoke);
+          }
+        }
+
+        // Disco de freno interior
+        const disc = new THREE.CylinderGeometry(rimR * 0.72, rimR * 0.72, 14 * S, 28);
+        disc.rotateX(Math.PI / 2);
+        disc.translate(0, 0, side * (halfTW * 0.35));
+        discParts.push(disc);
+
+        // Pinza de freno
+        const caliper = new THREE.BoxGeometry(rimR * 0.28, rimR * 0.46, 26 * S);
+        caliper.translate(-rimR * 0.56, rimR * 0.15, side * (halfTW * 0.35));
+        caliperParts.push(caliper);
+
+        for (const g of rimParts) {
+          if (steerAngle !== 0) g.rotateY(steerAngle);
+          g.translate(cx, cy, cz);
+          parts.rims.push(g);
+        }
+        for (const g of discParts) {
+          if (steerAngle !== 0) g.rotateY(steerAngle);
+          g.translate(cx, cy, cz);
+          parts.discs.push(g);
+        }
+        for (const g of caliperParts) {
+          if (steerAngle !== 0) g.rotateY(steerAngle);
+          g.translate(cx, cy, cz);
+          parts.calipers.push(g);
+        }
+      }
+
+      createWheelAssembly(frontAxleX, wheelR, zTrack, 1, steerRad);
+      createWheelAssembly(frontAxleX, wheelR, -zTrack, -1, steerRad);
+      createWheelAssembly(rearAxleX, wheelR, zTrack, 1, 0);
+      createWheelAssembly(rearAxleX, wheelR, -zTrack, -1, 0);
+
+      // Ejes transversales sólidos cuando se exporta el coche completo
+      if (params.exportPart === 'all') {
+        const axleR = wheelR * 0.22;
+        const fAxle = new THREE.CylinderGeometry(axleR, axleR, zTrack * 2, 16);
+        fAxle.rotateX(Math.PI / 2);
+        fAxle.translate(frontAxleX, wheelR, 0);
+        parts.rims.push(fAxle);
+
+        const rAxle = new THREE.CylinderGeometry(axleR, axleR, zTrack * 2, 16);
+        rAxle.rotateX(Math.PI / 2);
+        rAxle.translate(rearAxleX, wheelR, 0);
+        parts.rims.push(rAxle);
+      }
+    }
+
+    // =========================================================================
+    // 6. RECONSTRUCCIÓN INTEGRAL DEL VEHÍCULO Y CÁLCULO DE TELEMETRÍA STL
+    // =========================================================================
+    function rebuildModel() {
+      while (carGroup.children.length > 0) {
+        const obj = carGroup.children[0];
+        if (obj.geometry) obj.geometry.dispose();
+        carGroup.remove(obj);
+      }
+
+      const S = 1 / params.scale;
+      const includeBody = (params.exportPart === 'all' || params.exportPart === 'body');
+      const includeWheels = (params.exportPart === 'all' || params.exportPart === 'wheels');
+
+      const parts = {
+        body: [],
+        grille: [],
+        silver: [],
+        chrome: [],
+        glass: [],
+        headlights: [],
+        taillights: [],
+        reflectors: [],
+        tires: [],
+        rims: [],
+        discs: [],
+        calipers: [],
+        plateBase: [],
+        plateBlue: []
+      };
+
+      if (includeBody) {
+        parts.body.push(buildMonocoqueBody(S));
+        buildFrontEndCurved(S, parts);
+        buildLicensePlatesCurved(S, parts);
+        buildCabinGlassAndTrim(S, parts);
+        buildRearEndCurved(S, parts);
+      }
+
+      if (includeWheels) {
+        buildWheelsDetailed(S, parts);
+      }
+
+      const meshSpecs = [
+        { list: parts.body,       mat: materials.body,         name: 'Monocasco_C2_Audi_A3' },
+        { list: parts.grille,     mat: materials.grilleBlack,  name: 'Parrilla_Singleframe' },
+        { list: parts.silver,     mat: materials.silverTrim,   name: 'Molduras_Advanced_Aros' },
+        { list: parts.chrome,     mat: materials.chrome,       name: 'Marco_Cromado_Ventanillas' },
+        { list: parts.glass,      mat: materials.glass,        name: 'Acristalamiento_Enrasado' },
+        { list: parts.headlights, mat: materials.headlight,    name: 'Faros_LED_Delanteros' },
+        { list: parts.taillights, mat: materials.taillight,    name: 'Pilotos_LED_Traseros' },
+        { list: parts.reflectors, mat: materials.reflectorRed, name: 'Catadiopticos' },
+        { list: parts.tires,      mat: materials.tire,         name: 'Neumaticos_Lathe' },
+        { list: parts.rims,       mat: materials.alloyRim,     name: 'Llantas_5_Radios_Dobles' },
+        { list: parts.discs,      mat: materials.brakeDisc,    name: 'Discos_Freno' },
+        { list: parts.calipers,   mat: materials.brakeCaliper, name: 'Pinzas_Freno' },
+        { list: parts.plateBase,  mat: materials.plateWhite,   name: 'Matricula_Placa' },
+        { list: parts.plateBlue,  mat: materials.plateBlue,    name: 'Matricula_Banda_UE' }
+      ];
+
+      let totalTriangles = 0;
+
+      for (const spec of meshSpecs) {
+        if (spec.list.length === 0) continue;
+        const cleanGeos = spec.list.map(g => {
+          const nonIdx = g.index ? g.toNonIndexed() : g.clone();
+          nonIdx.deleteAttribute('uv');
+          nonIdx.computeVertexNormals();
+          return nonIdx;
+        });
+
+        const merged = mergeGeometries(cleanGeos, false);
+        if (!merged) continue;
+
+        totalTriangles += merged.attributes.position.count / 3;
+
+        const mesh = new THREE.Mesh(merged, getActiveMaterial(spec.mat));
+        mesh.name = spec.name;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData.originalMaterial = spec.mat;
+        carGroup.add(mesh);
+      }
+
+      // Apoyar base exactamente en Y = 0
+      const box = new THREE.Box3().setFromObject(carGroup);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      carGroup.position.y = -box.min.y;
+
+      const dimsText = `${size.x.toFixed(1)} × ${size.z.toFixed(1)} × ${size.y.toFixed(1)} mm`;
+      const trisText = Math.round(totalTriangles).toLocaleString('es-ES');
+      const estVolCm3 = ((size.x * size.y * size.z) / 1000) * (includeWheels ? 0.27 : 0.22);
+      const volText = `${estVolCm3.toFixed(1)} cm³`;
+
+      document.getElementById('stat-dims').textContent = dimsText;
+      document.getElementById('stat-tris').textContent = trisText;
+      document.getElementById('stat-vol').textContent = volText;
+
+      document.getElementById('panel-stat-dims').textContent = dimsText;
+      document.getElementById('panel-stat-tris').textContent = trisText;
+      document.getElementById('panel-stat-vol').textContent = volText;
+      document.getElementById('hud-plate').textContent = (params.plateText || '1853 NJH').toUpperCase();
+    }
+
+    function getActiveMaterial(origMat) {
+      if (viewMode === 'clay') return materials.claySTL;
+      if (viewMode === 'xray') return materials.xray;
+      if (viewMode === 'wireframe') {
+        const wf = origMat.clone();
+        wf.wireframe = true;
+        return wf;
+      }
+      return origMat;
+    }
+
+    function applyViewMode(mode) {
+      viewMode = mode;
+      carGroup.traverse(child => {
+        if (child.isMesh && child.userData.originalMaterial) {
+          child.material = getActiveMaterial(child.userData.originalMaterial);
+        }
+      });
+    }
+
+    // =========================================================================
+    // 7. EXPORTACIÓN DE ARCHIVO .STL BINARIO VÁLIDO (Z-ARRIBA, Z_MIN = 0.00 mm)
+    // =========================================================================
+    function exportBinarySTL() {
+      showToast('Compilando geometría STL binaria en milímetros...');
+
+      setTimeout(() => {
+        try {
+          const exportGroup = new THREE.Group();
+          carGroup.updateMatrixWorld(true);
+
+          carGroup.traverse(child => {
+            if (child.isMesh) {
+              const geo = child.geometry.clone();
+              geo.applyMatrix4(child.matrixWorld);
+              // Rotar de Y-arriba (Three.js) a Z-arriba (estándar OrcaSlicer / Cura / PrusaSlicer)
+              geo.rotateX(Math.PI / 2);
+              geo.computeVertexNormals();
+              exportGroup.add(new THREE.Mesh(geo));
+            }
+          });
+
+          // Garantizar base apoyada exactamente en Z = 0.00 mm
+          const box = new THREE.Box3().setFromObject(exportGroup);
+          exportGroup.position.z = -box.min.z;
+          exportGroup.updateMatrixWorld(true);
+
+          const exporter = new STLExporter();
+          const binarySTL = exporter.parse(exportGroup, { binary: true });
+
+          const blob = new Blob([binarySTL], { type: 'application/octet-stream' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const safePlate = (params.plateText || '1853_NJH').replace(/[^a-zA-Z0-9]/g, '_');
+          a.href = url;
+          a.download = `Audi_A3_Sedan_8Y_2025_1-${params.scale}_${safePlate}.stl`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          showToast(`STL exportado en escala 1:${params.scale} (Z = 0.00 mm)`);
+        } catch (err) {
+          console.error(err);
+          showToast('Error al generar la malla STL');
+        }
+      }, 50);
+    }
+
+    // =========================================================================
+    // 8. VISTAS RÁPIDAS DE CÁMARA SUAVES Y CONTROLES UI
+    // =========================================================================
+    let camAnim = null;
+    function setCameraView(preset) {
+      const dist = 195;
+      const views = {
+        frontLeft:  { pos: [148, 66, -152], target: [0, 15, 0] },
+        frontRight: { pos: [148, 66, 152],  target: [0, 15, 0] },
+        front:      { pos: [215, 42, 0],    target: [0, 16, 0] },
+        side:       { pos: [0, 40, 225],    target: [0, 16, 0] },
+        rear:       { pos: [-215, 48, 0],   target: [0, 17, 0] },
+        top:        { pos: [0.1, 245, 0],   target: [0, 10, 0] }
+      };
+      const v = views[preset];
+      if (!v) return;
+      camAnim = {
+        startPos: camera.position.clone(),
+        endPos: new THREE.Vector3(...v.pos),
+        startTarget: controls.target.clone(),
+        endTarget: new THREE.Vector3(...v.target),
+        progress: 0
+      };
+    }
+
+    function syncUIFromParams() {
+      const setTxt = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+      };
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.type === 'checkbox') el.checked = Boolean(val);
+        else el.value = val;
+      };
+
+      setVal('param-scale', params.scale);
+      setTxt('val-scale', params.scale);
+      setTxt('badge-scale', `1:${params.scale}`);
+
+      document.querySelectorAll('.scale-preset-btn').forEach(btn => {
+        const p = btn.dataset.scalePreset;
+        const isMatch = (String(params.scale) === p) || (p === 'custom' && !['18','24','32','43','64'].includes(String(params.scale)));
+        btn.classList.toggle('bg-sky-500/20', isMatch);
+        btn.classList.toggle('border-sky-500/50', isMatch);
+        btn.classList.toggle('text-sky-300', isMatch);
+        btn.classList.toggle('bg-slate-800/90', !isMatch);
+      });
+
+      setVal('param-length', params.length);
+      setTxt('val-length', `${params.length} mm`);
+      setVal('param-width', params.width);
+      setTxt('val-width', `${params.width} mm`);
+      setVal('param-height', params.height);
+      setTxt('val-height', `${params.height} mm`);
+      setVal('param-wheelbase', params.wheelbase);
+      setTxt('val-wheelbase', `${params.wheelbase} mm`);
+      setVal('param-resolution', params.resolution);
+
+      setVal('param-camber', params.camber);
+      setTxt('val-camber', Number(params.camber).toFixed(2));
+      setVal('param-powerdome', params.powerdome);
+      setTxt('val-powerdome', `${params.powerdome} mm`);
+      setVal('param-spoiler', params.spoiler);
+      setTxt('val-spoiler', `${params.spoiler} mm`);
+      setVal('param-tumblehome', params.tumblehome);
+      setTxt('val-tumblehome', Number(params.tumblehome).toFixed(2));
+      setVal('param-blisters', params.blisters);
+      setTxt('val-blisters', `${params.blisters} mm`);
+      setVal('param-concavity', params.concavity);
+      setTxt('val-concavity', `${params.concavity} mm`);
+
+      setVal('param-plate-enable', params.plateEnable);
+      setVal('param-plate-text', params.plateText);
+      setVal('param-grille', params.grille);
+      setTxt('val-grille', `${params.grille} mm`);
+      setVal('param-trim', params.trim);
+      setTxt('val-trim', `${params.trim} mm`);
+      setVal('param-chrome-window', params.chromeWindow);
+      setVal('param-mirrors', params.mirrors);
+      setVal('param-wheeldiam', params.wheeldiam);
+      setTxt('val-wheeldiam', `${params.wheeldiam} mm`);
+      setVal('param-steer', params.steer);
+      setTxt('val-steer', `${params.steer}°`);
+
+      setVal('param-export-part', params.exportPart);
+      setVal('param-flatbottom', params.flatbottom);
+    }
+
+    function bindEvents() {
+      const sliders = [
+        ['param-scale', 'scale'],
+        ['param-length', 'length'],
+        ['param-width', 'width'],
+        ['param-height', 'height'],
+        ['param-wheelbase', 'wheelbase'],
+        ['param-camber', 'camber'],
+        ['param-powerdome', 'powerdome'],
+        ['param-spoiler', 'spoiler'],
+        ['param-tumblehome', 'tumblehome'],
+        ['param-blisters', 'blisters'],
+        ['param-concavity', 'concavity'],
+        ['param-grille', 'grille'],
+        ['param-trim', 'trim'],
+        ['param-wheeldiam', 'wheeldiam'],
+        ['param-steer', 'steer']
+      ];
+
+      for (const [id, key] of sliders) {
+        document.getElementById(id).addEventListener('input', e => {
+          params[key] = parseFloat(e.target.value);
+          syncUIFromParams();
+          rebuildModel();
+        });
+      }
+
+      const checkboxes = [
+        ['param-plate-enable', 'plateEnable'],
+        ['param-chrome-window', 'chromeWindow'],
+        ['param-mirrors', 'mirrors'],
+        ['param-flatbottom', 'flatbottom']
+      ];
+
+      for (const [id, key] of checkboxes) {
+        document.getElementById(id).addEventListener('change', e => {
+          params[key] = e.target.checked;
+          rebuildModel();
+        });
+      }
+
+      document.getElementById('param-plate-text').addEventListener('input', e => {
+        params.plateText = e.target.value;
+        rebuildModel();
+      });
+
+      document.getElementById('param-resolution').addEventListener('change', e => {
+        params.resolution = e.target.value;
+        rebuildModel();
+      });
+
+      document.getElementById('param-export-part').addEventListener('change', e => {
+        params.exportPart = e.target.value;
+        rebuildModel();
+      });
+
+      // Presets de escala
+      document.querySelectorAll('.scale-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.scalePreset;
+          if (val !== 'custom') {
+            params.scale = parseInt(val, 10);
+            syncUIFromParams();
+            rebuildModel();
+          }
+        });
+      });
+
+      // Navegación por pestañas
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active', 'bg-sky-500/20', 'text-sky-300', 'border', 'border-sky-500/40');
+            b.classList.add('text-slate-400');
+          });
+          btn.classList.add('active', 'bg-sky-500/20', 'text-sky-300', 'border', 'border-sky-500/40');
+          btn.classList.remove('text-slate-400');
+
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+          document.getElementById(btn.dataset.tab).classList.remove('hidden');
+        });
+      });
+
+      // Botón Ocultar / Mostrar Panel de Parámetros
+      const sidebar = document.getElementById('sidebar-panel');
+      const toggleText = document.getElementById('toggle-text');
+      document.getElementById('toggle-panel-btn').addEventListener('click', () => {
+        const isCollapsed = sidebar.classList.toggle('collapsed');
+        toggleText.textContent = isCollapsed ? 'Mostrar Parámetros' : 'Ocultar Parámetros';
+      });
+
+      // Vistas rápidas de cámara
+      document.querySelectorAll('.cam-btn').forEach(btn => {
+        btn.addEventListener('click', () => setCameraView(btn.dataset.cam));
+      });
+
+      // Modos de visualización
+      document.querySelectorAll('.view-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.view-mode-btn').forEach(b => {
+            b.classList.remove('active', 'bg-sky-500/20', 'text-sky-300', 'border', 'border-sky-500/40');
+            b.classList.add('text-slate-400');
+          });
+          btn.classList.add('active', 'bg-sky-500/20', 'text-sky-300', 'border', 'border-sky-500/40');
+          btn.classList.remove('text-slate-400');
+          applyViewMode(btn.dataset.view);
+        });
+      });
+
+      // Rejilla CAD
+      document.getElementById('toggle-grid-btn').addEventListener('click', () => {
+        gridGroup.visible = !gridGroup.visible;
+      });
+
+      // Exportación STL
+      document.getElementById('export-stl-top-btn').addEventListener('click', exportBinarySTL);
+      document.getElementById('export-stl-panel-btn').addEventListener('click', exportBinarySTL);
+
+      // LocalStorage & JSON
+      document.getElementById('btn-save-local').addEventListener('click', () => {
+        saveToStorage();
+        showToast('Configuración guardada en este navegador');
+      });
+
+      document.getElementById('btn-load-local').addEventListener('click', () => {
+        const saved = loadFromStorage();
+        if (saved) {
+          params = saved;
+          syncUIFromParams();
+          rebuildModel();
+          showToast('Configuración cargada desde el navegador');
+        } else {
+          showToast('No hay configuración guardada aún');
+        }
+      });
+
+      document.getElementById('btn-export-json').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(params, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Audi_A3_8Y_Parametros_1-${params.scale}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Archivo .JSON de parámetros descargado');
+      });
+
+      document.getElementById('input-import-json').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            params = { ...DEFAULT_PARAMS, ...JSON.parse(ev.target.result) };
+            syncUIFromParams();
+            rebuildModel();
+            showToast('Parámetros importados desde .JSON');
+          } catch {
+            showToast('El archivo JSON no es válido');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+
+      document.getElementById('btn-reset-defaults').addEventListener('click', () => {
+        params = { ...DEFAULT_PARAMS };
+        syncUIFromParams();
+        rebuildModel();
+        showToast('Cotas oficiales Audi A3 Sedán 8Y restauradas');
+      });
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem('audi_a3_8y_c2_params_v2', JSON.stringify(params));
+      } catch (e) {}
+    }
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem('audi_a3_8y_c2_params_v2');
+        return raw ? { ...DEFAULT_PARAMS, ...JSON.parse(raw) } : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      document.getElementById('toast-msg').textContent = msg;
+      box.classList.remove('translate-x-full', 'opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.add('translate-x-full', 'opacity-0');
+      }, 3000);
+    }
+
+    // =========================================================================
+    // 9. BUCLE DE ANIMACIÓN Y RESIZE
+    // =========================================================================
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (camAnim) {
+        camAnim.progress = Math.min(1, camAnim.progress + 0.06);
+        const k = smootherstep(0, 1, camAnim.progress);
+        camera.position.lerpVectors(camAnim.startPos, camAnim.endPos, k);
+        controls.target.lerpVectors(camAnim.startTarget, camAnim.endTarget, k);
+        if (camAnim.progress >= 1) camAnim = null;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = () => {
+      syncUIFromParams();
+      bindEvents();
+      rebuildModel();
+      animate();
+    };
+  </script>
+</body>
+</html>
