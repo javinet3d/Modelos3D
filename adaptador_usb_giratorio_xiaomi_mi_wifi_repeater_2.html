@@ -3,96 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAD Paramétrico STL - Adaptador USB Xiaomi Mi WiFi Repeater 2 (2 Piezas)</title>
+    <title>Adaptador USB Giratorio Xiaomi Repeater 2 - CAD STL</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Three.js & Addons via CDN (r128) -->
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Three.js & OrbitControls & BufferGeometryUtils -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
-
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            margin: 0;
             overflow: hidden;
             user-select: none;
-            background-color: #ffffff;
         }
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Scrollbar estilizada para panel lateral */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #f8fafc;
+            background: rgba(148, 163, 184, 0.1);
         }
         ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
+            background: rgba(100, 116, 139, 0.35);
+            border-radius: 9999px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: rgba(100, 116, 139, 0.55);
         }
         input[type="range"] {
             accent-color: #ea580c;
         }
-        .panel-transition {
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
-        }
     </style>
 </head>
-<body class="w-screen h-screen relative text-slate-800 bg-white">
+<body class="bg-white text-slate-800 h-screen w-screen flex flex-col relative">
 
-    <!-- Contenedor Principal del Canvas 3D -->
-    <div id="canvas-container" class="w-full h-full absolute inset-0 z-0"></div>
-
-    <!-- Barra Superior Flotante -->
-    <header class="fixed top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <!-- Izquierda: Toggle Panel + Título -->
-        <div class="flex items-center gap-2 pointer-events-auto">
-            <button id="btn-toggle-panel" class="flex items-center gap-2 bg-white/95 hover:bg-slate-50 text-slate-800 font-semibold text-xs sm:text-sm px-3.5 py-2.5 rounded-xl shadow-md border border-slate-200 transition active:scale-95">
-                <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <!-- BARRA SUPERIOR DE HERRAMIENTAS CAD -->
+    <header class="h-14 bg-white/95 backdrop-blur border-b border-slate-200 px-3 sm:px-5 flex items-center justify-between z-30 shrink-0 shadow-sm">
+        <div class="flex items-center gap-2.5">
+            <!-- Botón Ocultar/Mostrar Panel de Parámetros -->
+            <button id="togglePanelBtn" title="Ocultar / Mostrar panel de parámetros"
+                class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 text-xs font-semibold">
+                <svg id="panelIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/>
                 </svg>
-                <span id="txt-toggle-panel">Ocultar parámetros</span>
+                <span class="hidden sm:inline" id="togglePanelText">Ocultar Parámetros</span>
             </button>
 
-            <div class="hidden xl:flex items-center gap-2.5 bg-white/95 backdrop-blur px-3.5 py-2 rounded-xl shadow-sm border border-slate-200">
-                <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-                <div>
-                    <h1 class="text-xs font-bold tracking-tight text-slate-900 leading-none">Adaptador USB Xiaomi Mi WiFi Repeater 2</h1>
-                    <p class="text-[11px] text-slate-500 mt-0.5">Alojamiento Cuerpo 15×7×10.5mm + Protector Ø5×8mm · Horquilla Adaptativa</p>
-                </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-600 inline-block"></span>
+                <h1 class="text-sm sm:text-base font-bold tracking-tight text-slate-900 truncate">
+                    Adaptador USB Xiaomi Repeater 2 <span class="text-orange-600 font-semibold hidden md:inline">· Carcasa 2 Piezas</span>
+                </h1>
             </div>
         </div>
 
-        <!-- Centro: Selector Modo Vista (Cama Impresión Z=0 vs Ensamblaje Giratorio) + Vistas Cámara -->
-        <div class="flex items-center gap-1.5 bg-white/95 backdrop-blur p-1 rounded-xl shadow-md border border-slate-200 pointer-events-auto">
-            <button id="btn-view-print" onclick="setViewMode('print_bed')" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-orange-600 text-white transition">
-                Cama Impresión (Z=0)
-            </button>
-            <button id="btn-view-assembly" onclick="setViewMode('assembly')" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-100 transition">
-                Ensamblaje y Giro (0°-180°)
-            </button>
-            <div class="hidden md:block w-px h-4 bg-slate-200 mx-0.5"></div>
-            <button onclick="setCameraView('iso')" class="hidden md:inline-block px-2 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-100 text-slate-600">Iso</button>
-            <button onclick="setCameraView('top')" class="hidden md:inline-block px-2 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-100 text-slate-600">Planta</button>
-            <button onclick="setCameraView('side')" class="hidden md:inline-block px-2 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-100 text-slate-600">Perfil</button>
-        </div>
-
-        <!-- Derecha: Undo + Exportar STL -->
-        <div class="flex items-center gap-2 pointer-events-auto">
-            <button id="btn-undo" onclick="undoChange()" disabled title="Deshacer último cambio (Ctrl+Z)" class="flex items-center gap-1.5 bg-white/95 hover:bg-slate-50 disabled:opacity-45 disabled:pointer-events-none text-slate-700 font-medium text-xs sm:text-sm px-3 py-2.5 rounded-xl shadow-md border border-slate-200 transition active:scale-95">
-                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+        <!-- Acciones rápidas: Deshacer (5 pasos), JSON, Guardar Local, Exportar STL -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="undoBtn" disabled title="Deshacer último cambio (máx. 5)"
+                class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none text-xs font-medium text-slate-700 flex items-center gap-1 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/>
                 </svg>
-                <span id="txt-undo">Deshacer (0/5)</span>
+                <span class="hidden md:inline">Deshacer</span>
+                <span id="undoCount" class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-mono-code">0/5</span>
             </button>
 
-            <button onclick="exportBinarySTL()" class="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-md shadow-orange-600/20 transition active:scale-95">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <button id="saveLocalBtn" title="Guardar parámetros en navegador (LocalStorage)"
+                class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1 transition">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="hidden lg:inline">Guardar</span>
+            </button>
+
+            <button id="exportJsonBtn" title="Exportar parámetros a archivo JSON"
+                class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 hidden sm:flex items-center gap-1 transition">
+                <span>JSON ↓</span>
+            </button>
+
+            <label title="Importar parámetros desde archivo JSON"
+                class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 hidden sm:flex items-center gap-1 cursor-pointer transition">
+                <span>JSON ↑</span>
+                <input type="file" id="importJsonInput" accept=".json" class="hidden">
+            </label>
+
+            <button id="exportStlBtn"
+                class="px-3 sm:px-4 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 active:scale-[0.99] text-white text-xs sm:text-sm font-semibold shadow-sm flex items-center gap-1.5 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
                 <span>Exportar STL</span>
@@ -100,115 +104,56 @@
         </div>
     </header>
 
-    <!-- Barra Inferior Derecha: Validación de Malla (Mesh Check) + Cotas -->
-    <div class="fixed bottom-3 right-3 z-10 flex flex-col items-end gap-2 pointer-events-none">
-        <!-- Estado Mesh Check -->
-        <div id="mesh-status-badge" class="bg-white/95 backdrop-blur px-3 py-1.5 rounded-xl shadow-sm border border-emerald-200 text-[11px] flex items-center gap-2 pointer-events-auto">
-            <span id="mesh-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span id="mesh-status-text" class="font-semibold text-emerald-800">Malla válida / Estanca</span>
-            <span id="mesh-vol-text" class="text-slate-500 font-mono">0.0 cm³</span>
-            <span id="mesh-tri-count" class="text-slate-400 font-mono">0 tris</span>
-        </div>
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="flex-1 flex relative overflow-hidden">
 
-        <!-- Cotas totales -->
-        <div id="dimensions-badge" class="bg-white/95 backdrop-blur px-3 py-1.5 rounded-xl shadow-sm border border-slate-200 text-[11px] font-mono text-slate-600 pointer-events-auto">
-            Conjunto STL: <span id="dim-x" class="font-semibold text-slate-900">0.0</span> × <span id="dim-y" class="font-semibold text-slate-900">0.0</span> × <span id="dim-z" class="font-semibold text-slate-900">0.0</span> mm
-        </div>
-    </div>
+        <!-- PANEL LATERAL DE PARÁMETROS (OCULTABLE) -->
+        <aside id="paramsSidebar"
+            class="w-full sm:w-96 bg-white/95 backdrop-blur border-r border-slate-200 h-full overflow-y-auto p-4 space-y-5 z-20 transition-all duration-300 shrink-0 shadow-lg sm:shadow-none absolute sm:relative">
 
-    <!-- Panel Lateral Izquierdo de Parámetros CAD -->
-    <aside id="params-panel" class="panel-transition fixed top-16 bottom-3 left-3 w-[calc(100vw-1.5rem)] sm:w-[395px] z-20 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 flex flex-col overflow-hidden">
-        <!-- Sub-cabecera: Persistencia y JSON -->
-        <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Parámetros CAD</span>
-                <span id="save-status" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Auto-guardado</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <button onclick="exportJSON()" title="Exportar parámetros a .JSON" class="px-2 py-1 rounded-lg hover:bg-slate-200/70 text-slate-700 transition text-xs font-medium">
-                    .JSON ↓
+            <!-- Selector de Modo de Vista -->
+            <div class="bg-slate-100 p-1 rounded-xl grid grid-cols-2 gap-1">
+                <button id="modePrintBedBtn"
+                    class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition">
+                    Cama Impresión (Z=0)
                 </button>
-                <label title="Importar parámetros desde .JSON" class="px-2 py-1 rounded-lg hover:bg-slate-200/70 text-slate-700 transition text-xs font-medium cursor-pointer">
-                    .JSON ↑
-                    <input type="file" id="import-json-input" accept=".json" class="hidden" onchange="importJSON(event)">
-                </label>
-                <button onclick="resetDefaults()" title="Restaurar valores por defecto" class="px-2 py-1 rounded-lg hover:bg-red-50 text-red-600 transition text-xs font-medium">
-                    Reset
+                <button id="modeAssemblyBtn"
+                    class="py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+                    Ensamblaje y Giro
                 </button>
             </div>
-        </div>
 
-        <!-- Contenido desplazable -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-5">
-
-            <!-- SECCIÓN 0: INSPECCIÓN SLICER POR CAPAS, CONTRASTE Y SIMULACIÓN -->
-            <section class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-3">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-orange-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                        Vista por Capas (Slicer) y Contraste
-                    </h2>
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-slate-600">
-                        <input type="checkbox" id="showDimensions" class="accent-orange-600 rounded" checked>
-                        <span>Cotas 3D</span>
-                    </label>
+            <!-- Controles de Simulación (solo visibles en modo Ensamblaje) -->
+            <div id="assemblyControls" class="hidden bg-orange-50/80 border border-orange-200/80 rounded-xl p-3 space-y-2.5">
+                <div class="flex items-center justify-between text-xs font-semibold text-orange-900">
+                    <span>Ángulo de giro en Xiaomi</span>
+                    <span id="angleVal" class="font-mono-code bg-white px-1.5 py-0.5 rounded border border-orange-200">0°</span>
                 </div>
+                <input type="range" id="previewAngle" min="0" max="180" step="1" value="0" class="w-full h-1.5 bg-orange-200 rounded-lg cursor-pointer">
 
-                <!-- Control de corte por capa (Layer Slicer Preview) -->
-                <div>
-                    <div class="flex justify-between text-xs mb-1">
-                        <span class="font-medium text-slate-700">Corte horizontal altura Z (Slicer)</span>
-                        <span id="val-sliceHeight" class="font-mono font-semibold text-orange-700">Completo</span>
-                    </div>
-                    <input type="range" id="sliceHeight" min="0.2" max="15.0" step="0.2" value="15.0" class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer">
-                    <div class="flex items-center justify-between mt-1.5">
-                        <label class="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-600">
-                            <input type="checkbox" id="showLayerLines" class="accent-orange-600 rounded" checked>
-                            <span>Mostrar líneas de capa (0.2 mm)</span>
-                        </label>
-                        <span id="val-layerCount" class="text-[11px] font-mono text-slate-500">Capa max</span>
-                    </div>
+                <div class="flex items-center justify-between text-xs font-semibold text-orange-900 pt-1">
+                    <span>Vista explosionada (Base / Tapa)</span>
+                    <span id="explodeVal" class="font-mono-code bg-white px-1.5 py-0.5 rounded border border-orange-200">0.0 mm</span>
                 </div>
+                <input type="range" id="explodeOffset" min="0" max="14" step="0.5" value="0" class="w-full h-1.5 bg-orange-200 rounded-lg cursor-pointer">
+            </div>
 
-                <!-- Selector continuo de oscuridad del fondo 3D (Blanco puro -> Negro puro) -->
-                <div class="pt-2 border-t border-slate-200">
-                    <div class="flex justify-between text-xs mb-1">
-                        <span class="font-medium text-slate-700">Oscuridad fondo 3D (Contraste)</span>
-                        <span id="val-bgDarkness" class="font-mono font-semibold text-slate-700">0% (Blanco)</span>
-                    </div>
-                    <input type="range" id="bgDarkness" min="0" max="100" step="1" value="0" class="w-full h-1.5 bg-gradient-to-r from-slate-200 via-slate-500 to-slate-900 rounded-lg cursor-pointer">
-                </div>
-
-                <!-- Control de ángulo de giro (activo en modo Ensamblaje) -->
-                <div id="assembly-controls" class="pt-2 border-t border-slate-200 space-y-2">
-                    <div class="flex justify-between text-xs">
-                        <span class="font-medium text-slate-700">Ángulo giro bisagra (0° - 180°)</span>
-                        <span id="val-previewAngle" class="font-mono font-semibold text-orange-700">0°</span>
-                    </div>
-                    <input type="range" id="previewAngle" min="0" max="180" step="5" value="0" class="w-full h-1.5 bg-orange-200 rounded-lg cursor-pointer">
-
-                    <div class="flex items-center justify-between pt-1">
-                        <span class="text-xs text-slate-600">Separación explosiva Base / Tapa</span>
-                        <input type="range" id="explodeOffset" min="0" max="12" step="0.5" value="0" class="w-28 h-1.5 bg-slate-200 rounded-lg cursor-pointer">
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECCIÓN 1: BISAGRA Y PIVOTES XIAOMI MI WIFI REPEATER 2 -->
+            <!-- SECCIÓN 1: BISAGRA Y HORQUILLA XIAOMI -->
             <section class="space-y-3">
-                <h2 class="text-xs font-bold uppercase tracking-wider text-orange-700 border-b border-orange-200 pb-1">
-                    1. Horquilla y Pivotes Xiaomi Repeater 2
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
+                    1. Horquilla Xiaomi y Pivotes Independientes
                 </h2>
                 <div class="param-control" data-key="forkWidth" data-unit="mm"></div>
-                <div class="param-control" data-key="pinDiameter" data-unit="mm"></div>
-                <div class="param-control" data-key="pinLength" data-unit="mm"></div>
+                <div class="param-control" data-key="pinDiaLeft" data-unit="mm"></div>
+                <div class="param-control" data-key="pinDiaRight" data-unit="mm"></div>
+                <div class="param-control" data-key="pinLen" data-unit="mm"></div>
                 <div class="param-control" data-key="rearRadius" data-unit="mm"></div>
             </section>
 
-            <!-- SECCIÓN 2: ALOJAMIENTO DEL CUERPO USB SOBREMOLDEADO (15x7x10.5 mm) -->
+            <!-- SECCIÓN 2: ALOJAMIENTO CUERPO USB SUSTITUTO (15x7x10 mm) -->
             <section class="space-y-3">
                 <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
-                    2. Alojamiento Cuerpo USB Actual (15×7×10.5 mm)
+                    2. Alojamiento Conector USB (15×7×10.5 mm)
                 </h2>
                 <div class="param-control" data-key="usbBodyWidth" data-unit="mm"></div>
                 <div class="param-control" data-key="usbBodyHeight" data-unit="mm"></div>
@@ -224,47 +169,143 @@
                 <div class="param-control" data-key="strainDia" data-unit="mm"></div>
                 <div class="param-control" data-key="strainLength" data-unit="mm"></div>
                 <div class="param-control" data-key="cableExitDia" data-unit="mm"></div>
+                <label class="flex items-center justify-between pt-1 text-xs font-medium text-slate-700 cursor-pointer">
+                    <span>Salida trasera abierta (ranura pasacables)</span>
+                    <input type="checkbox" id="openRearSlot" class="accent-orange-600 rounded w-4 h-4">
+                </label>
             </section>
 
-            <!-- SECCIÓN 4: PAREDES, ENCAJE CLIP BASE-TAPA Y TOLERANCIA FDM -->
-            <section class="space-y-3 pb-3">
+            <!-- SECCIÓN 4: PAREDES, ENCAJE CLIP Y TOLERANCIAS FDM -->
+            <section class="space-y-3">
                 <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
-                    4. Paredes, Cierre Clip y Tolerancia FDM
+                    4. Paredes, Cierre Clip y Tolerancias FDM
                 </h2>
                 <div class="param-control" data-key="wallThickness" data-unit="mm"></div>
                 <div class="param-control" data-key="fdmTolerance" data-unit="mm"></div>
                 <div class="param-control" data-key="clipSnapDepth" data-unit="mm"></div>
             </section>
-        </div>
-    </aside>
 
-    <!-- Notificación Toast Flotante -->
-    <div id="toast-notification" class="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-        <span id="toast-message">Mensaje</span>
+            <!-- SECCIÓN 5: VISTA POR CAPAS (SLICER) Y CONTRASTE -->
+            <section class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    5. Vista por Capas (Slicer) y Contraste
+                </h2>
+
+                <div>
+                    <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                        <span>Corte horizontal altura Z (Slicer)</span>
+                        <span id="sliceHeightVal" class="font-mono-code font-semibold text-orange-600">15.0 mm (100%)</span>
+                    </div>
+                    <input type="range" id="sliceHeight" min="0.4" max="15.0" step="0.2" value="15.0" class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+                </div>
+
+                <label class="flex items-center justify-between text-xs font-medium text-slate-700 cursor-pointer">
+                    <span>Mostrar líneas horizontales de capa (0.2 mm)</span>
+                    <input type="checkbox" id="showLayerLines" checked class="accent-orange-600 rounded w-4 h-4">
+                </label>
+
+                <label class="flex items-center justify-between text-xs font-medium text-slate-700 cursor-pointer">
+                    <span>Mostrar cotas dimensionales 3D</span>
+                    <input type="checkbox" id="showDimensions" checked class="accent-orange-600 rounded w-4 h-4">
+                </label>
+
+                <div class="pt-1 border-t border-slate-200">
+                    <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                        <span>Oscuridad de fondo (Blanco → Negro)</span>
+                        <span id="bgDarknessVal" class="font-mono-code text-slate-600">0%</span>
+                    </div>
+                    <input type="range" id="bgDarkness" min="0" max="100" step="1" value="0" class="w-full h-1.5 bg-slate-300 rounded-lg cursor-pointer">
+                </div>
+            </section>
+
+            <!-- Botón Restaurar valores por defecto -->
+            <div class="pt-1 pb-4 flex items-center justify-between gap-2">
+                <button id="resetDefaultsBtn"
+                    class="w-full py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition">
+                    Restaurar medidas de fábrica
+                </button>
+            </div>
+        </aside>
+
+        <!-- VISOR 3D INTERACTIVO (THREE.JS CANVAS) -->
+        <main id="viewportContainer" class="flex-1 h-full relative overflow-hidden bg-white">
+            <canvas id="cadCanvas" class="w-full h-full block outline-none"></canvas>
+
+            <!-- Etiquetas 3D flotantes proyectadas en pantalla -->
+            <div id="labelsOverlay" class="pointer-events-none absolute inset-0 overflow-hidden z-10"></div>
+
+            <!-- Indicador de estado de malla, dimensiones totales y diagnóstico STL -->
+            <div id="meshStatusCard"
+                class="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md bg-white/90 backdrop-blur border border-slate-200/90 rounded-xl p-3 shadow-md z-10 text-xs space-y-1.5">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-1.5 font-semibold text-emerald-700" id="manifoldBadge">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Malla Manifold Estanca (Sin huecos)</span>
+                    </div>
+                    <span id="polyCountBadge" class="font-mono-code text-[11px] text-slate-500">0 triángulos</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/80 text-[11px] text-slate-600 font-mono-code">
+                    <div>
+                        <span class="block text-[9px] uppercase text-slate-400 font-sans">Cama (X×Y)</span>
+                        <span id="dimXY">-- × -- mm</span>
+                    </div>
+                    <div>
+                        <span class="block text-[9px] uppercase text-slate-400 font-sans">Altura Z</span>
+                        <span id="dimZ">-- mm</span>
+                    </div>
+                    <div>
+                        <span class="block text-[9px] uppercase text-slate-400 font-sans">Volumen</span>
+                        <span id="volCm3">-- cm³</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles rápidos de cámara en esquina superior derecha -->
+            <div class="absolute top-3 right-3 flex flex-col gap-1.5 z-10">
+                <button id="camIsoBtn" title="Vista Isométrica"
+                    class="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white border border-slate-200 shadow-sm text-[11px] font-semibold text-slate-700">
+                    ISO
+                </button>
+                <button id="camTopBtn" title="Vista Superior (Planta)"
+                    class="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white border border-slate-200 shadow-sm text-[11px] font-semibold text-slate-700">
+                    TOP
+                </button>
+                <button id="camSideBtn" title="Vista Lateral (Perfil)"
+                    class="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white border border-slate-200 shadow-sm text-[11px] font-semibold text-slate-700">
+                    LADO
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- NOTIFICACIÓN TOAST -->
+    <div id="toastMsg"
+        class="fixed bottom-16 right-4 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
     </div>
 
     <script>
-        // ============================================================================
-        // 1. PARÁMETROS POR DEFECTO Y ESPECIFICACIONES DE RANGO
-        // ============================================================================
+        // =========================================================================
+        // 1. DEFINICIÓN DE PARÁMETROS Y ESTADO CAD
+        // =========================================================================
         const DEFAULT_PARAMS = {
-            // Bisagra / Horquilla Xiaomi Mi WiFi Repeater 2 (Rango 1..26 mm, defecto 14.5 mm)
-            forkWidth: 14.5,        // Ancho interior de la horquilla del Xiaomi Repeater 2 (mm)
-            pinDiameter: 3.4,       // Diámetro de los pivotes laterales de giro (mm)
-            pinLength: 2.2,         // Longitud de cada pivote lateral (mm)
-            rearRadius: 5.5,        // Radio redondeado trasero para giro libre de 0° a 180° (mm)
+            // Horquilla Xiaomi Mi WiFi Repeater 2 y pivotes independientes
+            forkWidth: 14.5,        // Ancho interior horquilla Xiaomi (rango ampliado 1.0 - 26.0 mm)
+            pinDiaLeft: 3.2,        // Diámetro pivote giro izquierdo (-X) (mm)
+            pinDiaRight: 3.2,       // Diámetro pivote giro derecho (+X) (mm)
+            pinLen: 2.2,            // Longitud de cada pivote lateral (mm)
+            rearRadius: 5.2,        // Radio exterior zona trasera de giro (mm)
 
-            // Alojamiento cuerpo conector USB existente (15 x 7 x 10.5 mm)
-            usbBodyWidth: 15.0,     // Ancho interior cavidad cuerpo USB (mm)
-            usbBodyHeight: 7.0,     // Alto interior cavidad cuerpo USB (mm)
-            usbBodyLength: 10.5,    // Longitud interior cavidad cuerpo USB (mm)
-            frontLip: 1.5,          // Tope/labio frontal de retención para que no salga el cuerpo al enchufar (mm)
+            // Alojamiento cuerpo USB sustituto (15 x 7 x 10.5 mm)
+            usbBodyWidth: 15.0,     // Ancho cavidad cuerpo USB (mm)
+            usbBodyHeight: 7.0,     // Alto cavidad cuerpo USB (mm)
+            usbBodyLength: 10.5,    // Largo cavidad cuerpo USB (mm)
+            frontLip: 1.5,          // Tope/labio frontal de retención de la clavija USB (mm)
 
             // Alojamiento protector cilíndrico de cable (Ø 5 x 8 mm)
             strainDia: 5.0,         // Diámetro cavidad protector cilíndrico del cable (mm)
             strainLength: 8.0,      // Longitud cavidad protector cilíndrico (mm)
-            cableExitDia: 3.6,      // Orificio trasero paso de cable hacia el interior del repetidor (mm)
+            cableExitDia: 3.8,      // Orificio/canal trasero paso de cable en ambas piezas (mm)
+            openRearSlot: false,    // Si es true, abre una ranura vertical trasera en ambas mitades
 
             // Espesor de pared, encaje clip y tolerancia FDM
             wallThickness: 1.6,     // Espesor mínimo de pared alrededor de las cavidades (mm)
@@ -283,8 +324,9 @@
 
         const PARAM_SPECS = {
             forkWidth:      { label: 'Ancho de horquilla Xiaomi', min: 1.0,  max: 26.0, step: 0.2 },
-            pinDiameter:    { label: 'Diámetro pivotes giro',     min: 1.5,  max: 5.0,  step: 0.1 },
-            pinLength:      { label: 'Longitud cada pivote',      min: 1.0,  max: 4.5,  step: 0.1 },
+            pinDiaLeft:     { label: 'Diámetro pivote izq. (-X)', min: 1.5,  max: 8.0,  step: 0.1 },
+            pinDiaRight:    { label: 'Diámetro pivote der. (+X)', min: 1.5,  max: 8.0,  step: 0.1 },
+            pinLen:         { label: 'Longitud cada pivote',      min: 1.0,  max: 4.5,  step: 0.1 },
             rearRadius:     { label: 'Radio giro trasero',        min: 4.0,  max: 8.5,  step: 0.1 },
 
             usbBodyWidth:   { label: 'Ancho cuerpo USB',          min: 12.0, max: 20.0, step: 0.1 },
@@ -294,214 +336,126 @@
 
             strainDia:      { label: 'Diámetro cilindro cable',   min: 3.5,  max: 8.0,  step: 0.1 },
             strainLength:   { label: 'Largo cilindro cable',      min: 4.0,  max: 15.0, step: 0.1 },
-            cableExitDia:   { label: 'Salida cable trasera',      min: 2.2,  max: 6.0,  step: 0.1 },
+            cableExitDia:   { label: 'Paso/hueco cable trasero',  min: 2.2,  max: 7.5,  step: 0.1 },
 
             wallThickness:  { label: 'Espesor de pared',          min: 1.2,  max: 3.2,  step: 0.1 },
             fdmTolerance:   { label: 'Tolerancia FDM',            min: 0.05, max: 0.50, step: 0.05 },
             clipSnapDepth:  { label: 'Enganche clip lateral',     min: 0.25, max: 1.00, step: 0.05 }
         };
 
-        const STORAGE_KEY = 'xiaomi_repeater2_usb_2piece_cad_v3';
+        const STORAGE_KEY = 'xiaomi_repeater2_usb_2piece_cad_v5';
         let currentParams = { ...DEFAULT_PARAMS };
-        let undoStack = [];
-        const MAX_UNDO = 5;
+        let undoStack = []; // Historial de hasta 5 estados anteriores
 
-        // ============================================================================
-        // 2. ESCENA THREE.JS (FONDO CONTINUO BLANCO-NEGRO, CAMA PEI Y CLIPPING)
-        // ============================================================================
-        let scene, camera, renderer, controls;
-        let exportableGroup;      // Contiene EXCLUSIVAMENTE Base + Tapa sólidas para exportar a STL
-        let layerLinesGroup;      // Líneas horizontales simulando capas FDM de 0.2 mm
-        let baseMeshObj, lidMeshObj;
-        let assemblyPivotGroup;   // Grupo rotatorio en vista de ensamblaje
-        let referenceGroup;       // Carcasa Xiaomi + USB simulado (15x7x10.5 + Ø5x8 + clavija metálica)
-        let dimensionsGroup;      // Líneas y etiquetas de cotas 3D
-        let slicerPlaneMesh;      // Plano visual translúcido que indica la altura de corte actual
-        let clippingPlane;        // THREE.Plane real para cortar las mallas capa a capa
-        let bedMesh, gridSub, gridMain;
+        // =========================================================================
+        // 2. ESCENA 3D THREE.JS, ILUMINACIÓN Y PLANO DE CORTE SLICER
+        // =========================================================================
+        const canvas = document.getElementById('cadCanvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.localClippingEnabled = true;
 
-        function initThreeJS() {
-            const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff);
 
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xffffff);
+        const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 500);
+        camera.position.set(34, 30, 38);
 
-            camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.5, 1000);
-            camera.position.set(48, 42, 54);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.07;
+        controls.target.set(0, 4, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            renderer.localClippingEnabled = true;
-            container.appendChild(renderer.domElement);
+        // Plano global de corte horizontal para vista por capas (Slicer en Y Three.js = Z impresión)
+        const slicerClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 15.0);
 
-            clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 20.0);
+        // Luces equilibradas para alto contraste en fondo claro u oscuro
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x94a3b8, 0.85);
+        hemiLight.position.set(0, 50, 0);
+        scene.add(hemiLight);
 
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.07;
-            controls.minDistance = 12;
-            controls.maxDistance = 240;
-            controls.target.set(0, 5, 0);
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.85);
+        dirLight1.position.set(25, 45, 30);
+        dirLight1.castShadow = true;
+        dirLight1.shadow.mapSize.width = 1024;
+        dirLight1.shadow.mapSize.height = 1024;
+        scene.add(dirLight1);
 
-            // Iluminación de estudio de alto contraste
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.85);
-            hemiLight.position.set(0, 90, 0);
-            scene.add(hemiLight);
+        const dirLight2 = new THREE.DirectionalLight(0xe2e8f0, 0.45);
+        dirLight2.position.set(-25, 20, -25);
+        scene.add(dirLight2);
 
-            const dirLightMain = new THREE.DirectionalLight(0xffffff, 0.72);
-            dirLightMain.position.set(40, 75, 50);
-            dirLightMain.castShadow = true;
-            dirLightMain.shadow.mapSize.width = 2048;
-            dirLightMain.shadow.mapSize.height = 2048;
-            dirLightMain.shadow.camera.near = 10;
-            dirLightMain.shadow.camera.far = 180;
-            const d = 45;
-            dirLightMain.shadow.camera.left = -d;
-            dirLightMain.shadow.camera.right = d;
-            dirLightMain.shadow.camera.top = d;
-            dirLightMain.shadow.camera.bottom = -d;
-            dirLightMain.shadow.bias = -0.0005;
-            scene.add(dirLightMain);
+        // Rejilla de cama de impresión (10 mm mayores, 2 mm subdivisiones)
+        let gridHelper = new THREE.GridHelper(80, 40, 0x94a3b8, 0xe2e8f0);
+        scene.add(gridHelper);
 
-            const dirLightBack = new THREE.DirectionalLight(0xf1f5f9, 0.35);
-            dirLightBack.position.set(-45, 30, -40);
-            scene.add(dirLightBack);
-
-            buildPrintBed();
-
-            const sliceGeo = new THREE.PlaneGeometry(90, 90);
-            const sliceMat = new THREE.MeshBasicMaterial({
-                color: 0xea580c,
+        // Plano visual semitransparente indicador de la altura de corte Slicer
+        const slicePlaneMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(56, 44),
+            new THREE.MeshBasicMaterial({
+                color: 0xf97316,
                 transparent: true,
-                opacity: 0.1,
+                opacity: 0.14,
                 side: THREE.DoubleSide,
                 depthWrite: false
-            });
-            slicerPlaneMesh = new THREE.Mesh(sliceGeo, sliceMat);
-            slicerPlaneMesh.rotation.x = -Math.PI / 2;
-            slicerPlaneMesh.visible = false;
-            scene.add(slicerPlaneMesh);
+            })
+        );
+        slicePlaneMesh.rotation.x = -Math.PI / 2;
+        slicePlaneMesh.visible = false;
+        scene.add(slicePlaneMesh);
 
-            exportableGroup = new THREE.Group();
-            scene.add(exportableGroup);
+        // Grupos de escena
+        const cadGroup = new THREE.Group();
+        const referenceGroup = new THREE.Group();
+        const layerLinesGroup = new THREE.Group();
+        scene.add(cadGroup);
+        scene.add(referenceGroup);
+        scene.add(layerLinesGroup);
 
-            layerLinesGroup = new THREE.Group();
-            scene.add(layerLinesGroup);
+        // Materiales CAD con clipping plane activo
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0xea580c,
+            roughness: 0.36,
+            metalness: 0.08,
+            clippingPlanes: [slicerClipPlane],
+            clipShadows: true,
+            side: THREE.DoubleSide
+        });
 
-            assemblyPivotGroup = new THREE.Group();
-            scene.add(assemblyPivotGroup);
+        const lidMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            roughness: 0.36,
+            metalness: 0.08,
+            clippingPlanes: [slicerClipPlane],
+            clipShadows: true,
+            side: THREE.DoubleSide
+        });
 
-            referenceGroup = new THREE.Group();
-            scene.add(referenceGroup);
-
-            dimensionsGroup = new THREE.Group();
-            scene.add(dimensionsGroup);
-
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function buildPrintBed() {
-            const bedGeo = new THREE.PlaneGeometry(140, 140);
-            const bedMat = new THREE.MeshStandardMaterial({
-                color: 0xf8fafc,
-                roughness: 0.85,
-                metalness: 0.05
-            });
-            bedMesh = new THREE.Mesh(bedGeo, bedMat);
-            bedMesh.rotation.x = -Math.PI / 2;
-            bedMesh.position.y = -0.02;
-            bedMesh.receiveShadow = true;
-            scene.add(bedMesh);
-
-            gridSub = new THREE.GridHelper(120, 120, 0xe2e8f0, 0xf1f5f9);
-            gridSub.position.y = 0;
-            scene.add(gridSub);
-
-            gridMain = new THREE.GridHelper(120, 12, 0x94a3b8, 0xcbd5e1);
-            gridMain.position.y = 0.005;
-            scene.add(gridMain);
-
-            const axes = new THREE.AxesHelper(12);
-            axes.position.set(-45, 0.02, 45);
-            scene.add(axes);
-        }
-
-        function applyBackgroundDarkness(percent) {
-            const t = Math.max(0, Math.min(100, percent)) / 100;
-            // Interpolación lineal continua desde Blanco Puro (255) hasta Negro Puro (0)
-            const bgVal = Math.round(255 * (1 - t));
-            const bgColor = new THREE.Color(`rgb(${bgVal}, ${bgVal}, ${bgVal})`);
-            if (scene) scene.background = bgColor;
-            document.body.style.backgroundColor = `rgb(${bgVal}, ${bgVal}, ${bgVal})`;
-
-            // Adaptar suavemente el tono de la cama PEI y las cuadrículas para mantener visibilidad
-            if (bedMesh && gridSub && gridMain) {
-                const bedV = Math.round(248 * (1 - t) + 18 * t);
-                bedMesh.material.color.setRGB(bedV / 255, bedV / 255, Math.min(255, bedV + 4) / 255);
-
-                const subV = Math.round(230 * (1 - t) + 38 * t);
-                gridSub.material.color.setRGB(subV / 255, subV / 255, subV / 255);
-
-                const mainV = Math.round(165 * (1 - t) + 75 * t);
-                gridMain.material.color.setRGB(mainV / 255, mainV / 255, mainV / 255);
+        // =========================================================================
+        // 3. GENERADOR DE GEOMETRÍA SÓLIDA MANIFOLD (BASE + TAPA CLIP)
+        // =========================================================================
+        function ensureNonIndexedNormalGeometry(geom) {
+            const nonIdx = geom.index ? geom.toNonIndexed() : geom.clone();
+            if (!nonIdx.attributes.normal) {
+                nonIdx.computeVertexNormals();
             }
-
-            const labelEl = document.getElementById('val-bgDarkness');
-            if (labelEl) {
-                if (percent === 0) labelEl.textContent = '0% (Blanco)';
-                else if (percent === 100) labelEl.textContent = '100% (Negro)';
-                else labelEl.textContent = `${percent}%`;
+            // Eliminar UV si algunas primitivas no lo tienen para mergeBufferGeometries limpio
+            if (nonIdx.attributes.uv) {
+                nonIdx.deleteAttribute('uv');
             }
+            return nonIdx;
         }
 
-        function onWindowResize() {
-            const container = document.getElementById('canvas-container');
-            if (!container) return;
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        }
-
-        // ============================================================================
-        // 3. GENERACIÓN PARAMÉTRICA EXACTA Y MANIFOLD DE LAS 2 PIEZAS (BASE + TAPA)
-        // ============================================================================
-        function disposeGroup(group) {
-            while (group.children.length > 0) {
-                const obj = group.children[0];
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                    else obj.material.dispose();
-                }
-                group.remove(obj);
-            }
-        }
-
-        /**
-         * Construye ambas piezas con geometría adaptativa escalonada (Manifold / Watertight):
-         * - Zona trasera (Bisagra / Horquilla Xiaomi, Z desde rearEndZ hasta strainEndZ):
-         *     Ancho exterior = rearOuterW = clamp(forkWidth - tol*2, minRearW, frontOuterW)
-         *     Permite horquillas muy estrechas (desde 1 mm) manteniendo envolvente continua alrededor
-         *     del túnel de salida de cable y del protector cilíndrico de Ø5×8 mm.
-         *     Los pivotes laterales de giro nacen en ±rearOuterW/2 y sobresalen pinLength a cada lado,
-         *     garantizando encaje en horquillas estrechas o anchas sin colisiones ni huecos.
-         * - Zona delantera (Alojamiento cuerpo USB 15×7×10.5 mm, Z desde usbStartZ hasta frontEndZ):
-         *     Ancho exterior = frontOuterW = max(cavUsbW + wall*2, rearOuterW)
-         *     Si frontOuterW > rearOuterW, se genera un escalón/hombro sólido continuo entre la
-         *     sección trasera (horquilla) y la carcasa delantera (cuerpo USB) sin espacios vacíos.
-         */
         function generateTwoPieceGeometries(p) {
             const tol = p.fdmTolerance;
             const wall = p.wallThickness;
 
-            // 1. Dimensiones de cavidades interiores con tolerancia FDM
-            const cavUsbW = p.usbBodyWidth + tol;       // 15.0 + 0.25 = 15.25 mm
-            const cavUsbH = p.usbBodyHeight + tol;      // 7.0 + 0.25 = 7.25 mm
-            const cavUsbL = p.usbBodyLength + tol;      // 10.5 + 0.25 = 10.75 mm
+            // 1. Dimensiones interiores de cavidades incluyendo tolerancia FDM
+            const cavUsbW = p.usbBodyWidth + tol;     // 15.0 + 0.25 = 15.25 mm
+            const cavUsbH = p.usbBodyHeight + tol;    // 7.0 + 0.25 = 7.25 mm
+            const cavUsbL = p.usbBodyLength + tol;    // 10.5 + 0.25 = 10.75 mm
 
             const cavStrainR = (p.strainDia + tol) / 2; // (5.0 + 0.25)/2 = 2.625 mm
             const cavStrainL = p.strainLength + tol;    // 8.0 + 0.25 = 8.25 mm
@@ -512,19 +466,11 @@
             const plugOpeningH = Math.min(cavUsbH - 1.4, 5.0 + tol);
 
             // 2. Anchos exteriores adaptativos (Horquilla trasera vs Carcasa delantera USB)
-            // La carcasa delantera SIEMPRE debe envolver el cuerpo USB de 15 mm + paredes laterales
             const frontOuterW = cavUsbW + wall * 2;
-
-            // El cuello trasero de la horquilla se adapta a forkWidth (rango 1..26 mm)
-            // Mínimo físico estructural para envolver el túnel cilíndrico de Ø5 mm: 2*cavStrainR + 1.6 mm
-            // Si forkWidth es muy pequeño (ej. 1..7 mm), la zona de bisagra se estrecha al mínimo estructural
-            // y los pivotes se proyectan lateralmente manteniendo una malla 100% sólida y sin agujeros.
             const minStructuralRearW = Math.max(2.4, cavStrainR * 2 + 1.2);
             const desiredRearW = Math.max(1.0, p.forkWidth - tol * 2);
             const rearOuterW = Math.max(minStructuralRearW, desiredRearW);
 
-            // Si la horquilla es más ancha que el bloque USB (ej. 22..26 mm), ensanchamos también el bloque
-            // delantero para mantener una línea lateral enrasada y monolítica sin salientes inversos
             const effectiveFrontW = Math.max(frontOuterW, rearOuterW);
             const effectiveRearW = Math.min(rearOuterW, effectiveFrontW);
 
@@ -549,16 +495,29 @@
             const halfCavUsbH = cavUsbH / 2;
             const rStrain = Math.min(cavStrainR, halfCavUsbH - 0.15);
             const rExit = Math.min(cavExitR, rStrain);
+            const hwRear = effectiveRearW / 2;
 
             // =========================================================================
             // CONSTRUCCIÓN DE LA MITAD INFERIOR (BASE: Y desde -halfH hasta 0)
             // =========================================================================
             const baseParts = [];
 
-            // A1) Suelo inferior de la zona trasera (ancho = effectiveRearW)
-            const baseRearFloor = new THREE.BoxGeometry(effectiveRearW, floorH, rearZoneLenZ);
-            baseRearFloor.translate(0, -halfH + floorH / 2, rearZoneCenterZ);
-            baseParts.push(baseRearFloor);
+            // A1) Suelo inferior de la zona trasera (si openRearSlot=true, deja canal abierto también en suelo trasero)
+            if (p.openRearSlot) {
+                const slotWallW = Math.max(0.8, hwRear - rExit);
+                [-1, 1].forEach(side => {
+                    const rearSideFloor = new THREE.BoxGeometry(slotWallW, floorH, exitWallL);
+                    rearSideFloor.translate(side * (hwRear - slotWallW / 2), -halfH + floorH / 2, rearEndZ + exitWallL / 2);
+                    baseParts.push(rearSideFloor);
+                });
+                const strainFloor = new THREE.BoxGeometry(effectiveRearW, floorH, cavStrainL);
+                strainFloor.translate(0, -halfH + floorH / 2, strainStartZ + cavStrainL / 2);
+                baseParts.push(strainFloor);
+            } else {
+                const baseRearFloor = new THREE.BoxGeometry(effectiveRearW, floorH, rearZoneLenZ);
+                baseRearFloor.translate(0, -halfH + floorH / 2, rearZoneCenterZ);
+                baseParts.push(baseRearFloor);
+            }
 
             // A2) Suelo inferior de la zona delantera USB (ancho = effectiveFrontW)
             const baseFrontFloor = new THREE.BoxGeometry(effectiveFrontW, floorH, frontZoneLenZ);
@@ -587,12 +546,12 @@
                 baseParts.push(lipSide);
             });
 
-            // D) Bloque alojamiento protector cilíndrico (desde strainStartZ hasta strainEndZ, ancho = effectiveRearW)
-            const hwRear = effectiveRearW / 2;
+            // D) Bloque inferior alojamiento protector cilíndrico (desde strainStartZ hasta strainEndZ)
+            // Semicírculo inferior (Y <= 0) para alojar la mitad inferior del protector de cable Ø5 mm
             const strainBlockShape = new THREE.Shape();
             strainBlockShape.moveTo(-hwRear, 0);
             strainBlockShape.lineTo(-rStrain, 0);
-            strainBlockShape.absarc(0, 0, rStrain, Math.PI, 0, true);
+            strainBlockShape.absarc(0, 0, rStrain, Math.PI, 0, false); // Arco hacia -Y (hueco semicircular abajo)
             strainBlockShape.lineTo(hwRear, 0);
             strainBlockShape.lineTo(hwRear, -halfCavUsbH);
             strainBlockShape.lineTo(-hwRear, -halfCavUsbH);
@@ -606,58 +565,88 @@
             strainExtrude.translate(0, 0, strainStartZ);
             baseParts.push(strainExtrude);
 
-            // E) Pared trasera con salida de cable (desde rearEndZ hasta strainStartZ, ancho = effectiveRearW)
+            // E) Pared trasera inferior con hueco para el cable (desde rearEndZ hasta strainStartZ)
             const exitBlockShape = new THREE.Shape();
-            exitBlockShape.moveTo(-hwRear, 0);
-            exitBlockShape.lineTo(-rExit, 0);
-            exitBlockShape.absarc(0, 0, rExit, Math.PI, 0, true);
-            exitBlockShape.lineTo(hwRear, 0);
-            exitBlockShape.lineTo(hwRear, -halfCavUsbH);
-            exitBlockShape.lineTo(-hwRear, -halfCavUsbH);
-            exitBlockShape.closePath();
+            if (p.openRearSlot) {
+                // Ranura rectangular abierta hacia abajo/atrás para pasar el cable sin enhebrarlo
+                exitBlockShape.moveTo(-hwRear, 0);
+                exitBlockShape.lineTo(-rExit, 0);
+                exitBlockShape.lineTo(-rExit, -halfCavUsbH);
+                exitBlockShape.lineTo(-hwRear, -halfCavUsbH);
+                exitBlockShape.closePath();
 
-            const exitExtrude = new THREE.ExtrudeGeometry(exitBlockShape, {
-                depth: exitWallL,
-                bevelEnabled: false,
-                curveSegments: 24
-            });
-            exitExtrude.translate(0, 0, rearEndZ);
-            baseParts.push(exitExtrude);
+                const exitLeft = new THREE.ExtrudeGeometry(exitBlockShape, { depth: exitWallL, bevelEnabled: false });
+                exitLeft.translate(0, 0, rearEndZ);
+                baseParts.push(exitLeft);
 
-            // F) Pivotes laterales de giro en Z = 0, Y = 0
-            // Anclados en las caras laterales del cuello trasero (effectiveRearW) y extendiéndose pinLength a cada lado
-            const actualPinR = Math.max(0.75, (p.pinDiameter - tol * 0.6) / 2);
-            const pinSpan = effectiveRearW + p.pinLength * 2;
-            const pinCyl = new THREE.CylinderGeometry(actualPinR, actualPinR, pinSpan, 28);
-            pinCyl.rotateZ(Math.PI / 2);
-            pinCyl.translate(0, 0, 0);
-            baseParts.push(pinCyl);
+                const exitRightShape = new THREE.Shape();
+                exitRightShape.moveTo(rExit, 0);
+                exitRightShape.lineTo(hwRear, 0);
+                exitRightShape.lineTo(hwRear, -halfCavUsbH);
+                exitRightShape.lineTo(rExit, -halfCavUsbH);
+                exitRightShape.closePath();
 
-            // Chaflán cónico en extremos de pivotes para encaje a presión en Xiaomi Repeater 2
-            const tipL = Math.min(0.65, p.pinLength * 0.35);
-            [-1, 1].forEach(side => {
+                const exitRight = new THREE.ExtrudeGeometry(exitRightShape, { depth: exitWallL, bevelEnabled: false });
+                exitRight.translate(0, 0, rearEndZ);
+                baseParts.push(exitRight);
+            } else {
+                // Semicírculo inferior (Y <= 0) que junto al semicírculo superior de la Tapa forma el túnel circular del cable
+                exitBlockShape.moveTo(-hwRear, 0);
+                exitBlockShape.lineTo(-rExit, 0);
+                exitBlockShape.absarc(0, 0, rExit, Math.PI, 0, false); // Arco hacia -Y (mitad inferior del túnel)
+                exitBlockShape.lineTo(hwRear, 0);
+                exitBlockShape.lineTo(hwRear, -halfCavUsbH);
+                exitBlockShape.lineTo(-hwRear, -halfCavUsbH);
+                exitBlockShape.closePath();
+
+                const exitExtrude = new THREE.ExtrudeGeometry(exitBlockShape, {
+                    depth: exitWallL,
+                    bevelEnabled: false,
+                    curveSegments: 24
+                });
+                exitExtrude.translate(0, 0, rearEndZ);
+                baseParts.push(exitExtrude);
+            }
+
+            // F) Pivotes de giro laterales independientes en Z = 0, Y = 0 (izquierdo -X y derecho +X)
+            const pinSpecs = [
+                { side: -1, dia: p.pinDiaLeft },
+                { side: 1,  dia: p.pinDiaRight }
+            ];
+            pinSpecs.forEach(({ side, dia }) => {
+                const pinR = dia / 2;
+                const pinTipR = Math.max(0.6, pinR - 0.35);
+                const cylLen = p.pinLen * 0.72;
+                const tipLen = p.pinLen * 0.28;
+
+                const cyl = new THREE.CylinderGeometry(pinR, pinR, cylLen, 28);
+                cyl.rotateZ(Math.PI / 2);
+                cyl.translate(side * (hwRear + cylLen / 2 - 0.1), 0, 0);
+                baseParts.push(cyl);
+
                 const tip = new THREE.CylinderGeometry(
-                    side === -1 ? actualPinR * 0.72 : actualPinR,
-                    side === -1 ? actualPinR : actualPinR * 0.72,
-                    tipL, 28
+                    side === 1 ? pinTipR : pinR,
+                    side === 1 ? pinR : pinTipR,
+                    tipLen,
+                    28
                 );
                 tip.rotateZ(Math.PI / 2);
-                tip.translate(side * (pinSpan / 2 + tipL / 2 - 0.01), 0, 0);
+                tip.translate(side * (hwRear + cylLen + tipLen / 2 - 0.1), 0, 0);
                 baseParts.push(tip);
             });
 
-            // G) Pestañas machihembradas de encaje en la Base (sobresalen +Y hacia la Tapa en los laterales)
-            const snapH = Math.min(1.4, halfCavUsbH * 0.55);
-            const snapW = Math.min(0.85, sideWallW * 0.42);
-            const snapLenZ = cavUsbL * 0.65;
+            // G) Pestañas machihembradas de encaje en la Base (sobresalen hacia arriba Y > 0 en paredes USB)
+            const clipW = Math.min(0.65, sideWallW * 0.42);
+            const clipH = Math.max(0.6, p.clipSnapDepth);
+            const clipL = cavUsbL * 0.65;
             [-1, 1].forEach(side => {
-                const snapTooth = new THREE.BoxGeometry(snapW, snapH, snapLenZ);
-                snapTooth.translate(
-                    side * (cavUsbW / 2 + snapW / 2 + 0.05),
-                    snapH / 2 - 0.02,
+                const tongue = new THREE.BoxGeometry(clipW, clipH, clipL);
+                tongue.translate(
+                    side * (cavUsbW / 2 + sideWallW * 0.5),
+                    clipH / 2 - 0.05,
                     usbStartZ + cavUsbL / 2
                 );
-                baseParts.push(snapTooth);
+                baseParts.push(tongue);
             });
 
             // =========================================================================
@@ -665,59 +654,84 @@
             // =========================================================================
             const lidParts = [];
 
-            // A1) Techo superior zona trasera (ancho = effectiveRearW)
-            const lidRearRoof = new THREE.BoxGeometry(effectiveRearW, floorH, rearZoneLenZ);
-            lidRearRoof.translate(0, halfH - floorH / 2, rearZoneCenterZ);
-            lidParts.push(lidRearRoof);
+            // A1) Techo superior zona trasera (si openRearSlot=true, deja canal abierto también en techo trasero)
+            if (p.openRearSlot) {
+                const slotWallW = Math.max(0.8, hwRear - rExit);
+                [-1, 1].forEach(side => {
+                    const rearSideRoof = new THREE.BoxGeometry(slotWallW, floorH, exitWallL);
+                    rearSideRoof.translate(side * (hwRear - slotWallW / 2), halfH - floorH / 2, rearEndZ + exitWallL / 2);
+                    lidParts.push(rearSideRoof);
+                });
+                const strainRoof = new THREE.BoxGeometry(effectiveRearW, floorH, cavStrainL);
+                strainRoof.translate(0, halfH - floorH / 2, strainStartZ + cavStrainL / 2);
+                lidParts.push(strainRoof);
+            } else {
+                const lidRearRoof = new THREE.BoxGeometry(effectiveRearW, floorH, rearZoneLenZ);
+                lidRearRoof.translate(0, halfH - floorH / 2, rearZoneCenterZ);
+                lidParts.push(lidRearRoof);
+            }
 
             // A2) Techo superior zona delantera USB (ancho = effectiveFrontW)
             const lidFrontRoof = new THREE.BoxGeometry(effectiveFrontW, floorH, frontZoneLenZ);
             lidFrontRoof.translate(0, halfH - floorH / 2, frontZoneCenterZ);
             lidParts.push(lidFrontRoof);
 
-            // B) Paredes laterales superiores de la zona Cuerpo USB (con rebaje/cajera para recibir las pestañas)
-            const grooveW = snapW + tol;
-            const grooveH = snapH + tol * 0.8;
-            const outerLipW = Math.max(0.6, sideWallW - grooveW - 0.1);
+            // B) Paredes laterales superiores zona Cuerpo USB (con ranura hembra para pestaña Base)
+            const grooveClearance = tol * 0.6;
+            const grooveW = clipW + grooveClearance;
+            const grooveH = clipH + grooveClearance * 0.5;
+            const grooveL = clipL + grooveClearance;
 
             [-1, 1].forEach(side => {
-                const outerSideWall = new THREE.BoxGeometry(outerLipW, halfCavUsbH, cavUsbL);
-                outerSideWall.translate(
-                    side * (effectiveFrontW / 2 - outerLipW / 2),
-                    halfCavUsbH / 2,
-                    usbStartZ + cavUsbL / 2
-                );
-                lidParts.push(outerSideWall);
+                const innerWallW = Math.max(0.45, (sideWallW - grooveW) / 2);
+                const outerWallW = Math.max(0.45, sideWallW - innerWallW - grooveW);
 
-                const aboveGrooveH = Math.max(0.4, halfCavUsbH - grooveH);
-                const aboveGroove = new THREE.BoxGeometry(sideWallW - outerLipW + 0.02, aboveGrooveH, cavUsbL);
-                aboveGroove.translate(
-                    side * (cavUsbW / 2 + (sideWallW - outerLipW) / 2),
-                    grooveH + aboveGrooveH / 2,
-                    usbStartZ + cavUsbL / 2
-                );
-                lidParts.push(aboveGroove);
+                const wallIn = new THREE.BoxGeometry(innerWallW, halfCavUsbH, cavUsbL);
+                wallIn.translate(side * (cavUsbW / 2 + innerWallW / 2), halfCavUsbH / 2, usbStartZ + cavUsbL / 2);
+                lidParts.push(wallIn);
+
+                const wallOut = new THREE.BoxGeometry(outerWallW, halfCavUsbH, cavUsbL);
+                wallOut.translate(side * (effectiveFrontW / 2 - outerWallW / 2), halfCavUsbH / 2, usbStartZ + cavUsbL / 2);
+                lidParts.push(wallOut);
+
+                const bridgeH = Math.max(0.3, halfCavUsbH - grooveH);
+                const wallBridge = new THREE.BoxGeometry(grooveW, bridgeH, cavUsbL);
+                wallBridge.translate(side * (cavUsbW / 2 + innerWallW + grooveW / 2), grooveH + bridgeH / 2, usbStartZ + cavUsbL / 2);
+                lidParts.push(wallBridge);
+
+                const endCapL = (cavUsbL - grooveL) / 2;
+                if (endCapL > 0.2) {
+                    [-1, 1].forEach(zDir => {
+                        const cap = new THREE.BoxGeometry(grooveW, grooveH, endCapL);
+                        cap.translate(
+                            side * (cavUsbW / 2 + innerWallW + grooveW / 2),
+                            grooveH / 2,
+                            usbStartZ + cavUsbL / 2 + zDir * (grooveL / 2 + endCapL / 2)
+                        );
+                        lidParts.push(cap);
+                    });
+                }
             });
 
-            // C) Tope/Labio frontal superior (desde usbEndZ hasta frontEndZ)
-            const frontLipTop = new THREE.BoxGeometry(effectiveFrontW, lipFloorH - floorH, p.frontLip);
-            frontLipTop.translate(0, halfH - floorH - (lipFloorH - floorH) / 2, usbEndZ + p.frontLip / 2);
-            lidParts.push(frontLipTop);
+            // C) Tope/Labio frontal superior
+            const lidFrontLipTop = new THREE.BoxGeometry(effectiveFrontW, lipFloorH - floorH, p.frontLip);
+            lidFrontLipTop.translate(0, halfH - floorH - (lipFloorH - floorH) / 2, usbEndZ + p.frontLip / 2);
+            lidParts.push(lidFrontLipTop);
 
             [-1, 1].forEach(side => {
-                const lipSideTop = new THREE.BoxGeometry(lipSideW, plugOpeningH / 2, p.frontLip);
-                lipSideTop.translate(side * (plugOpeningW / 2 + lipSideW / 2), plugOpeningH / 4, usbEndZ + p.frontLip / 2);
-                lidParts.push(lipSideTop);
+                const lidLipSide = new THREE.BoxGeometry(lipSideW, plugOpeningH / 2, p.frontLip);
+                lidLipSide.translate(side * (plugOpeningW / 2 + lipSideW / 2), plugOpeningH / 4, usbEndZ + p.frontLip / 2);
+                lidParts.push(lidLipSide);
             });
 
-            // D) Semicilindro superior del protector de cable (ancho = effectiveRearW)
+            // D) Semicilindro superior del protector de cable (Y >= 0, arco hacia +Y)
             const lidStrainShape = new THREE.Shape();
             lidStrainShape.moveTo(-hwRear, 0);
             lidStrainShape.lineTo(-hwRear, halfCavUsbH);
             lidStrainShape.lineTo(hwRear, halfCavUsbH);
             lidStrainShape.lineTo(hwRear, 0);
             lidStrainShape.lineTo(rStrain, 0);
-            lidStrainShape.absarc(0, 0, rStrain, 0, Math.PI, false);
+            lidStrainShape.absarc(0, 0, rStrain, 0, Math.PI, false); // Arco hacia +Y (hueco semicircular arriba)
             lidStrainShape.closePath();
 
             const lidStrainExtrude = new THREE.ExtrudeGeometry(lidStrainShape, {
@@ -728,43 +742,76 @@
             lidStrainExtrude.translate(0, 0, strainStartZ);
             lidParts.push(lidStrainExtrude);
 
-            // E) Pared trasera superior con salida de cable (ancho = effectiveRearW)
-            const lidExitShape = new THREE.Shape();
-            lidExitShape.moveTo(-hwRear, 0);
-            lidExitShape.lineTo(-hwRear, halfCavUsbH);
-            lidExitShape.lineTo(hwRear, halfCavUsbH);
-            lidExitShape.lineTo(hwRear, 0);
-            lidExitShape.lineTo(rExit, 0);
-            lidExitShape.absarc(0, 0, rExit, 0, Math.PI, false);
-            lidExitShape.closePath();
+            // E) Pared trasera superior con hueco para el cable (Y >= 0)
+            if (p.openRearSlot) {
+                const lidExitLeftShape = new THREE.Shape();
+                lidExitLeftShape.moveTo(-hwRear, 0);
+                lidExitLeftShape.lineTo(-hwRear, halfCavUsbH);
+                lidExitLeftShape.lineTo(-rExit, halfCavUsbH);
+                lidExitLeftShape.lineTo(-rExit, 0);
+                lidExitLeftShape.closePath();
 
-            const lidExitExtrude = new THREE.ExtrudeGeometry(lidExitShape, {
-                depth: exitWallL,
-                bevelEnabled: false,
-                curveSegments: 24
-            });
-            lidExitExtrude.translate(0, 0, rearEndZ);
-            lidParts.push(lidExitExtrude);
+                const lidExitLeft = new THREE.ExtrudeGeometry(lidExitLeftShape, { depth: exitWallL, bevelEnabled: false });
+                lidExitLeft.translate(0, 0, rearEndZ);
+                lidParts.push(lidExitLeft);
 
-            // Fusionar partes limpiamente en mallas estancas (manifold)
-            const baseGeo = mergeNormalized(baseParts);
-            const lidGeo = mergeNormalized(lidParts);
+                const lidExitRightShape = new THREE.Shape();
+                lidExitRightShape.moveTo(rExit, 0);
+                lidExitRightShape.lineTo(rExit, halfCavUsbH);
+                lidExitRightShape.lineTo(hwRear, halfCavUsbH);
+                lidExitRightShape.lineTo(hwRear, 0);
+                lidExitRightShape.closePath();
+
+                const lidExitRight = new THREE.ExtrudeGeometry(lidExitRightShape, { depth: exitWallL, bevelEnabled: false });
+                lidExitRight.translate(0, 0, rearEndZ);
+                lidParts.push(lidExitRight);
+            } else {
+                const lidExitShape = new THREE.Shape();
+                lidExitShape.moveTo(-hwRear, 0);
+                lidExitShape.lineTo(-hwRear, halfCavUsbH);
+                lidExitShape.lineTo(hwRear, halfCavUsbH);
+                lidExitShape.lineTo(hwRear, 0);
+                lidExitShape.lineTo(rExit, 0);
+                lidExitShape.absarc(0, 0, rExit, 0, Math.PI, false); // Arco hacia +Y (mitad superior del túnel)
+                lidExitShape.closePath();
+
+                const lidExitExtrude = new THREE.ExtrudeGeometry(lidExitShape, {
+                    depth: exitWallL,
+                    bevelEnabled: false,
+                    curveSegments: 24
+                });
+                lidExitExtrude.translate(0, 0, rearEndZ);
+                lidParts.push(lidExitExtrude);
+            }
+
+            // Fusionar subpartes en dos geometrías limpias y estancas
+            const baseGeom = THREE.BufferGeometryUtils.mergeBufferGeometries(
+                baseParts.map(ensureNonIndexedNormalGeometry),
+                false
+            );
+            const lidGeom = THREE.BufferGeometryUtils.mergeBufferGeometries(
+                lidParts.map(ensureNonIndexedNormalGeometry),
+                false
+            );
+
+            baseGeom.computeVertexNormals();
+            lidGeom.computeVertexNormals();
 
             return {
-                baseGeo,
-                lidGeo,
+                baseGeom,
+                lidGeom,
                 metrics: {
-                    outerW: effectiveFrontW,
-                    rearOuterW: effectiveRearW,
+                    effectiveFrontW,
+                    effectiveRearW,
                     outerH,
                     halfH,
-                    totalLenZ: frontEndZ - rearEndZ,
                     rearEndZ,
                     strainStartZ,
                     strainEndZ,
                     usbStartZ,
                     usbEndZ,
                     frontEndZ,
+                    totalLengthZ: frontEndZ - rearEndZ,
                     cavUsbW,
                     cavUsbH,
                     cavUsbL,
@@ -774,429 +821,579 @@
             };
         }
 
-        function mergeNormalized(geoArray) {
-            const norm = geoArray.map(g => {
-                const ni = g.index ? g.toNonIndexed() : g.clone();
-                if (!ni.attributes.normal) ni.computeVertexNormals();
-                if (ni.attributes.uv) ni.deleteAttribute('uv');
-                return ni;
-            });
-            const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(norm, false);
-            merged.computeVertexNormals();
-            return merged;
+        // =========================================================================
+        // 4. ACTUALIZACIÓN DE ESCENA 3D, SLICER POR CAPAS Y REFERENCIA XIAOMI
+        // =========================================================================
+        let currentBaseMesh = null;
+        let currentLidMesh = null;
+        let latestBuildData = null;
+
+        function clearGroup(grp) {
+            while (grp.children.length > 0) {
+                const obj = grp.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                grp.remove(obj);
+            }
         }
 
-        // ============================================================================
-        // 4. ACTUALIZACIÓN DE ESCENA, VISTA IMPRESIÓN Z=0 VS ENSAMBLAJE Y SLICER
-        // ============================================================================
         function rebuildScene() {
-            disposeGroup(exportableGroup);
-            disposeGroup(layerLinesGroup);
-            disposeGroup(assemblyPivotGroup);
-            disposeGroup(referenceGroup);
-            disposeGroup(dimensionsGroup);
+            clearGroup(cadGroup);
+            clearGroup(referenceGroup);
+            clearGroup(layerLinesGroup);
 
-            const p = currentParams;
-            const { baseGeo, lidGeo, metrics } = generateTwoPieceGeometries(p);
+            const data = generateTwoPieceGeometries(currentParams);
+            latestBuildData = data;
+            const { baseGeom, lidGeom, metrics } = data;
 
-            const baseMat = new THREE.MeshStandardMaterial({
-                color: 0xf8fafc,
-                roughness: 0.35,
-                metalness: 0.05,
-                clippingPlanes: [clippingPlane],
-                clipShadows: true,
-                side: THREE.DoubleSide
+            // Configurar malla Base y Tapa según modo de vista
+            currentBaseMesh = new THREE.Mesh(baseGeom, baseMaterial);
+            currentLidMesh = new THREE.Mesh(lidGeom, lidMaterial);
+            currentBaseMesh.castShadow = true;
+            currentBaseMesh.receiveShadow = true;
+            currentLidMesh.castShadow = true;
+            currentLidMesh.receiveShadow = true;
+
+            const isPrintBed = currentParams.viewMode === 'print_bed';
+            let maxPrintZ = metrics.halfH;
+
+            if (isPrintBed) {
+                // En cama de impresión: ambas piezas apoyadas sobre sus caras planas exteriores en Y=0
+                const gapX = Math.max(metrics.effectiveFrontW, metrics.effectiveRearW) * 0.72 + 4.0;
+                const centerZOffset = -(metrics.rearEndZ + metrics.totalLengthZ / 2);
+
+                // Base apoyada en su fondo plano (-halfH -> 0)
+                currentBaseMesh.position.set(-gapX, metrics.halfH, centerZOffset);
+
+                // Tapa volteada 180° en Z para apoyar su techo plano (+halfH -> 0)
+                currentLidMesh.rotation.z = Math.PI;
+                currentLidMesh.position.set(gapX, metrics.halfH, centerZOffset);
+
+                cadGroup.add(currentBaseMesh);
+                cadGroup.add(currentLidMesh);
+                maxPrintZ = metrics.halfH + Math.max(0.5, currentParams.clipSnapDepth);
+            } else {
+                // En modo ensamblaje y giro dentro de la horquilla Xiaomi
+                const pivotGroup = new THREE.Group();
+                pivotGroup.position.set(0, 12, 0);
+                pivotGroup.rotation.x = THREE.MathUtils.degToRad(-currentParams.previewAngle);
+
+                currentBaseMesh.position.set(0, -currentParams.explodeOffset / 2, 0);
+                currentLidMesh.position.set(0, currentParams.explodeOffset / 2, 0);
+
+                pivotGroup.add(currentBaseMesh);
+                pivotGroup.add(currentLidMesh);
+
+                // Silueta semitransparente del conector USB sustituto (15x7x10.5 mm + Ø5x8 mm + clavija USB-A)
+                const usbGhostGroup = createUsbGhostModel(currentParams, metrics);
+                pivotGroup.add(usbGhostGroup);
+
+                cadGroup.add(pivotGroup);
+
+                // Silueta de la horquilla del Xiaomi Mi WiFi Repeater 2
+                const xiaomiGhost = createXiaomiForkGhost(currentParams, metrics);
+                xiaomiGhost.position.set(0, 12, 0);
+                referenceGroup.add(xiaomiGhost);
+
+                maxPrintZ = 12 + metrics.totalLengthZ + 6;
+            }
+
+            // Actualizar rango del deslizador Slicer según altura real de la vista actual
+            const sliceInput = document.getElementById('sliceHeight');
+            const prevMax = parseFloat(sliceInput.max);
+            const wasAtTop = currentParams.sliceHeight >= prevMax - 0.25;
+            const newMax = Number((maxPrintZ + 0.4).toFixed(1));
+            sliceInput.max = newMax;
+            if (wasAtTop || currentParams.sliceHeight > newMax) {
+                currentParams.sliceHeight = newMax;
+                sliceInput.value = newMax;
+            }
+            updateSlicerPlane(newMax);
+
+            // Generar líneas visuales de capas horizontales (0.2 mm)
+            if (currentParams.showLayerLines) {
+                buildLayerContourLines(newMax);
+            }
+
+            // Actualizar métricas de volumen y triángulos
+            updateDiagnostics(baseGeom, lidGeom, metrics, isPrintBed);
+        }
+
+        function createUsbGhostModel(p, m) {
+            const grp = new THREE.Group();
+            const matBody = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                transparent: true,
+                opacity: 0.42,
+                roughness: 0.5
+            });
+            const matMetal = new THREE.MeshStandardMaterial({
+                color: 0xcbd5e1,
+                transparent: true,
+                opacity: 0.65,
+                metalness: 0.7,
+                roughness: 0.25
             });
 
-            const lidMat = new THREE.MeshStandardMaterial({
-                color: 0xe2e8f0,
-                roughness: 0.38,
-                metalness: 0.05,
-                clippingPlanes: [clippingPlane],
-                clipShadows: true,
-                side: THREE.DoubleSide
-            });
+            // Cuerpo sobremoldeado USB (15 x 7 x 10.5 mm)
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(p.usbBodyWidth, p.usbBodyHeight, p.usbBodyLength),
+                matBody
+            );
+            body.position.set(0, 0, m.usbStartZ + m.cavUsbL / 2);
+            grp.add(body);
 
-            const edgeMat = new THREE.LineBasicMaterial({
+            // Protector cilíndrico del cable (Ø 5 x 8 mm)
+            const strain = new THREE.Mesh(
+                new THREE.CylinderGeometry(p.strainDia / 2, p.strainDia / 2, p.strainLength, 24),
+                matBody
+            );
+            strain.rotation.x = Math.PI / 2;
+            strain.position.set(0, 0, m.strainStartZ + m.cavStrainL / 2);
+            grp.add(strain);
+
+            // Cable trasero saliendo hacia el repetidor
+            const cable = new THREE.Mesh(
+                new THREE.CylinderGeometry(p.cableExitDia / 2 - 0.2, p.cableExitDia / 2 - 0.2, 10, 18),
+                matBody
+            );
+            cable.rotation.x = Math.PI / 2;
+            cable.position.set(0, 0, m.rearEndZ - 3.5);
+            grp.add(cable);
+
+            // Clavija metálica USB-A delantera (12 x 4.5 x 12 mm)
+            const plug = new THREE.Mesh(
+                new THREE.BoxGeometry(12.0, 4.5, 12.0),
+                matMetal
+            );
+            plug.position.set(0, 0, m.frontEndZ + 5.8);
+            grp.add(plug);
+
+            return grp;
+        }
+
+        function createXiaomiForkGhost(p, m) {
+            const grp = new THREE.Group();
+            const matXiaomi = new THREE.MeshStandardMaterial({
                 color: 0x64748b,
                 transparent: true,
-                opacity: 0.45,
-                clippingPlanes: [clippingPlane]
+                opacity: 0.22,
+                roughness: 0.4
             });
 
-            baseMeshObj = new THREE.Mesh(baseGeo, baseMat);
-            baseMeshObj.castShadow = true;
-            baseMeshObj.receiveShadow = true;
+            const forkInnerW = p.forkWidth;
+            const armThickness = 3.2;
+            const armLenZ = 18;
+            const armH = 13;
 
-            lidMeshObj = new THREE.Mesh(lidGeo, lidMat);
-            lidMeshObj.castShadow = true;
-            lidMeshObj.receiveShadow = true;
-
-            const baseEdges = new THREE.LineSegments(new THREE.EdgesGeometry(baseGeo, 30), edgeMat);
-            const lidEdges = new THREE.LineSegments(new THREE.EdgesGeometry(lidGeo, 30), edgeMat);
-
-            const sepX = metrics.outerW / 2 + 3.5;
-
-            if (p.viewMode === 'print_bed') {
-                baseMeshObj.position.set(-sepX, metrics.halfH, -metrics.rearEndZ - metrics.totalLenZ / 2);
-                baseEdges.position.copy(baseMeshObj.position);
-
-                lidMeshObj.rotation.z = Math.PI;
-                lidMeshObj.position.set(sepX, metrics.halfH, -metrics.rearEndZ - metrics.totalLenZ / 2);
-                lidEdges.rotation.copy(lidMeshObj.rotation);
-                lidEdges.position.copy(lidMeshObj.position);
-
-                exportableGroup.add(baseMeshObj, lidMeshObj, baseEdges, lidEdges);
-                document.getElementById('assembly-controls').style.opacity = '0.45';
-                document.getElementById('assembly-controls').style.pointerEvents = 'none';
-
-                if (p.showLayerLines) {
-                    buildLayerPreviewLines(metrics, sepX);
-                }
-            } else {
-                assemblyPivotGroup.position.set(0, 14, 0);
-                assemblyPivotGroup.rotation.x = THREE.MathUtils.degToRad(p.previewAngle);
-
-                baseMeshObj.position.set(0, -p.explodeOffset * 0.5, 0);
-                baseEdges.position.copy(baseMeshObj.position);
-
-                lidMeshObj.position.set(0, p.explodeOffset * 0.5, 0);
-                lidEdges.position.copy(lidMeshObj.position);
-
-                assemblyPivotGroup.add(baseMeshObj, lidMeshObj, baseEdges, lidEdges);
-                document.getElementById('assembly-controls').style.opacity = '1';
-                document.getElementById('assembly-controls').style.pointerEvents = 'auto';
-
-                buildAssemblyReferences(p, metrics);
-            }
-
-            // Actualizar rango y posición del corte por capas (Slicer Preview)
-            const maxH = metrics.halfH;
-            const totalLayers = Math.ceil(maxH / 0.2);
-            const sliceSlider = document.getElementById('sliceHeight');
-            sliceSlider.max = (maxH + 0.4).toFixed(1);
-
-            if (p.sliceHeight >= maxH) {
-                clippingPlane.constant = 100;
-                slicerPlaneMesh.visible = false;
-                document.getElementById('val-sliceHeight').textContent = 'Completo';
-                document.getElementById('val-layerCount').textContent = `Capa ${totalLayers}/${totalLayers}`;
-            } else {
-                const currentLayer = Math.max(1, Math.round(p.sliceHeight / 0.2));
-                clippingPlane.constant = p.sliceHeight;
-                slicerPlaneMesh.visible = true;
-                slicerPlaneMesh.position.y = p.sliceHeight;
-                document.getElementById('val-sliceHeight').textContent = `${p.sliceHeight.toFixed(1)} mm`;
-                document.getElementById('val-layerCount').textContent = `Capa ${currentLayer}/${totalLayers}`;
-            }
-
-            if (p.showDimensions) {
-                build3DDimensions(p, metrics, sepX);
-            }
-
-            runMeshCheck(baseGeo, lidGeo, metrics, sepX);
-        }
-
-        function buildLayerPreviewLines(m, sepX) {
-            // Dibuja líneas horizontales sutiles cada 0.2 mm sobre ambas piezas en la cama para previsualizar capas FDM
-            const layerH = 0.2;
-            const maxY = Math.min(m.halfH, currentParams.sliceHeight);
-            const lineMat = new THREE.LineBasicMaterial({
-                color: 0xea580c,
-                transparent: true,
-                opacity: 0.22
-            });
-
-            const halfL = m.totalLenZ / 2;
-            const hwFront = m.outerW / 2 + 0.03;
-            const pts = [];
-
-            for (let y = layerH; y < maxY; y += layerH) {
-                [-sepX, sepX].forEach(cx => {
-                    pts.push(new THREE.Vector3(cx - hwFront, y, -halfL), new THREE.Vector3(cx + hwFront, y, -halfL));
-                    pts.push(new THREE.Vector3(cx + hwFront, y, -halfL), new THREE.Vector3(cx + hwFront, y, halfL));
-                    pts.push(new THREE.Vector3(cx + hwFront, y, halfL), new THREE.Vector3(cx - hwFront, y, halfL));
-                    pts.push(new THREE.Vector3(cx - hwFront, y, halfL), new THREE.Vector3(cx - hwFront, y, -halfL));
-                });
-            }
-
-            if (pts.length > 0) {
-                const geo = new THREE.BufferGeometry().setFromPoints(pts);
-                layerLinesGroup.add(new THREE.LineSegments(geo, lineMat));
-            }
-        }
-
-        function buildAssemblyReferences(p, m) {
-            const usbSimGroup = new THREE.Group();
-
-            // Protector cilíndrico de cable (Ø 5 x 8 mm)
-            const strainMat = new THREE.MeshStandardMaterial({
-                color: 0xf97316, transparent: true, opacity: 0.45, roughness: 0.4, depthWrite: false
-            });
-            const strainMesh = new THREE.Mesh(
-                new THREE.CylinderGeometry(p.strainDia / 2, p.strainDia / 2, p.strainLength, 24),
-                strainMat
-            );
-            strainMesh.rotation.x = Math.PI / 2;
-            strainMesh.position.set(0, 0, m.strainStartZ + m.cavStrainL / 2);
-            usbSimGroup.add(strainMesh);
-
-            // Cable saliendo hacia atrás
-            const cableMesh = new THREE.Mesh(
-                new THREE.CylinderGeometry(p.cableExitDia * 0.42, p.cableExitDia * 0.42, 16, 16),
-                strainMat
-            );
-            cableMesh.rotation.x = Math.PI / 2;
-            cableMesh.position.set(0, 0, m.rearEndZ - 6);
-            usbSimGroup.add(cableMesh);
-
-            // Cuerpo sobremoldeado del USB (15 x 7 x 10.5 mm)
-            const bodyMat = new THREE.MeshStandardMaterial({
-                color: 0x3b82f6, transparent: true, opacity: 0.42, roughness: 0.3, depthWrite: false
-            });
-            const bodyMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(p.usbBodyWidth, p.usbBodyHeight, p.usbBodyLength),
-                bodyMat
-            );
-            bodyMesh.position.set(0, 0, m.usbStartZ + m.cavUsbL / 2);
-            usbSimGroup.add(bodyMesh);
-
-            // Clavija metálica USB-A asomando por delante
-            const metalMat = new THREE.MeshStandardMaterial({
-                color: 0x64748b, transparent: true, opacity: 0.55, metalness: 0.7, roughness: 0.2, depthWrite: false
-            });
-            const plugMesh = new THREE.Mesh(new THREE.BoxGeometry(12.0, 4.5, 12.5), metalMat);
-            plugMesh.position.set(0, 0, m.frontEndZ + 6.0);
-            usbSimGroup.add(plugMesh);
-
-            assemblyPivotGroup.add(usbSimGroup);
-
-            // Silueta de la horquilla del Xiaomi Mi WiFi Repeater 2 adaptada al ancho forkWidth
-            const xBodyMat = new THREE.MeshStandardMaterial({
-                color: 0x94a3b8, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide
-            });
-            const xWireMat = new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.32 });
-
-            const visualForkW = Math.max(m.rearOuterW + 0.3, p.forkWidth);
-            const repW = Math.max(visualForkW + 3.6, m.outerW + 2.0);
-            const repH = 12.8;
-            const armW = (repW - visualForkW) / 2;
-
+            // Brazos laterales izquierdo y derecho de la horquilla Xiaomi con alojamientos de pivote independientes
             [-1, 1].forEach(side => {
-                const armGeo = new THREE.BoxGeometry(armW, repH, Math.abs(m.rearEndZ) + 6);
-                const arm = new THREE.Mesh(armGeo, xBodyMat);
-                arm.position.set(side * (visualForkW / 2 + armW / 2), 14, -2.5);
-                referenceGroup.add(arm);
+                const arm = new THREE.Mesh(
+                    new THREE.BoxGeometry(armThickness, armH, armLenZ),
+                    matXiaomi
+                );
+                arm.position.set(side * (forkInnerW / 2 + armThickness / 2), 0, -armLenZ / 2 + 4.5);
+                grp.add(arm);
 
-                const armEdge = new THREE.LineSegments(new THREE.EdgesGeometry(armGeo), xWireMat);
-                armEdge.position.copy(arm.position);
-                referenceGroup.add(armEdge);
+                // Anillo indicador del taladro de pivote correspondiente (-X o +X)
+                const holeDia = side === -1 ? p.pinDiaLeft : p.pinDiaRight;
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(holeDia / 2, holeDia / 2 + 0.55, 24),
+                    new THREE.MeshBasicMaterial({ color: 0xf97316, side: THREE.DoubleSide })
+                );
+                ring.rotation.y = Math.PI / 2;
+                ring.position.set(side * (forkInnerW / 2 + 0.05), 0, 0);
+                grp.add(ring);
             });
 
-            const mainGeo = new THREE.BoxGeometry(repW, repH, 74);
-            const mainBody = new THREE.Mesh(mainGeo, xBodyMat);
-            mainBody.position.set(0, 14, m.rearEndZ - 39.5);
-            referenceGroup.add(mainBody);
+            // Cuerpo principal trasero del Xiaomi Repeater 2
+            const mainBody = new THREE.Mesh(
+                new THREE.BoxGeometry(forkInnerW + armThickness * 2, armH, 24),
+                matXiaomi
+            );
+            mainBody.position.set(0, 0, -armLenZ - 7.5);
+            grp.add(mainBody);
 
-            const mainEdge = new THREE.LineSegments(new THREE.EdgesGeometry(mainGeo), xWireMat);
-            mainEdge.position.copy(mainBody.position);
-            referenceGroup.add(mainEdge);
+            return grp;
         }
 
-        function build3DDimensions(p, m, sepX) {
-            const lineMat = new THREE.LineBasicMaterial({ color: 0xea580c });
-            if (p.viewMode === 'print_bed') {
-                const halfL = m.totalLenZ / 2;
-                const xPos = -sepX - m.outerW / 2 - 2.5;
-                const pts = [
-                    new THREE.Vector3(xPos, 0.1, -halfL),
-                    new THREE.Vector3(xPos, 0.1, halfL)
-                ];
-                const geo = new THREE.BufferGeometry().setFromPoints(pts);
-                dimensionsGroup.add(new THREE.Line(geo, lineMat));
+        function updateSlicerPlane(maxZ) {
+            const h = currentParams.sliceHeight;
+            slicerClipPlane.constant = h;
+            const isSlicing = h < maxZ - 0.15;
+            slicePlaneMesh.visible = isSlicing;
+            slicePlaneMesh.position.y = h;
+
+            const pct = Math.min(100, Math.round((h / maxZ) * 100));
+            document.getElementById('sliceHeightVal').textContent = `${h.toFixed(1)} mm (${pct}%)`;
+        }
+
+        function buildLayerContourLines(maxZ) {
+            // Dibuja líneas horizontales de referencia cada 0.6 mm (3 capas de 0.2 mm) para visualizar el laminado
+            const lineMat = new THREE.LineBasicMaterial({
+                color: currentParams.bgDarkness > 50 ? 0xfbbf24 : 0x1e293b,
+                transparent: true,
+                opacity: 0.16
+            });
+
+            const stepY = 0.6;
+            const points = [];
+            const limitY = Math.min(currentParams.sliceHeight, maxZ);
+
+            for (let y = 0.2; y <= limitY; y += stepY) {
+                points.push(new THREE.Vector3(-24, y, -16), new THREE.Vector3(24, y, -16));
+                points.push(new THREE.Vector3(24, y, -16), new THREE.Vector3(24, y, 16));
+                points.push(new THREE.Vector3(24, y, 16), new THREE.Vector3(-24, y, 16));
+                points.push(new THREE.Vector3(-24, y, 16), new THREE.Vector3(-24, y, -16));
+            }
+
+            if (points.length > 0) {
+                const geom = new THREE.BufferGeometry().setFromPoints(points);
+                const lines = new THREE.LineSegments(geom, lineMat);
+                layerLinesGroup.add(lines);
             }
         }
 
-        // ============================================================================
-        // 5. VALIDACIÓN DE INTEGRIDAD DE MALLA (MESH CHECK: TRIÁNGULOS, VOLUMEN, MANIFOLD)
-        // ============================================================================
-        function computeSignedVolumeCm3(geo) {
-            const pos = geo.attributes.position.array;
+        function computeMeshVolumeCm3(geometry) {
+            const pos = geometry.attributes.position;
             let vol = 0;
-            for (let i = 0; i < pos.length; i += 9) {
-                const ax = pos[i], ay = pos[i + 1], az = pos[i + 2];
-                const bx = pos[i + 3], by = pos[i + 4], bz = pos[i + 5];
-                const cx = pos[i + 6], cy = pos[i + 7], cz = pos[i + 8];
-                vol += (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6.0;
+            const vA = new THREE.Vector3();
+            const vB = new THREE.Vector3();
+            const vC = new THREE.Vector3();
+            for (let i = 0; i < pos.count; i += 3) {
+                vA.fromBufferAttribute(pos, i);
+                vB.fromBufferAttribute(pos, i + 1);
+                vC.fromBufferAttribute(pos, i + 2);
+                vol += vA.dot(vB.cross(vC)) / 6.0;
             }
             return Math.abs(vol) / 1000.0; // mm³ -> cm³
         }
 
-        function runMeshCheck(baseGeo, lidGeo, metrics, sepX) {
-            const triBase = baseGeo.attributes.position.count / 3;
-            const triLid = lidGeo.attributes.position.count / 3;
+        function updateDiagnostics(baseGeom, lidGeom, metrics, isPrintBed) {
+            const triBase = baseGeom.attributes.position.count / 3;
+            const triLid = lidGeom.attributes.position.count / 3;
             const totalTris = Math.round(triBase + triLid);
 
-            const volCm3 = computeSignedVolumeCm3(baseGeo) + computeSignedVolumeCm3(lidGeo);
+            const volCm3 = computeMeshVolumeCm3(baseGeom) + computeMeshVolumeCm3(lidGeom);
+            const totalW = isPrintBed
+                ? (metrics.effectiveFrontW * 2 + 8).toFixed(1)
+                : metrics.effectiveFrontW.toFixed(1);
+            const totalL = metrics.totalLengthZ.toFixed(1);
+            const totalH = isPrintBed
+                ? (metrics.halfH + currentParams.clipSnapDepth).toFixed(1)
+                : metrics.outerH.toFixed(1);
 
-            let valid = totalTris > 0 && volCm3 > 0.05;
-            const posA = baseGeo.attributes.position.array;
-            for (let i = 0; i < posA.length; i += 3) {
-                if (isNaN(posA[i])) { valid = false; break; }
-            }
-
-            const dot = document.getElementById('mesh-dot');
-            const txt = document.getElementById('mesh-status-text');
-            const volEl = document.getElementById('mesh-vol-text');
-            const triEl = document.getElementById('mesh-tri-count');
-
-            triEl.textContent = `${totalTris} tris`;
-            volEl.textContent = `${volCm3.toFixed(2)} cm³`;
-
-            if (valid) {
-                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
-                txt.textContent = 'Malla válida / Estanca';
-                txt.className = 'font-semibold text-emerald-800';
-            } else {
-                dot.className = 'w-2 h-2 rounded-full bg-red-500';
-                txt.textContent = 'Error de geometría';
-                txt.className = 'font-semibold text-red-700';
-            }
-
-            const maxPieceSpanX = Math.max(metrics.outerW, metrics.rearOuterW + currentParams.pinLength * 2);
-            const totalBedX = (sepX * 2) + maxPieceSpanX;
-            const totalBedY = metrics.totalLenZ;
-            const totalBedZ = metrics.halfH;
-
-            document.getElementById('dim-x').textContent = totalBedX.toFixed(1);
-            document.getElementById('dim-y').textContent = totalBedY.toFixed(1);
-            document.getElementById('dim-z').textContent = totalBedZ.toFixed(1);
+            document.getElementById('polyCountBadge').textContent = `${totalTris.toLocaleString()} triángulos`;
+            document.getElementById('dimXY').textContent = `${totalW} × ${totalL} mm`;
+            document.getElementById('dimZ').textContent = `${totalH} mm`;
+            document.getElementById('volCm3').textContent = `${volCm3.toFixed(2)} cm³`;
         }
 
-        // ============================================================================
-        // 6. EXPORTACIÓN DIRECTA A ARCHIVO BINARIO .STL (BASE + TAPA EN Z=0)
-        // ============================================================================
+        // =========================================================================
+        // 5. ETIQUETAS DIMENSIONALES 3D PROYECTADAS EN CANVAS
+        // =========================================================================
+        function update3DLabels() {
+            const overlay = document.getElementById('labelsOverlay');
+            if (!currentParams.showDimensions || !latestBuildData) {
+                overlay.innerHTML = '';
+                return;
+            }
+
+            const m = latestBuildData.metrics;
+            const isPrintBed = currentParams.viewMode === 'print_bed';
+            const gapX = Math.max(m.effectiveFrontW, m.effectiveRearW) * 0.72 + 4.0;
+
+            const anchors = isPrintBed
+                ? [
+                    { text: `BASE INFERIOR (Pivotes Ø${currentParams.pinDiaLeft}/${currentParams.pinDiaRight} mm)`, pos: new THREE.Vector3(-gapX, m.halfH + 2.2, 0), color: '#ea580c' },
+                    { text: `TAPA SUPERIOR CLIP`, pos: new THREE.Vector3(gapX, m.halfH + 2.2, 0), color: '#0284c7' },
+                    { text: `Horquilla: ${m.effectiveRearW.toFixed(1)} mm`, pos: new THREE.Vector3(-gapX, 0.5, -m.totalLengthZ / 2 - 2), color: '#475569' }
+                ]
+                : [
+                    { text: `Cuerpo USB: ${currentParams.usbBodyWidth}×${currentParams.usbBodyHeight}×${currentParams.usbBodyLength} mm`, pos: new THREE.Vector3(0, 12 + m.halfH + 2.5, m.usbStartZ + m.cavUsbL / 2), color: '#ea580c' },
+                    { text: `Protector cable: Ø${currentParams.strainDia}×${currentParams.strainLength} mm`, pos: new THREE.Vector3(0, 12 - m.halfH - 2.5, m.strainStartZ + m.cavStrainL / 2), color: '#0284c7' }
+                ];
+
+            const rect = canvas.getBoundingClientRect();
+            let html = '';
+            anchors.forEach(item => {
+                const projected = item.pos.clone().project(camera);
+                if (projected.z < 1) {
+                    const x = (projected.x * 0.5 + 0.5) * rect.width;
+                    const y = (-projected.y * 0.5 + 0.5) * rect.height;
+                    html += `<div style="transform: translate(-50%, -50%); left: ${x}px; top: ${y}px; border-color: ${item.color}; color: ${item.color};"
+                        class="absolute bg-white/90 backdrop-blur-sm border px-2 py-0.5 rounded-md text-[10px] font-mono-code font-semibold shadow-sm whitespace-nowrap">
+                        ${item.text}
+                    </div>`;
+                }
+            });
+            overlay.innerHTML = html;
+        }
+
+        // =========================================================================
+        // 6. EXPORTACIÓN A STL BINARIO LIMPIO (AMBAS PIEZAS APOYADAS EN Z=0)
+        // =========================================================================
         function exportBinarySTL() {
-            try {
-                const { baseGeo, lidGeo, metrics } = generateTwoPieceGeometries(currentParams);
-                const sepX = metrics.outerW / 2 + 3.5;
+            const { baseGeom, lidGeom, metrics } = generateTwoPieceGeometries(currentParams);
+            const gapX = Math.max(metrics.effectiveFrontW, metrics.effectiveRearW) * 0.72 + 4.0;
+            const centerZOffset = -(metrics.rearEndZ + metrics.totalLengthZ / 2);
 
-                const bExport = baseGeo.clone();
-                bExport.translate(-sepX, metrics.halfH, -metrics.rearEndZ - metrics.totalLenZ / 2);
-                bExport.rotateX(Math.PI / 2);
-                bExport.computeBoundingBox();
-                bExport.translate(0, 0, -bExport.boundingBox.min.z);
+            // Clonar y posicionar exactamente apoyadas en cama (Z = 0 en sistema STL estándar)
+            const basePrint = baseGeom.clone();
+            basePrint.translate(-gapX, metrics.halfH, centerZOffset);
+            // Convertir de Three.js (Y arriba) a STL estándar (Z arriba)
+            basePrint.rotateX(Math.PI / 2);
 
-                const lExport = lidGeo.clone();
-                lExport.rotateZ(Math.PI);
-                lExport.translate(sepX, metrics.halfH, -metrics.rearEndZ - metrics.totalLenZ / 2);
-                lExport.rotateX(Math.PI / 2);
-                lExport.computeBoundingBox();
-                lExport.translate(0, 0, -lExport.boundingBox.min.z);
+            const lidPrint = lidGeom.clone();
+            lidPrint.rotateZ(Math.PI);
+            lidPrint.translate(gapX, metrics.halfH, centerZOffset);
+            lidPrint.rotateX(Math.PI / 2);
 
-                const combinedSTLGeo = mergeNormalized([bExport, lExport]);
-                const exportMesh = new THREE.Mesh(combinedSTLGeo);
+            // Asegurar que la coordenada Z mínima sea exactamente 0.000
+            basePrint.computeBoundingBox();
+            lidPrint.computeBoundingBox();
+            const minZ = Math.min(basePrint.boundingBox.min.z, lidPrint.boundingBox.min.z);
+            basePrint.translate(0, 0, -minZ);
+            lidPrint.translate(0, 0, -minZ);
 
-                const exporter = new THREE.STLExporter();
-                const stlBinary = exporter.parse(exportMesh, { binary: true });
+            const mergedSTL = THREE.BufferGeometryUtils.mergeBufferGeometries(
+                [ensureNonIndexedNormalGeometry(basePrint), ensureNonIndexedNormalGeometry(lidPrint)],
+                false
+            );
+            mergedSTL.computeVertexNormals();
 
-                const blob = new Blob([stlBinary], { type: 'application/octet-stream' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `adaptador_usb_xiaomi_horquilla_${currentParams.forkWidth.toFixed(1)}mm.stl`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+            const pos = mergedSTL.attributes.position;
+            const norm = mergedSTL.attributes.normal;
+            const triangleCount = pos.count / 3;
 
-                baseGeo.dispose();
-                lidGeo.dispose();
-                bExport.dispose();
-                lExport.dispose();
-                combinedSTLGeo.dispose();
+            const bufferLength = 84 + triangleCount * 50;
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
 
-                showToast('STL binario exportado (Base + Tapa apoyadas en Z=0).');
-            } catch (err) {
-                console.error(err);
-                showToast('Error al exportar el archivo STL.');
+            const headerText = 'Xiaomi Mi WiFi Repeater 2 USB 2-Piece Adapter STL';
+            for (let i = 0; i < 80; i++) {
+                view.setUint8(i, i < headerText.length ? headerText.charCodeAt(i) : 0);
             }
+            view.setUint32(80, triangleCount, true);
+
+            let offset = 84;
+            for (let i = 0; i < triangleCount; i++) {
+                const idx = i * 3;
+                view.setFloat32(offset, norm.getX(idx), true);
+                view.setFloat32(offset + 4, norm.getY(idx), true);
+                view.setFloat32(offset + 8, norm.getZ(idx), true);
+                offset += 12;
+
+                for (let v = 0; v < 3; v++) {
+                    view.setFloat32(offset, pos.getX(idx + v), true);
+                    view.setFloat32(offset + 4, pos.getY(idx + v), true);
+                    view.setFloat32(offset + 8, pos.getZ(idx + v), true);
+                    offset += 12;
+                }
+                view.setUint16(offset, 0, true);
+                offset += 2;
+            }
+
+            const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `xiaomi_repeater2_usb_adapter_H${currentParams.forkWidth}_P${currentParams.pinDiaLeft}-${currentParams.pinDiaRight}.stl`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast(`STL exportado (${triangleCount.toLocaleString()} triángulos)`);
         }
 
-        // ============================================================================
-        // 7. CONTROLES UI, UNDO (5 PASOS), PERSISTENCIA LOCALSTORAGE Y JSON
-        // ============================================================================
-        function buildUIControls() {
+        // =========================================================================
+        // 7. GESTIÓN DE INTERFAZ, UNDO (5 PASOS), LOCALSTORAGE Y JSON
+        // =========================================================================
+        function showToast(msg) {
+            const el = document.getElementById('toastMsg');
+            el.textContent = msg;
+            el.classList.remove('opacity-0');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(() => el.classList.add('opacity-0'), 2600);
+        }
+
+        function pushUndoState() {
+            undoStack.push(JSON.stringify(currentParams));
+            if (undoStack.length > 5) {
+                undoStack.shift();
+            }
+            updateUndoButton();
+        }
+
+        function updateUndoButton() {
+            const btn = document.getElementById('undoBtn');
+            const badge = document.getElementById('undoCount');
+            btn.disabled = undoStack.length === 0;
+            badge.textContent = `${undoStack.length}/5`;
+        }
+
+        function performUndo() {
+            if (undoStack.length === 0) return;
+            const prev = JSON.parse(undoStack.pop());
+            currentParams = { ...DEFAULT_PARAMS, ...prev };
+            updateUndoButton();
+            syncUIFromParams();
+            rebuildScene();
+            showToast('Cambio deshecho');
+        }
+
+        function buildParameterControls() {
             document.querySelectorAll('.param-control').forEach(container => {
                 const key = container.dataset.key;
-                const unit = container.dataset.unit || 'mm';
+                const unit = container.dataset.unit || '';
                 const spec = PARAM_SPECS[key];
                 if (!spec) return;
 
                 container.innerHTML = `
-                    <div class="flex items-center justify-between text-xs mb-1">
-                        <label for="range-${key}" class="font-medium text-slate-700">${spec.label}</label>
+                    <div class="flex items-center justify-between text-xs">
+                        <label for="range_${key}" class="font-medium text-slate-700">${spec.label}</label>
                         <div class="flex items-center gap-1">
-                            <input type="number" id="num-${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${currentParams[key]}"
-                                class="w-16 text-right font-mono text-xs bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-800 focus:outline-none focus:border-orange-500 focus:bg-white">
-                            <span class="text-[11px] text-slate-400 w-5">${unit}</span>
+                            <input type="number" id="num_${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${currentParams[key]}"
+                                class="w-16 text-right font-mono-code text-xs bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-slate-800 focus:outline-none focus:border-orange-500">
+                            <span class="text-[11px] text-slate-400 w-6">${unit}</span>
                         </div>
                     </div>
-                    <input type="range" id="range-${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${currentParams[key]}"
-                        class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+                    <input type="range" id="range_${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${currentParams[key]}"
+                        class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer mt-1">
                 `;
 
-                const rangeInput = container.querySelector(`#range-${key}`);
-                const numInput = container.querySelector(`#num-${key}`);
+                const rangeEl = container.querySelector(`#range_${key}`);
+                const numEl = container.querySelector(`#num_${key}`);
 
-                rangeInput.addEventListener('pointerdown', () => pushUndoState());
-                rangeInput.addEventListener('input', e => {
+                let startedDrag = false;
+                rangeEl.addEventListener('pointerdown', () => {
+                    if (!startedDrag) {
+                        pushUndoState();
+                        startedDrag = true;
+                    }
+                });
+                rangeEl.addEventListener('pointerup', () => { startedDrag = false; });
+
+                rangeEl.addEventListener('input', e => {
                     const val = parseFloat(e.target.value);
-                    numInput.value = val;
+                    numEl.value = val;
                     updateParam(key, val, false);
                 });
 
-                numInput.addEventListener('focus', () => pushUndoState());
-                numInput.addEventListener('change', e => {
+                numEl.addEventListener('change', e => {
                     let val = parseFloat(e.target.value);
                     if (isNaN(val)) val = currentParams[key];
-                    val = Math.max(spec.min, Math.min(spec.max, val));
-                    numInput.value = val;
-                    rangeInput.value = val;
-                    updateParam(key, val, false);
+                    val = Math.min(spec.max, Math.max(spec.min, val));
+                    e.target.value = val;
+                    rangeEl.value = val;
+                    updateParam(key, val, true);
                 });
             });
+        }
 
-            // Slicer height slider
-            document.getElementById('sliceHeight').addEventListener('input', e => {
-                updateParam('sliceHeight', parseFloat(e.target.value), false);
+        function updateParam(key, value, recordUndo = true) {
+            if (recordUndo) pushUndoState();
+            currentParams[key] = value;
+            rebuildScene();
+        }
+
+        function applyBackgroundDarkness(darknessPct) {
+            const v = Math.round(255 * (1 - darknessPct / 100));
+            scene.background = new THREE.Color(`rgb(${v},${v},${v})`);
+            document.getElementById('bgDarknessVal').textContent = `${darknessPct}%`;
+
+            // Ajustar colores de rejilla para mantener contraste en blanco o negro
+            scene.remove(gridHelper);
+            const majorColor = darknessPct > 50 ? 0x475569 : 0x94a3b8;
+            const minorColor = darknessPct > 50 ? 0x1e293b : 0xe2e8f0;
+            gridHelper = new THREE.GridHelper(80, 40, majorColor, minorColor);
+            scene.add(gridHelper);
+        }
+
+        function syncUIFromParams() {
+            Object.keys(PARAM_SPECS).forEach(key => {
+                const r = document.getElementById(`range_${key}`);
+                const n = document.getElementById(`num_${key}`);
+                if (r && n) {
+                    r.value = currentParams[key];
+                    n.value = currentParams[key];
+                }
             });
 
-            // Líneas de capa 0.2 mm
-            document.getElementById('showLayerLines').addEventListener('change', e => {
-                updateParam('showLayerLines', e.target.checked, false);
+            const isPrint = currentParams.viewMode === 'print_bed';
+            document.getElementById('modePrintBedBtn').className = isPrint
+                ? 'py-1.5 px-2 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition'
+                : 'py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
+            document.getElementById('modeAssemblyBtn').className = !isPrint
+                ? 'py-1.5 px-2 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition'
+                : 'py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
+
+            document.getElementById('assemblyControls').classList.toggle('hidden', isPrint);
+            document.getElementById('previewAngle').value = currentParams.previewAngle;
+            document.getElementById('angleVal').textContent = `${currentParams.previewAngle}°`;
+            document.getElementById('explodeOffset').value = currentParams.explodeOffset;
+            document.getElementById('explodeVal').textContent = `${currentParams.explodeOffset.toFixed(1)} mm`;
+            document.getElementById('showDimensions').checked = currentParams.showDimensions;
+            document.getElementById('openRearSlot').checked = !!currentParams.openRearSlot;
+            document.getElementById('showLayerLines').checked = currentParams.showLayerLines;
+            document.getElementById('bgDarkness').value = currentParams.bgDarkness;
+            applyBackgroundDarkness(currentParams.bgDarkness);
+        }
+
+        function bindEvents() {
+            // Modo de vista
+            document.getElementById('modePrintBedBtn').addEventListener('click', () => {
+                if (currentParams.viewMode === 'print_bed') return;
+                pushUndoState();
+                currentParams.viewMode = 'print_bed';
+                syncUIFromParams();
+                rebuildScene();
             });
 
-            // Selector continuo oscuridad fondo 3D
-            document.getElementById('bgDarkness').addEventListener('input', e => {
-                const val = parseInt(e.target.value, 10);
-                currentParams.bgDarkness = val;
-                applyBackgroundDarkness(val);
-                saveToLocalStorage();
+            document.getElementById('modeAssemblyBtn').addEventListener('click', () => {
+                if (currentParams.viewMode === 'assembly') return;
+                pushUndoState();
+                currentParams.viewMode = 'assembly';
+                syncUIFromParams();
+                rebuildScene();
             });
 
-            // Ángulo giro bisagra
-            const angleSlider = document.getElementById('previewAngle');
-            angleSlider.addEventListener('pointerdown', () => pushUndoState());
-            angleSlider.addEventListener('input', e => {
-                const val = parseInt(e.target.value, 10);
-                document.getElementById('val-previewAngle').textContent = `${val}°`;
-                updateParam('previewAngle', val, false);
+            // Ángulo y vista explosionada
+            document.getElementById('previewAngle').addEventListener('input', e => {
+                currentParams.previewAngle = parseFloat(e.target.value);
+                document.getElementById('angleVal').textContent = `${currentParams.previewAngle}°`;
+                rebuildScene();
             });
 
-            // Separación explosiva
             document.getElementById('explodeOffset').addEventListener('input', e => {
-                updateParam('explodeOffset', parseFloat(e.target.value), false);
+                currentParams.explodeOffset = parseFloat(e.target.value);
+                document.getElementById('explodeVal').textContent = `${currentParams.explodeOffset.toFixed(1)} mm`;
+                rebuildScene();
+            });
+
+            // Corte Slicer
+            document.getElementById('sliceHeight').addEventListener('input', e => {
+                currentParams.sliceHeight = parseFloat(e.target.value);
+                const maxZ = parseFloat(e.target.max);
+                updateSlicerPlane(maxZ);
+                clearGroup(layerLinesGroup);
+                if (currentParams.showLayerLines) {
+                    buildLayerContourLines(maxZ);
+                }
+            });
+
+            // Líneas de capa
+            document.getElementById('showLayerLines').addEventListener('change', e => {
+                currentParams.showLayerLines = e.target.checked;
+                rebuildScene();
+            });
+
+            // Oscuridad de fondo
+            document.getElementById('bgDarkness').addEventListener('input', e => {
+                currentParams.bgDarkness = parseInt(e.target.value, 10);
+                applyBackgroundDarkness(currentParams.bgDarkness);
+                if (currentParams.showLayerLines) {
+                    clearGroup(layerLinesGroup);
+                    buildLayerContourLines(parseFloat(document.getElementById('sliceHeight').max));
+                }
             });
 
             // Cotas 3D
@@ -1204,197 +1401,125 @@
                 updateParam('showDimensions', e.target.checked, false);
             });
 
+            // Salida trasera abierta (ranura pasacables)
+            document.getElementById('openRearSlot').addEventListener('change', e => {
+                pushUndoState();
+                updateParam('openRearSlot', e.target.checked, false);
+            });
+
             // Botón colapsar/mostrar panel
-            const toggleBtn = document.getElementById('btn-toggle-panel');
-            const panel = document.getElementById('params-panel');
-            const toggleTxt = document.getElementById('txt-toggle-panel');
-            let panelOpen = true;
-
-            toggleBtn.addEventListener('click', () => {
-                panelOpen = !panelOpen;
-                if (panelOpen) {
-                    panel.classList.remove('-translate-x-[115%]', 'opacity-0', 'pointer-events-none');
-                    toggleTxt.textContent = 'Ocultar parámetros';
-                } else {
-                    panel.classList.add('-translate-x-[115%]', 'opacity-0', 'pointer-events-none');
-                    toggleTxt.textContent = 'Mostrar parámetros';
-                }
+            const sidebar = document.getElementById('paramsSidebar');
+            const toggleText = document.getElementById('togglePanelText');
+            document.getElementById('togglePanelBtn').addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+                const isHidden = sidebar.classList.contains('hidden');
+                toggleText.textContent = isHidden ? 'Mostrar Parámetros' : 'Ocultar Parámetros';
+                setTimeout(onWindowResize, 50);
             });
 
-            window.addEventListener('keydown', e => {
-                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-                    e.preventDefault();
-                    undoChange();
-                }
-            });
-        }
+            // Undo, Guardar Local, JSON y Exportar STL
+            document.getElementById('undoBtn').addEventListener('click', performUndo);
 
-        function setViewMode(mode) {
-            pushUndoState();
-            currentParams.viewMode = mode;
-            const btnPrint = document.getElementById('btn-view-print');
-            const btnAsm = document.getElementById('btn-view-assembly');
-
-            if (mode === 'print_bed') {
-                btnPrint.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-orange-600 text-white transition';
-                btnAsm.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-100 transition';
-                controls.target.set(0, 3, 0);
-            } else {
-                btnAsm.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-orange-600 text-white transition';
-                btnPrint.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-100 transition';
-                controls.target.set(0, 14, 0);
-            }
-            rebuildScene();
-            saveToLocalStorage();
-        }
-
-        function setCameraView(view) {
-            const ty = currentParams.viewMode === 'assembly' ? 14 : 3;
-            controls.target.set(0, ty, 0);
-            if (view === 'top') camera.position.set(0, ty + 68, 0.1);
-            else if (view === 'side') camera.position.set(65, ty + 4, 0);
-            else camera.position.set(46, ty + 36, 52);
-            controls.update();
-        }
-
-        function updateParam(key, value, syncUI = true) {
-            currentParams[key] = value;
-            if (syncUI) syncUIFromParams();
-            rebuildScene();
-            saveToLocalStorage();
-        }
-
-        function syncUIFromParams() {
-            Object.keys(PARAM_SPECS).forEach(key => {
-                const r = document.getElementById(`range-${key}`);
-                const n = document.getElementById(`num-${key}`);
-                if (r) r.value = currentParams[key];
-                if (n) n.value = currentParams[key];
-            });
-            document.getElementById('previewAngle').value = currentParams.previewAngle;
-            document.getElementById('val-previewAngle').textContent = `${currentParams.previewAngle}°`;
-            document.getElementById('explodeOffset').value = currentParams.explodeOffset;
-            document.getElementById('showDimensions').checked = currentParams.showDimensions;
-            document.getElementById('showLayerLines').checked = currentParams.showLayerLines;
-            document.getElementById('bgDarkness').value = currentParams.bgDarkness;
-            applyBackgroundDarkness(currentParams.bgDarkness);
-
-            const btnPrint = document.getElementById('btn-view-print');
-            const btnAsm = document.getElementById('btn-view-assembly');
-            if (currentParams.viewMode === 'print_bed') {
-                btnPrint.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-orange-600 text-white transition';
-                btnAsm.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-100 transition';
-            } else {
-                btnAsm.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-orange-600 text-white transition';
-                btnPrint.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-100 transition';
-            }
-        }
-
-        // --- Historial Undo (5 pasos) ---
-        function pushUndoState() {
-            const snap = JSON.stringify(currentParams);
-            if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snap) return;
-            undoStack.push(snap);
-            if (undoStack.length > MAX_UNDO) undoStack.shift();
-            updateUndoUI();
-        }
-
-        function undoChange() {
-            if (undoStack.length === 0) return;
-            currentParams = { ...DEFAULT_PARAMS, ...JSON.parse(undoStack.pop()) };
-            syncUIFromParams();
-            rebuildScene();
-            saveToLocalStorage();
-            updateUndoUI();
-            showToast('Cambio deshecho');
-        }
-
-        function updateUndoUI() {
-            const btn = document.getElementById('btn-undo');
-            document.getElementById('txt-undo').textContent = `Deshacer (${undoStack.length}/${MAX_UNDO})`;
-            btn.disabled = undoStack.length === 0;
-        }
-
-        // --- Persistencia LocalStorage y JSON ---
-        function saveToLocalStorage() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(currentParams));
-            } catch (e) {}
-        }
-
-        function loadFromLocalStorage() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (raw) currentParams = { ...DEFAULT_PARAMS, ...JSON.parse(raw) };
-            } catch (e) {}
-        }
-
-        function exportJSON() {
-            const blob = new Blob([JSON.stringify(currentParams, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `parametros_xiaomi_usb_horquilla_${currentParams.forkWidth.toFixed(1)}mm.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Parámetros exportados a .JSON');
-        }
-
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = e => {
+            document.getElementById('saveLocalBtn').addEventListener('click', () => {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    pushUndoState();
-                    currentParams = { ...DEFAULT_PARAMS, ...data };
-                    syncUIFromParams();
-                    rebuildScene();
-                    saveToLocalStorage();
-                    showToast('Parámetros importados correctamente');
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentParams));
+                    showToast('Parámetros guardados localmente');
                 } catch (err) {
-                    showToast('Error: Archivo .JSON inválido');
+                    showToast('Error al guardar en LocalStorage');
                 }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
+            });
+
+            document.getElementById('exportJsonBtn').addEventListener('click', () => {
+                const blob = new Blob([JSON.stringify(currentParams, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'xiaomi_usb_adapter_params.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Archivo JSON descargado');
+            });
+
+            document.getElementById('importJsonInput').addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        pushUndoState();
+                        currentParams = { ...DEFAULT_PARAMS, ...imported };
+                        syncUIFromParams();
+                        rebuildScene();
+                        showToast('Parámetros importados desde JSON');
+                    } catch (err) {
+                        showToast('JSON no válido');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            });
+
+            document.getElementById('resetDefaultsBtn').addEventListener('click', () => {
+                pushUndoState();
+                currentParams = { ...DEFAULT_PARAMS };
+                syncUIFromParams();
+                rebuildScene();
+                showToast('Valores restaurados');
+            });
+
+            document.getElementById('exportStlBtn').addEventListener('click', exportBinarySTL);
+
+            // Vistas rápidas de cámara
+            document.getElementById('camIsoBtn').addEventListener('click', () => {
+                camera.position.set(34, 30, 38);
+                controls.target.set(0, 4, 0);
+            });
+            document.getElementById('camTopBtn').addEventListener('click', () => {
+                camera.position.set(0, 56, 0.01);
+                controls.target.set(0, 0, 0);
+            });
+            document.getElementById('camSideBtn').addEventListener('click', () => {
+                camera.position.set(52, 10, 0);
+                controls.target.set(0, 6, 0);
+            });
+
+            window.addEventListener('resize', onWindowResize);
         }
 
-        function resetDefaults() {
-            pushUndoState();
-            currentParams = { ...DEFAULT_PARAMS };
-            syncUIFromParams();
-            rebuildScene();
-            saveToLocalStorage();
-            showToast('Valores restaurados por defecto');
+        function onWindowResize() {
+            const container = document.getElementById('viewportContainer');
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
         }
 
-        let toastTimer;
-        function showToast(msg) {
-            const toast = document.getElementById('toast-notification');
-            document.getElementById('toast-message').textContent = msg;
-            toast.classList.remove('opacity-0');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => toast.classList.add('opacity-0'), 2800);
-        }
-
-        // ============================================================================
-        // 8. BUCLE DE RENDERIZADO
-        // ============================================================================
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+            update3DLabels();
             renderer.render(scene, camera);
         }
 
+        // =========================================================================
+        // 8. INICIALIZACIÓN EN WINDOW.ONLOAD
+        // =========================================================================
         window.onload = function () {
-            loadFromLocalStorage();
-            initThreeJS();
-            buildUIControls();
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    currentParams = { ...DEFAULT_PARAMS, ...JSON.parse(saved) };
+                }
+            } catch (e) {
+                console.warn('No se pudo leer LocalStorage:', e);
+            }
+
+            buildParameterControls();
+            bindEvents();
             syncUIFromParams();
+            onWindowResize();
             rebuildScene();
             animate();
         };
