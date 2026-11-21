@@ -147,18 +147,29 @@
                 <div class="param-control" data-key="pinDiaLeft" data-unit="mm"></div>
                 <div class="param-control" data-key="pinDiaRight" data-unit="mm"></div>
                 <div class="param-control" data-key="pinLen" data-unit="mm"></div>
+                <div class="param-control" data-key="rearPivotLength" data-unit="mm"></div>
                 <div class="param-control" data-key="rearRadius" data-unit="mm"></div>
             </section>
 
-            <!-- SECCIÓN 2: ALOJAMIENTO CUERPO USB SUSTITUTO (15x7x10 mm) -->
+            <!-- SECCIÓN 1B: ENCAJE DE EJES EN TAPA SUPERIOR -->
             <section class="space-y-3">
                 <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
-                    2. Alojamiento Conector USB (15×7×10.5 mm)
+                    1B. Rebaje / Encaje de Ejes en Tapa Superior
+                </h2>
+                <div class="param-control" data-key="pinSlotWidthLeft" data-unit="mm"></div>
+                <div class="param-control" data-key="pinSlotDepthLeft" data-unit="mm"></div>
+                <div class="param-control" data-key="pinSlotWidthRight" data-unit="mm"></div>
+                <div class="param-control" data-key="pinSlotDepthRight" data-unit="mm"></div>
+            </section>
+
+            <!-- SECCIÓN 2: ALOJAMIENTO CUERPO USB SUSTITUTO (MEDIA LONGITUD, SIN RETENCIÓN FRONTAL) -->
+            <section class="space-y-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
+                    2. Alojamiento Cuerpo USB (Abierto Frontal)
                 </h2>
                 <div class="param-control" data-key="usbBodyWidth" data-unit="mm"></div>
                 <div class="param-control" data-key="usbBodyHeight" data-unit="mm"></div>
                 <div class="param-control" data-key="usbBodyLength" data-unit="mm"></div>
-                <div class="param-control" data-key="frontLip" data-unit="mm"></div>
             </section>
 
             <!-- SECCIÓN 3: ALOJAMIENTO PROTECTOR CILÍNDRICO DE CABLE (Ø5x8 mm) -->
@@ -293,13 +304,19 @@
             pinDiaLeft: 3.2,        // Diámetro pivote giro izquierdo (-X) (mm)
             pinDiaRight: 3.2,       // Diámetro pivote giro derecho (+X) (mm)
             pinLen: 2.2,            // Longitud de cada pivote lateral (mm)
-            rearRadius: 5.2,        // Radio exterior zona trasera de giro (mm)
+            rearPivotLength: 3.2,   // Largo pared trasera desde el borde posterior hasta inicio cilindro cable (mm)
+            rearRadius: 3.5,        // Radio giro trasero / avance eje pivote (límite inferior 1.0 mm)
 
-            // Alojamiento cuerpo USB sustituto (15 x 7 x 10.5 mm)
+            // Parámetros independientes de encaje/rebaje de cada eje en la tapa superior
+            pinSlotWidthLeft: 4.2,  // Anchura longitudinal (Z) del rebaje eje izquierdo (-X) en tapa superior (mm)
+            pinSlotDepthLeft: 1.4,  // Profundidad lateral (X) del rebaje eje izquierdo (-X) en tapa superior (mm)
+            pinSlotWidthRight: 4.2, // Anchura longitudinal (Z) del rebaje eje derecho (+X) en tapa superior (mm)
+            pinSlotDepthRight: 1.4, // Profundidad lateral (X) del rebaje eje derecho (+X) en tapa superior (mm)
+
+            // Alojamiento cuerpo USB sustituto (media longitud ~5.5 mm, abierto delante sin retención)
             usbBodyWidth: 15.0,     // Ancho cavidad cuerpo USB (mm)
             usbBodyHeight: 7.0,     // Alto cavidad cuerpo USB (mm)
-            usbBodyLength: 10.5,    // Largo cavidad cuerpo USB (mm)
-            frontLip: 1.5,          // Tope/labio frontal de retención de la clavija USB (mm)
+            usbBodyLength: 5.5,     // Largo carcasa que cubre solo la mitad trasera del cuerpo USB (mm)
 
             // Alojamiento protector cilíndrico de cable (Ø 5 x 8 mm)
             strainDia: 5.0,         // Diámetro cavidad protector cilíndrico del cable (mm)
@@ -323,27 +340,32 @@
         };
 
         const PARAM_SPECS = {
-            forkWidth:      { label: 'Ancho de horquilla Xiaomi', min: 1.0,  max: 26.0, step: 0.2 },
-            pinDiaLeft:     { label: 'Diámetro pivote izq. (-X)', min: 1.5,  max: 8.0,  step: 0.1 },
-            pinDiaRight:    { label: 'Diámetro pivote der. (+X)', min: 1.5,  max: 8.0,  step: 0.1 },
-            pinLen:         { label: 'Longitud cada pivote',      min: 1.0,  max: 4.5,  step: 0.1 },
-            rearRadius:     { label: 'Radio giro trasero',        min: 4.0,  max: 8.5,  step: 0.1 },
+            forkWidth:       { label: 'Ancho de horquilla Xiaomi', min: 1.0,  max: 26.0, step: 0.2 },
+            pinDiaLeft:      { label: 'Diámetro pivote izq. (-X)', min: 1.5,  max: 8.0,  step: 0.1 },
+            pinDiaRight:     { label: 'Diámetro pivote der. (+X)', min: 1.5,  max: 8.0,  step: 0.1 },
+            pinLen:          { label: 'Longitud cada pivote',      min: 1.0,  max: 4.5,  step: 0.1 },
+            rearPivotLength: { label: 'Largo zona pivotes (acortar)', min: 1.0, max: 10.0, step: 0.1 },
+            rearRadius:      { label: 'Radio giro trasero',        min: 1.0,  max: 8.5,  step: 0.1 },
 
-            usbBodyWidth:   { label: 'Ancho cuerpo USB',          min: 12.0, max: 20.0, step: 0.1 },
-            usbBodyHeight:  { label: 'Alto cuerpo USB',           min: 4.5,  max: 12.0, step: 0.1 },
-            usbBodyLength:  { label: 'Largo cuerpo USB',          min: 8.0,  max: 20.0, step: 0.1 },
-            frontLip:       { label: 'Tope retención frontal',    min: 0.8,  max: 3.5,  step: 0.1 },
+            pinSlotWidthLeft:  { label: 'Ancho encaje eje izq. (-X)', min: 1.5, max: 10.0, step: 0.1 },
+            pinSlotDepthLeft:  { label: 'Prof. encaje eje izq. (-X)', min: 0.0, max: 4.5,  step: 0.1 },
+            pinSlotWidthRight: { label: 'Ancho encaje eje der. (+X)', min: 1.5, max: 10.0, step: 0.1 },
+            pinSlotDepthRight: { label: 'Prof. encaje eje der. (+X)', min: 0.0, max: 4.5,  step: 0.1 },
 
-            strainDia:      { label: 'Diámetro cilindro cable',   min: 3.5,  max: 8.0,  step: 0.1 },
-            strainLength:   { label: 'Largo cilindro cable',      min: 4.0,  max: 15.0, step: 0.1 },
-            cableExitDia:   { label: 'Paso/hueco cable trasero',  min: 2.2,  max: 7.5,  step: 0.1 },
+            usbBodyWidth:    { label: 'Ancho cuerpo USB',          min: 12.0, max: 20.0, step: 0.1 },
+            usbBodyHeight:   { label: 'Alto cuerpo USB',           min: 4.5,  max: 12.0, step: 0.1 },
+            usbBodyLength:   { label: 'Largo cobertura cuerpo USB', min: 3.0, max: 16.0, step: 0.1 },
 
-            wallThickness:  { label: 'Espesor de pared',          min: 1.2,  max: 3.2,  step: 0.1 },
-            fdmTolerance:   { label: 'Tolerancia FDM',            min: 0.05, max: 0.50, step: 0.05 },
-            clipSnapDepth:  { label: 'Enganche clip lateral',     min: 0.25, max: 1.00, step: 0.05 }
+            strainDia:       { label: 'Diámetro cilindro cable',   min: 3.5,  max: 8.0,  step: 0.1 },
+            strainLength:    { label: 'Largo cilindro cable',      min: 4.0,  max: 15.0, step: 0.1 },
+            cableExitDia:    { label: 'Paso/hueco cable trasero',  min: 2.2,  max: 7.5,  step: 0.1 },
+
+            wallThickness:   { label: 'Espesor de pared',          min: 1.2,  max: 3.2,  step: 0.1 },
+            fdmTolerance:    { label: 'Tolerancia FDM',            min: 0.05, max: 0.50, step: 0.05 },
+            clipSnapDepth:   { label: 'Enganche clip lateral',     min: 0.25, max: 1.00, step: 0.05 }
         };
 
-        const STORAGE_KEY = 'xiaomi_repeater2_usb_2piece_cad_v5';
+        const STORAGE_KEY = 'xiaomi_repeater2_usb_2piece_cad_v6';
         let currentParams = { ...DEFAULT_PARAMS };
         let undoStack = []; // Historial de hasta 5 estados anteriores
 
@@ -455,15 +477,11 @@
             // 1. Dimensiones interiores de cavidades incluyendo tolerancia FDM
             const cavUsbW = p.usbBodyWidth + tol;     // 15.0 + 0.25 = 15.25 mm
             const cavUsbH = p.usbBodyHeight + tol;    // 7.0 + 0.25 = 7.25 mm
-            const cavUsbL = p.usbBodyLength + tol;    // 10.5 + 0.25 = 10.75 mm
+            const cavUsbL = p.usbBodyLength + tol;    // ~5.5 + 0.25 = 5.75 mm (cubre mitad cuerpo USB, frontal abierto)
 
             const cavStrainR = (p.strainDia + tol) / 2; // (5.0 + 0.25)/2 = 2.625 mm
             const cavStrainL = p.strainLength + tol;    // 8.0 + 0.25 = 8.25 mm
             const cavExitR = Math.min((p.cableExitDia + tol) / 2, cavStrainR);
-
-            // Apertura frontal para que pase la clavija metálica USB-A (12.0 x 4.5 mm + holgura)
-            const plugOpeningW = Math.min(cavUsbW - 1.6, 12.6 + tol);
-            const plugOpeningH = Math.min(cavUsbH - 1.4, 5.0 + tol);
 
             // 2. Anchos exteriores adaptativos (Horquilla trasera vs Carcasa delantera USB)
             const frontOuterW = cavUsbW + wall * 2;
@@ -478,13 +496,15 @@
             const halfH = outerH / 2;
 
             // 3. Coordenadas longitudinales en Z (Eje de giro pivotes en Z = 0)
-            const rearEndZ = -Math.max(p.rearRadius, halfH);
-            const exitWallL = Math.max(1.8, Math.abs(rearEndZ) - cavStrainL * 0.35);
+            // rearRadius define el radio de giro trasero (cuánto sobresale hacia atrás respecto al eje Z=0)
+            // rearPivotLength define lo corta o larga que es la sección trasera de los pivotes
+            const rearEndZ = -Math.max(1.0, p.rearRadius);
+            const exitWallL = Math.max(1.0, p.rearPivotLength);
             const strainStartZ = rearEndZ + exitWallL;
             const strainEndZ = strainStartZ + cavStrainL;
             const usbStartZ = strainEndZ;
             const usbEndZ = usbStartZ + cavUsbL;
-            const frontEndZ = usbEndZ + p.frontLip;
+            const frontEndZ = usbEndZ; // Sin retención frontal: el cuerpo USB y conector sobresalen libremente hacia delante
 
             const rearZoneLenZ = strainEndZ - rearEndZ;
             const rearZoneCenterZ = (rearEndZ + strainEndZ) / 2;
@@ -524,7 +544,7 @@
             baseFrontFloor.translate(0, -halfH + floorH / 2, frontZoneCenterZ);
             baseParts.push(baseFrontFloor);
 
-            // B) Paredes laterales de la zona Cuerpo USB (desde usbStartZ hasta usbEndZ)
+            // B) Paredes laterales de la zona Cuerpo USB (desde usbStartZ hasta usbEndZ, frontal abierto sin labio)
             const sideWallW = (effectiveFrontW - cavUsbW) / 2;
             [-1, 1].forEach(side => {
                 const sideWall = new THREE.BoxGeometry(sideWallW, halfCavUsbH, cavUsbL);
@@ -532,21 +552,7 @@
                 baseParts.push(sideWall);
             });
 
-            // C) Tope/Labio frontal inferior (desde usbEndZ hasta frontEndZ)
-            const lipSideW = (effectiveFrontW - plugOpeningW) / 2;
-            const lipFloorH = halfH - plugOpeningH / 2;
-
-            const frontLipBottom = new THREE.BoxGeometry(effectiveFrontW, lipFloorH - floorH, p.frontLip);
-            frontLipBottom.translate(0, -halfH + floorH + (lipFloorH - floorH) / 2, usbEndZ + p.frontLip / 2);
-            baseParts.push(frontLipBottom);
-
-            [-1, 1].forEach(side => {
-                const lipSide = new THREE.BoxGeometry(lipSideW, plugOpeningH / 2, p.frontLip);
-                lipSide.translate(side * (plugOpeningW / 2 + lipSideW / 2), -plugOpeningH / 4, usbEndZ + p.frontLip / 2);
-                baseParts.push(lipSide);
-            });
-
-            // D) Bloque inferior alojamiento protector cilíndrico (desde strainStartZ hasta strainEndZ)
+            // C) Bloque inferior alojamiento protector cilíndrico (desde strainStartZ hasta strainEndZ)
             // Semicírculo inferior (Y <= 0) para alojar la mitad inferior del protector de cable Ø5 mm
             const strainBlockShape = new THREE.Shape();
             strainBlockShape.moveTo(-hwRear, 0);
@@ -565,10 +571,9 @@
             strainExtrude.translate(0, 0, strainStartZ);
             baseParts.push(strainExtrude);
 
-            // E) Pared trasera inferior con hueco para el cable (desde rearEndZ hasta strainStartZ)
+            // D) Pared trasera inferior con hueco para el cable (desde rearEndZ hasta strainStartZ)
             const exitBlockShape = new THREE.Shape();
             if (p.openRearSlot) {
-                // Ranura rectangular abierta hacia abajo/atrás para pasar el cable sin enhebrarlo
                 exitBlockShape.moveTo(-hwRear, 0);
                 exitBlockShape.lineTo(-rExit, 0);
                 exitBlockShape.lineTo(-rExit, -halfCavUsbH);
@@ -590,7 +595,6 @@
                 exitRight.translate(0, 0, rearEndZ);
                 baseParts.push(exitRight);
             } else {
-                // Semicírculo inferior (Y <= 0) que junto al semicírculo superior de la Tapa forma el túnel circular del cable
                 exitBlockShape.moveTo(-hwRear, 0);
                 exitBlockShape.lineTo(-rExit, 0);
                 exitBlockShape.absarc(0, 0, rExit, Math.PI, 0, false); // Arco hacia -Y (mitad inferior del túnel)
@@ -608,7 +612,7 @@
                 baseParts.push(exitExtrude);
             }
 
-            // F) Pivotes de giro laterales independientes en Z = 0, Y = 0 (izquierdo -X y derecho +X)
+            // E) Pivotes de giro laterales independientes en Z = 0, Y = 0 (izquierdo -X y derecho +X)
             const pinSpecs = [
                 { side: -1, dia: p.pinDiaLeft },
                 { side: 1,  dia: p.pinDiaRight }
@@ -635,7 +639,7 @@
                 baseParts.push(tip);
             });
 
-            // G) Pestañas machihembradas de encaje en la Base (sobresalen hacia arriba Y > 0 en paredes USB)
+            // F) Pestañas machihembradas de encaje en la Base (sobresalen hacia arriba Y > 0 en paredes USB)
             const clipW = Math.min(0.65, sideWallW * 0.42);
             const clipH = Math.max(0.6, p.clipSnapDepth);
             const clipL = cavUsbL * 0.65;
@@ -654,7 +658,7 @@
             // =========================================================================
             const lidParts = [];
 
-            // A1) Techo superior zona trasera (si openRearSlot=true, deja canal abierto también en techo trasero)
+            // A1) Techo superior zona trasera
             if (p.openRearSlot) {
                 const slotWallW = Math.max(0.8, hwRear - rExit);
                 [-1, 1].forEach(side => {
@@ -676,7 +680,7 @@
             lidFrontRoof.translate(0, halfH - floorH / 2, frontZoneCenterZ);
             lidParts.push(lidFrontRoof);
 
-            // B) Paredes laterales superiores zona Cuerpo USB (con ranura hembra para pestaña Base)
+            // B) Paredes laterales superiores zona Cuerpo USB (frontal abierto, sin labio de retención)
             const grooveClearance = tol * 0.6;
             const grooveW = clipW + grooveClearance;
             const grooveH = clipH + grooveClearance * 0.5;
@@ -713,75 +717,105 @@
                 }
             });
 
-            // C) Tope/Labio frontal superior
-            const lidFrontLipTop = new THREE.BoxGeometry(effectiveFrontW, lipFloorH - floorH, p.frontLip);
-            lidFrontLipTop.translate(0, halfH - floorH - (lipFloorH - floorH) / 2, usbEndZ + p.frontLip / 2);
-            lidParts.push(lidFrontLipTop);
+            // C) Semicilindro superior del protector de cable (Y >= 0, arco hacia +Y)
+            // D) Pared trasera superior con hueco para el cable Y rebajes laterales independientes para encajar sobre los pivotes (Z = 0)
+            // Cada lado (-X izquierdo y +X derecho) se construye con su propio ancho y profundidad de encaje
+            const maxLateralWall = Math.max(0.2, hwRear - rExit - 0.25);
+            const leftNotchD  = Math.min(maxLateralWall, Math.max(0, p.pinSlotDepthLeft));
+            const rightNotchD = Math.min(maxLateralWall, Math.max(0, p.pinSlotDepthRight));
 
-            [-1, 1].forEach(side => {
-                const lidLipSide = new THREE.BoxGeometry(lipSideW, plugOpeningH / 2, p.frontLip);
-                lidLipSide.translate(side * (plugOpeningW / 2 + lipSideW / 2), plugOpeningH / 4, usbEndZ + p.frontLip / 2);
-                lidParts.push(lidLipSide);
+            const leftHalfW  = (p.pinSlotWidthLeft + tol) / 2;
+            const rightHalfW = (p.pinSlotWidthRight + tol) / 2;
+
+            // Puntos de corte longitudinales Z en la zona trasera para cada lado
+            const zBreaksSet = new Set([rearEndZ, strainStartZ]);
+            [-leftHalfW, leftHalfW, -rightHalfW, rightHalfW].forEach(zVal => {
+                if (zVal > rearEndZ + 0.05 && zVal < strainStartZ - 0.05) {
+                    zBreaksSet.add(zVal);
+                }
             });
+            const zBreaks = Array.from(zBreaksSet).sort((a, b) => a - b);
 
-            // D) Semicilindro superior del protector de cable (Y >= 0, arco hacia +Y)
-            const lidStrainShape = new THREE.Shape();
-            lidStrainShape.moveTo(-hwRear, 0);
-            lidStrainShape.lineTo(-hwRear, halfCavUsbH);
-            lidStrainShape.lineTo(hwRear, halfCavUsbH);
-            lidStrainShape.lineTo(hwRear, 0);
-            lidStrainShape.lineTo(rStrain, 0);
-            lidStrainShape.absarc(0, 0, rStrain, 0, Math.PI, false); // Arco hacia +Y (hueco semicircular arriba)
-            lidStrainShape.closePath();
+            function addLidRearSegment(z0, z1) {
+                const segLen = z1 - z0;
+                if (segLen <= 0.04) return;
+                const zMid = (z0 + z1) / 2;
 
-            const lidStrainExtrude = new THREE.ExtrudeGeometry(lidStrainShape, {
-                depth: cavStrainL,
-                bevelEnabled: false,
-                curveSegments: 28
-            });
-            lidStrainExtrude.translate(0, 0, strainStartZ);
-            lidParts.push(lidStrainExtrude);
+                const notchLeftActive  = leftNotchD > 0.05 && Math.abs(zMid) <= leftHalfW;
+                const notchRightActive = rightNotchD > 0.05 && Math.abs(zMid) <= rightHalfW;
 
-            // E) Pared trasera superior con hueco para el cable (Y >= 0)
-            if (p.openRearSlot) {
-                const lidExitLeftShape = new THREE.Shape();
-                lidExitLeftShape.moveTo(-hwRear, 0);
-                lidExitLeftShape.lineTo(-hwRear, halfCavUsbH);
-                lidExitLeftShape.lineTo(-rExit, halfCavUsbH);
-                lidExitLeftShape.lineTo(-rExit, 0);
-                lidExitLeftShape.closePath();
+                const curLeftD  = notchLeftActive ? leftNotchD : 0;
+                const curRightD = notchRightActive ? rightNotchD : 0;
 
-                const lidExitLeft = new THREE.ExtrudeGeometry(lidExitLeftShape, { depth: exitWallL, bevelEnabled: false });
-                lidExitLeft.translate(0, 0, rearEndZ);
-                lidParts.push(lidExitLeft);
+                const leftEdge  = -(hwRear - curLeftD);
+                const rightEdge =  (hwRear - curRightD);
 
-                const lidExitRightShape = new THREE.Shape();
-                lidExitRightShape.moveTo(rExit, 0);
-                lidExitRightShape.lineTo(rExit, halfCavUsbH);
-                lidExitRightShape.lineTo(hwRear, halfCavUsbH);
-                lidExitRightShape.lineTo(hwRear, 0);
-                lidExitRightShape.closePath();
+                if (p.openRearSlot) {
+                    const lidExitLeftShape = new THREE.Shape();
+                    lidExitLeftShape.moveTo(leftEdge, 0);
+                    lidExitLeftShape.lineTo(leftEdge, halfCavUsbH);
+                    lidExitLeftShape.lineTo(-rExit, halfCavUsbH);
+                    lidExitLeftShape.lineTo(-rExit, 0);
+                    lidExitLeftShape.closePath();
 
-                const lidExitRight = new THREE.ExtrudeGeometry(lidExitRightShape, { depth: exitWallL, bevelEnabled: false });
-                lidExitRight.translate(0, 0, rearEndZ);
-                lidParts.push(lidExitRight);
-            } else {
-                const lidExitShape = new THREE.Shape();
-                lidExitShape.moveTo(-hwRear, 0);
-                lidExitShape.lineTo(-hwRear, halfCavUsbH);
-                lidExitShape.lineTo(hwRear, halfCavUsbH);
-                lidExitShape.lineTo(hwRear, 0);
-                lidExitShape.lineTo(rExit, 0);
-                lidExitShape.absarc(0, 0, rExit, 0, Math.PI, false); // Arco hacia +Y (mitad superior del túnel)
-                lidExitShape.closePath();
+                    const lidExitLeft = new THREE.ExtrudeGeometry(lidExitLeftShape, { depth: segLen, bevelEnabled: false });
+                    lidExitLeft.translate(0, 0, z0);
+                    lidParts.push(lidExitLeft);
 
-                const lidExitExtrude = new THREE.ExtrudeGeometry(lidExitShape, {
-                    depth: exitWallL,
-                    bevelEnabled: false,
-                    curveSegments: 24
-                });
-                lidExitExtrude.translate(0, 0, rearEndZ);
-                lidParts.push(lidExitExtrude);
+                    const lidExitRightShape = new THREE.Shape();
+                    lidExitRightShape.moveTo(rExit, 0);
+                    lidExitRightShape.lineTo(rExit, halfCavUsbH);
+                    lidExitRightShape.lineTo(rightEdge, halfCavUsbH);
+                    lidExitRightShape.lineTo(rightEdge, 0);
+                    lidExitRightShape.closePath();
+
+                    const lidExitRight = new THREE.ExtrudeGeometry(lidExitRightShape, { depth: segLen, bevelEnabled: false });
+                    lidExitRight.translate(0, 0, z0);
+                    lidParts.push(lidExitRight);
+                } else {
+                    const lidExitShape = new THREE.Shape();
+                    lidExitShape.moveTo(leftEdge, 0);
+                    lidExitShape.lineTo(leftEdge, halfCavUsbH);
+                    lidExitShape.lineTo(rightEdge, halfCavUsbH);
+                    lidExitShape.lineTo(rightEdge, 0);
+                    lidExitShape.lineTo(rExit, 0);
+                    lidExitShape.absarc(0, 0, rExit, 0, Math.PI, false);
+                    lidExitShape.closePath();
+
+                    const lidExitExtrude = new THREE.ExtrudeGeometry(lidExitShape, {
+                        depth: segLen,
+                        bevelEnabled: false,
+                        curveSegments: 24
+                    });
+                    lidExitExtrude.translate(0, 0, z0);
+                    lidParts.push(lidExitExtrude);
+                }
+
+                // Puente superior sobre el rebaje izquierdo (-X) dejando libre la altura del eje izquierdo
+                if (curLeftD > 0.05) {
+                    const leftBridgeStartY = Math.min(halfCavUsbH - 0.3, p.pinDiaLeft / 2 + tol * 0.6);
+                    const leftBridgeH = halfCavUsbH - leftBridgeStartY;
+                    if (leftBridgeH > 0.2) {
+                        const bridgeL = new THREE.BoxGeometry(curLeftD, leftBridgeH, segLen);
+                        bridgeL.translate(-(hwRear - curLeftD / 2), leftBridgeStartY + leftBridgeH / 2, zMid);
+                        lidParts.push(bridgeL);
+                    }
+                }
+
+                // Puente superior sobre el rebaje derecho (+X) dejando libre la altura del eje derecho
+                if (curRightD > 0.05) {
+                    const rightBridgeStartY = Math.min(halfCavUsbH - 0.3, p.pinDiaRight / 2 + tol * 0.6);
+                    const rightBridgeH = halfCavUsbH - rightBridgeStartY;
+                    if (rightBridgeH > 0.2) {
+                        const bridgeR = new THREE.BoxGeometry(curRightD, rightBridgeH, segLen);
+                        bridgeR.translate(hwRear - curRightD / 2, rightBridgeStartY + rightBridgeH / 2, zMid);
+                        lidParts.push(bridgeR);
+                    }
+                }
+            }
+
+            for (let i = 0; i < zBreaks.length - 1; i++) {
+                addLidRearSegment(zBreaks[i], zBreaks[i + 1]);
             }
 
             // Fusionar subpartes en dos geometrías limpias y estancas
@@ -934,12 +968,13 @@
                 roughness: 0.25
             });
 
-            // Cuerpo sobremoldeado USB (15 x 7 x 10.5 mm)
+            // Cuerpo sobremoldeado completo real (~10.5 mm) sobresaliendo por el frente abierto
+            const fullUsbBodyRealLen = Math.max(10.5, p.usbBodyLength);
             const body = new THREE.Mesh(
-                new THREE.BoxGeometry(p.usbBodyWidth, p.usbBodyHeight, p.usbBodyLength),
+                new THREE.BoxGeometry(p.usbBodyWidth, p.usbBodyHeight, fullUsbBodyRealLen),
                 matBody
             );
-            body.position.set(0, 0, m.usbStartZ + m.cavUsbL / 2);
+            body.position.set(0, 0, m.usbStartZ + fullUsbBodyRealLen / 2);
             grp.add(body);
 
             // Protector cilíndrico del cable (Ø 5 x 8 mm)
@@ -960,12 +995,12 @@
             cable.position.set(0, 0, m.rearEndZ - 3.5);
             grp.add(cable);
 
-            // Clavija metálica USB-A delantera (12 x 4.5 x 12 mm)
+            // Clavija metálica USB-A delantera (12 x 4.5 x 12 mm) al final del cuerpo sobremoldeado real
             const plug = new THREE.Mesh(
                 new THREE.BoxGeometry(12.0, 4.5, 12.0),
                 matMetal
             );
-            plug.position.set(0, 0, m.frontEndZ + 5.8);
+            plug.position.set(0, 0, m.usbStartZ + fullUsbBodyRealLen + 5.8);
             grp.add(plug);
 
             return grp;
